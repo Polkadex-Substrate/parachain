@@ -1,1 +1,1 @@
-./target/release/parachain-collator build-spec --chain rococo-local-parachain-plain.json --raw --disable-default-bootnode > rococo-local-parachain-2000-raw.json
+./target/release/parachain-collator build-spec --chain polkadot-parachain-plain.json --raw --disable-default-bootnode > polkadot-parachain-raw.json

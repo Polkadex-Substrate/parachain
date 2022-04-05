@@ -1,1 +1,1 @@
-./target/release/parachain-collator export-genesis-wasm --chain rococo-local-parachain-2000-raw.json > para-2000-wasm
+./target/release/parachain-collator export-genesis-wasm --chain polkadot-parachain-raw.json > para-polkadot-wasm
