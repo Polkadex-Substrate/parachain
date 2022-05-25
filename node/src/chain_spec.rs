@@ -71,7 +71,7 @@ pub fn development_config() -> ChainSpec {
 
 	ChainSpec::from_genesis(
 		// Name
-		"Development",
+		"Parachain Development",
 		// ID
 		"dev",
 		ChainType::Development,
@@ -132,7 +132,7 @@ pub fn mainnet_config() -> ChainSpec {
 	let initial_collator_aura_id: AuraId = hex!["f27b16d1059ea3cf4ed15a5ef18bc8c5c662e1abe82d96cf6f57c50af95e056e"].unchecked_into();
 	ChainSpec::from_genesis(
 		// Name
-		"Parachain",
+		"Polkadex Parachain",
 		// ID
 		"parachain_live",
 		ChainType::Live,
@@ -181,7 +181,7 @@ pub fn local_testnet_config() -> ChainSpec {
 	let root_key: AccountId = hex!["70a5f4e786b47baf52d5a34742bb8312139cfe1c747fbeb3912c197d38c53332"].into();
 	ChainSpec::from_genesis(
 		// Name
-		"Local Testnet",
+		"Polkadex Parachain Testnet",
 		// ID
 		"local_testnet",
 		ChainType::Local,
