@@ -1,0 +1,15 @@
+[Unit]
+Description=Polkadex Parachain
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+ExecStart=/home/ubuntu/parachain-collator --collator --chain /home/ubuntu/polkadot-parachain-raw.json --base-path /home/ubuntu/parachain --port 40333 --ws-port 8844 -- --execution wasm --chain /home/ubuntu/polkadot.json --port 30343 --ws-port 9977
+#For fullnode
+#ExecStart=/home/ubuntu/parachain-collator --base-path /home/ubuntu/parachain/fullnode --bootnodes <Your first collator> --ws-port 8844 --port 40333 --parachain-id 2040 -- --chain /home/ubuntu/polkadot.json
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
