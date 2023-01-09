@@ -134,7 +134,7 @@ impl WeightToFeePolynomial for WeightToFee {
 	type Balance = Balance;
 	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
 		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
-		// in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
+		// in our xcm-handler, we map to 1/10 of that, or 1/10 MILLIUNIT
 		let p = MILLIUNIT / 10;
 		let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
 		smallvec![WeightToFeeCoefficient {
@@ -462,6 +462,15 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 }
 
+parameter_types! {
+	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
+}
+
+impl xcm_handler::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type AssetHandlerPalletId = AssetHandlerPalletId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -494,7 +503,7 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
-		// Template
+		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>}  = 40,
 
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
 

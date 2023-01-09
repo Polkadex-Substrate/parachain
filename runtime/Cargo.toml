@@ -70,6 +70,9 @@ cumulus-primitives-utility = { workspace = true, default-features = false }
 pallet-collator-selection = { workspace = true, default-features = false }
 parachain-info = { workspace = true, default-features = false }
 
+# Local
+xcm-handler = { path = "../pallets/xcm-handler", default-features = false }
+
 [features]
 default = [
 	"std",
@@ -117,6 +120,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"xcm-handler/std"
 ]
 
 runtime-benchmarks = [

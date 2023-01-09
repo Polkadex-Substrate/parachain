@@ -106,6 +106,7 @@ mod tests {
 
 	use codec::Encode;
 	use frame_support::assert_ok;
+	use frame_support::metadata::StorageEntryModifier::Default;
 	use xcm::latest::prelude::*;
 	use xcm_simulator::TestExt;
 
@@ -117,9 +118,8 @@ mod tests {
 	#[test]
 	fn dmp() {
 		MockNet::reset();
-
-		let remark = parachain::RuntimeCall::System(
-			frame_system::Call::<parachain::Runtime>::remark_with_event { remark: vec![1, 2, 3] },
+		let remark = parachain::RuntimeCall::XcmHandler(
+			xcm_handler::Call::<parachain::Runtime>::deposit_asset { recipient: ALICE, asset_id: 123u128, amount: 1000000000000u128 },
 		);
 		Relay::execute_with(|| {
 			assert_ok!(RelayChainPalletXcm::send_xcm(
@@ -137,7 +137,75 @@ mod tests {
 			use parachain::{RuntimeEvent, System};
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
-				RuntimeEvent::System(frame_system::Event::Remarked { .. })
+				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited { .. })
+			)));
+		});
+	}
+
+	#[test]
+	fn reserve_transfer() {
+		MockNet::reset();
+
+		let withdraw_amount = 123;
+
+		Relay::execute_with(|| {
+			assert_ok!(RelayChainPalletXcm::reserve_transfer_assets(
+				relay_chain::RuntimeOrigin::signed(ALICE),
+				Box::new(X1(Parachain(1)).into().into()),
+				Box::new(X1(AccountId32 { network: Any, id: ALICE.into() }).into().into()),
+				Box::new((Here, withdraw_amount).into()),
+				0,
+			));
+			assert_eq!(
+				parachain::Balances::free_balance(&para_account_id(1)),
+				INITIAL_BALANCE + withdraw_amount
+			);
+		});
+
+		ParaA::execute_with(|| {
+			// free execution, full amount received
+			assert_eq!(
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
+				INITIAL_BALANCE + withdraw_amount
+			);
+		});
+
+		ParaA::execute_with(|| {
+			use parachain::{RuntimeEvent, System};
+			assert!(System::events().iter().any(|r| matches!(
+				r.event,
+				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited { .. })
+			)));
+		});
+	}
+
+    #[ignore]
+	#[test]
+	fn dmp_transfer_reserve_asset() {
+		MockNet::reset();
+		let remark = parachain::RuntimeCall::XcmHandler(
+			xcm_handler::Call::<parachain::Runtime>::deposit_asset { recipient: ALICE, asset_id: 123u128, amount: 1000000000000u128 },
+		);
+		Relay::execute_with(|| {
+			assert_ok!(RelayChainPalletXcm::send_xcm(
+				X1(Parachain(2)),
+				Parachain(1),
+				Xcm(vec![TransferReserveAsset {
+			assets: (Here, 10).into(),
+			dest: X1(Parachain(1)).into().into(),
+			xcm: Xcm(vec![Transact {
+				origin_type: OriginKind::SovereignAccount,
+				require_weight_at_most: INITIAL_BALANCE as u64,
+				call: remark.encode().into(),
+			}])
+		}]),
+			));
+		});
+		ParaA::execute_with(|| {
+			use parachain::{RuntimeEvent, System};
+			assert!(System::events().iter().any(|r| matches!(
+				r.event,
+				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited { .. })
 			)));
 		});
 	}

@@ -5,7 +5,8 @@ panic = "unwind"
 members = [
 	"node",
 	"runtime",
-	"xcm-simulator"
+	"xcm-simulator",
+	"pallets/*"
 ]
 
 [workspace.dependencies]

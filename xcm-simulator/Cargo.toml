@@ -26,5 +26,8 @@ polkadot-core-primitives = { git = "https://github.com/paritytech/polkadot", bra
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.32" }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.32" }
 
+# Custom pallets
+xcm-handler = {path = "../pallets/xcm-handler"}
+
 [lib]
 doctest = false

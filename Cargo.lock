@@ -5849,6 +5849,7 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
+ "xcm-handler",
 ]
 
 [[package]]
@@ -11994,6 +11995,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "xcm-handler"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "xcm-procedural"
 version = "0.9.32"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.32#c71e872afed296d1825b15ea4b2a74750c1ba647"
@@ -12024,6 +12040,7 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
+ "xcm-handler",
  "xcm-simulator 0.9.32",
 ]
 

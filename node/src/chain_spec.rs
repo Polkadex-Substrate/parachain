@@ -187,7 +187,6 @@ fn testnet_genesis(
 	id: ParaId,
 	root_key: AccountId
 ) -> parachain_polkadex_runtime::GenesisConfig {
-	let alice = get_account_id_from_seed::<sr25519::Public>("Alice");
 	parachain_polkadex_runtime::GenesisConfig {
 		system: parachain_polkadex_runtime::SystemConfig {
 			code: parachain_polkadex_runtime::WASM_BINARY

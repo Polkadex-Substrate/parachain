@@ -16,12 +16,10 @@
 
 //! Parachain runtime mock.
 
+use std::marker::PhantomData;
 use codec::{Decode, Encode};
-use frame_support::{
-    construct_runtime, parameter_types,
-    traits::{Everything, Nothing},
-    weights::{constants::WEIGHT_PER_SECOND, Weight},
-};
+use frame_support::{construct_runtime, log, match_types, parameter_types, traits::{Everything, Nothing}, weights::{constants::WEIGHT_PER_SECOND, Weight}};
+use frame_support::dispatch::RawOrigin;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -29,26 +27,32 @@ use sp_runtime::{
     AccountId32,
 };
 use sp_std::prelude::*;
+use xcm::latest::{prelude::*, Weight as XCMWeight};
 
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain::primitives::{
     DmpMessageHandler, Id as ParaId, Sibling, XcmpMessageFormat, XcmpMessageHandler,
 };
-use xcm::{latest::prelude::*, VersionedXcm};
-use xcm_builder::{
-    AccountId32Aliases, AllowUnpaidExecutionFrom, CurrencyAdapter as XcmCurrencyAdapter,
-    EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, IsConcrete, LocationInverter,
-    NativeAsset, ParentIsPreset, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation,
-};
+use xcm::VersionedXcm;
+use xcm_builder::{AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentIsPreset, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit};
 use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::traits::ShouldExecute;
+use crate::parachain;
+use frame_support::PalletId;
 
 pub type AccountId = AccountId32;
 pub type Balance = u128;
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
+}
+
+match_types! {
+	pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
+		MultiLocation { parents: 1, interior: Here } |
+		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) }
+	};
 }
 
 impl frame_system::Config for Runtime {
@@ -125,11 +129,148 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 }
 
+parameter_types! {
+	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
+}
+
 pub type LocalAssetTransactor =
 XcmCurrencyAdapter<Balances, IsConcrete<KsmLocation>, LocationToAccountId, AccountId, ()>;
 
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
-pub type Barrier = AllowUnpaidExecutionFrom<Everything>;
+pub type Barrier = DenyThenTry<
+    DenyReserveTransferToRelayChain,
+    (
+        TakeWeightCredit,
+        AllowTopLevelPaidExecutionFrom<Everything>,
+        AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+        // ^^^ Parent and its exec plurality get free execution
+    ),
+>;
+
+//TODO: move DenyThenTry to polkadot's xcm module.
+/// Deny executing the xcm message if it matches any of the Deny filter regardless of anything else.
+/// If it passes the Deny, and matches one of the Allow cases then it is let through.
+pub struct DenyThenTry<Deny, Allow>(PhantomData<Deny>, PhantomData<Allow>)
+    where
+        Deny: ShouldExecute,
+        Allow: ShouldExecute;
+
+impl<Deny, Allow> ShouldExecute for DenyThenTry<Deny, Allow>
+    where
+        Deny: ShouldExecute,
+        Allow: ShouldExecute,
+{
+    fn should_execute<RuntimeCall>(
+        origin: &MultiLocation,
+        message: &mut Xcm<RuntimeCall>,
+        max_weight: XCMWeight,
+        weight_credit: &mut XCMWeight,
+    ) -> Result<(), ()> {
+        Deny::should_execute(origin, message, max_weight, weight_credit)?;
+        Allow::should_execute(origin, message, max_weight, weight_credit)
+    }
+}
+
+pub struct DepositEvent {
+    pub deposit_amount: u128,
+    pub recipient: AccountId32
+}
+
+impl DepositEvent {
+    pub fn new() -> Self {
+        Self {
+            deposit_amount: 0,
+            recipient: AccountId32::new([0;32])
+        }
+    }
+
+    pub fn set_deposit_amount(&mut self, deposit_amount: u128) {
+        self.deposit_amount = deposit_amount;
+    }
+
+    pub fn get_recipient(asset: &MultiLocation) -> Option<AccountId32> {
+        match asset {
+            MultiLocation {parents:_, interior: X1(Junction::AccountId32{network:_, id })} => {
+                Some(AccountId32::from(id.clone()))
+            }
+            _ => {
+                None
+            }
+        }
+    }
+
+    pub fn set_recipient(&mut self, recipient: AccountId32) {
+        self.recipient = recipient;
+    }
+}
+
+// See issue #5233
+pub struct DenyReserveTransferToRelayChain;
+impl ShouldExecute for DenyReserveTransferToRelayChain {
+    fn should_execute<RuntimeCall>(
+        origin: &MultiLocation,
+
+        message: &mut Xcm<RuntimeCall>,
+        _max_weight: XCMWeight,
+        _weight_credit: &mut XCMWeight,
+    ) -> Result<(), ()> {
+        if message.0.iter().any(|inst| {
+            matches!(
+				inst,
+				InitiateReserveWithdraw {
+					reserve: MultiLocation { parents: 1, interior: Here },
+					..
+				} | DepositReserveAsset { dest: MultiLocation { parents: 1, interior: Here }, .. } |
+					TransferReserveAsset {
+						dest: MultiLocation { parents: 1, interior: Here },
+						..
+					}
+			)
+        }) {
+            return Err(()) // Deny
+        }
+
+        // An unexpected reserve transfer has arrived from the Relay Chain. Generally, `IsReserve`
+        // should not allow this, but we just log it here.
+        if matches!(origin, MultiLocation { parents: 1, interior: Here }) &&
+            message.0.iter().any(|inst| matches!(inst, ReserveAssetDeposited { .. }))
+        {
+            log::warn!(
+				target: "xcm::barriers",
+				"Unexpected ReserveAssetDeposited from the Relay Chain",
+			);
+        }
+
+        let mut deposit_event = DepositEvent::new();
+        for instruction in & message.0 {
+            match instruction {
+                        ReserveAssetDeposited(multi_asset) => {
+                            if let Some(ele) = multi_asset.inner().into_iter().nth(0) {
+                                if let Fungibility::Fungible(amount) = ele.fun {
+                                    deposit_event.set_deposit_amount(amount);
+                                }
+                            }
+                        }
+                        DepositAsset { beneficiary, .. } => {
+                            if let Some(recipient) = DepositEvent::get_recipient(beneficiary) {
+                                deposit_event.set_recipient(recipient);
+                            }
+                        }
+                        _ => {}
+                    };
+
+        }
+        use crate::parachain::sp_api_hidden_includes_construct_runtime::hidden_include::dispatch::Dispatchable;
+        // TODO: Assets Pallet and AssetId convertor is not implemented yet. Issue :#35
+        let deposit_call = parachain::RuntimeCall::XcmHandler(
+                xcm_handler::Call::<parachain::Runtime>::deposit_asset { recipient: deposit_event.recipient, asset_id: 123u128, amount: deposit_event.deposit_amount },
+            );
+        match deposit_call.dispatch(RawOrigin::Root.into()) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(())
+        }
+    }
+}
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
@@ -320,6 +461,11 @@ impl pallet_xcm::Config for Runtime {
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
+impl xcm_handler::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type AssetHandlerPalletId = AssetHandlerPalletId;
+}
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
@@ -333,5 +479,6 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		MsgQueue: mock_msg_queue::{Pallet, Storage, Event<T>},
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
+        XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>}
 	}
 );
