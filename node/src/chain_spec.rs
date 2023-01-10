@@ -1,21 +1,21 @@
 use cumulus_primitives_core::ParaId;
-use hex_literal::hex;
-use parachain_template_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT};
+use parachain_polkadex_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair, Public};
+use hex_literal::hex;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
-	sc_service::GenericChainSpec<parachain_template_runtime::GenesisConfig, Extensions>;
+	sc_service::GenericChainSpec<parachain_polkadex_runtime::GenesisConfig, Extensions>;
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
 /// Helper function to generate a crypto pair from seed
-pub fn get_public_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
+pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
 	TPublic::Pair::from_string(&format!("//{}", seed), None)
 		.expect("static values are valid; qed")
 		.public()
@@ -44,7 +44,7 @@ type AccountPublic = <Signature as Verify>::Signer;
 ///
 /// This function's return type must always match the session keys of the chain in tuple format.
 pub fn get_collator_keys_from_seed(seed: &str) -> AuraId {
-	get_public_from_seed::<AuraId>(seed)
+	get_from_seed::<AuraId>(seed)
 }
 
 /// Helper function to generate an account ID from seed
@@ -52,14 +52,14 @@ pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 where
 	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
-	AccountPublic::from(get_public_from_seed::<TPublic>(seed)).into_account()
+	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn template_session_keys(keys: AuraId) -> parachain_template_runtime::SessionKeys {
-	parachain_template_runtime::SessionKeys { aura: keys }
+pub fn template_session_keys(keys: AuraId) -> parachain_polkadex_runtime::SessionKeys {
+	parachain_polkadex_runtime::SessionKeys { aura: keys }
 }
 
 pub fn development_config() -> ChainSpec {
@@ -71,7 +71,7 @@ pub fn development_config() -> ChainSpec {
 
 	ChainSpec::from_genesis(
 		// Name
-		"Parachain Development",
+		"Polkadex Development",
 		// ID
 		"dev",
 		ChainType::Development,
@@ -102,7 +102,7 @@ pub fn development_config() -> ChainSpec {
 					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 				],
-				2036.into(),
+				2040.into(),
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 			)
 		},
@@ -113,59 +113,6 @@ pub fn development_config() -> ChainSpec {
 		None,
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-			para_id: 2036,
-		},
-	)
-}
-
-
-pub fn mainnet_config() -> ChainSpec {
-	// Give your base currency a unit name and decimal places
-	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("tokenSymbol".into(), "PDEX".into());
-	properties.insert("tokenDecimals".into(), 12.into());
-	properties.insert("ss58Format".into(), 89.into());
-
-	let root_key: AccountId = hex!["10d063a8244f2bce1f34e973891bc3b115bbd552d4f163e731047ace72e59d5f"].into();
-	let initial_collator: AccountId = hex!["f27b16d1059ea3cf4ed15a5ef18bc8c5c662e1abe82d96cf6f57c50af95e056e"].into();
-	use sp_core::crypto::UncheckedInto;
-	let initial_collator_aura_id: AuraId = hex!["f27b16d1059ea3cf4ed15a5ef18bc8c5c662e1abe82d96cf6f57c50af95e056e"].unchecked_into();
-	ChainSpec::from_genesis(
-		// Name
-		"Polkadex Parachain",
-		// ID
-		"parachain_live",
-		ChainType::Live,
-		move || {
-			testnet_genesis(
-				// initial collators.
-				vec![
-					(
-						initial_collator.clone(),
-						initial_collator_aura_id.clone(),
-					),
-				],
-				vec![
-					root_key.clone(),
-					initial_collator.clone()
-				],
-				2040.into(),
-				root_key.clone()
-			)
-		},
-		// Bootnodes
-		Vec::new(),
-		// Telemetry
-		None,
-		// Protocol ID
-		Some("polkadex-parachain"),
-		// Fork ID
-		None,
-		// Properties
-		Some(properties),
-		// Extensions
-		Extensions {
-			relay_chain: "polkadot".into(), // You MUST set this to the correct network!
 			para_id: 2040,
 		},
 	)
@@ -177,8 +124,8 @@ pub fn local_testnet_config() -> ChainSpec {
 	properties.insert("tokenSymbol".into(), "PDEX".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 	properties.insert("ss58Format".into(), 89.into());
-
 	let root_key: AccountId = hex!["70a5f4e786b47baf52d5a34742bb8312139cfe1c747fbeb3912c197d38c53332"].into();
+
 	ChainSpec::from_genesis(
 		// Name
 		"Polkadex Parachain Testnet",
@@ -239,23 +186,23 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 	root_key: AccountId
-) -> parachain_template_runtime::GenesisConfig {
-	parachain_template_runtime::GenesisConfig {
-		system: parachain_template_runtime::SystemConfig {
-			code: parachain_template_runtime::WASM_BINARY
+) -> parachain_polkadex_runtime::GenesisConfig {
+	parachain_polkadex_runtime::GenesisConfig {
+		system: parachain_polkadex_runtime::SystemConfig {
+			code: parachain_polkadex_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
 		},
-		balances: parachain_template_runtime::BalancesConfig {
+		balances: parachain_polkadex_runtime::BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|k| (k, EXISTENTIAL_DEPOSIT * 16)).collect(),
 		},
-		parachain_info: parachain_template_runtime::ParachainInfoConfig { parachain_id: id },
-		collator_selection: parachain_template_runtime::CollatorSelectionConfig {
+		parachain_info: parachain_polkadex_runtime::ParachainInfoConfig { parachain_id: id },
+		collator_selection: parachain_polkadex_runtime::CollatorSelectionConfig {
 			invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
 			..Default::default()
 		},
-		session: parachain_template_runtime::SessionConfig {
+		session: parachain_polkadex_runtime::SessionConfig {
 			keys: invulnerables
 				.into_iter()
 				.map(|(acc, aura)| {
@@ -272,11 +219,64 @@ fn testnet_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-		polkadot_xcm: parachain_template_runtime::PolkadotXcmConfig {
+		polkadot_xcm: parachain_polkadex_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		sudo: parachain_template_runtime::SudoConfig {
+		sudo: parachain_polkadex_runtime::SudoConfig {
 			key: Some(root_key.clone()),
 		},
+
 	}
+}
+
+pub fn mainnet_config() -> ChainSpec {
+	// Give your base currency a unit name and decimal places
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("tokenSymbol".into(), "PDEX".into());
+	properties.insert("tokenDecimals".into(), 12.into());
+	properties.insert("ss58Format".into(), 89.into());
+
+	let root_key: AccountId = hex!["10d063a8244f2bce1f34e973891bc3b115bbd552d4f163e731047ace72e59d5f"].into();
+	let initial_collator: AccountId = hex!["f27b16d1059ea3cf4ed15a5ef18bc8c5c662e1abe82d96cf6f57c50af95e056e"].into();
+	use sp_core::crypto::UncheckedInto;
+	let initial_collator_aura_id: AuraId = hex!["f27b16d1059ea3cf4ed15a5ef18bc8c5c662e1abe82d96cf6f57c50af95e056e"].unchecked_into();
+	ChainSpec::from_genesis(
+		// Name
+		"Polkadex Parachain",
+		// ID
+		"parachain_live",
+		ChainType::Live,
+		move || {
+			testnet_genesis(
+				// initial collators.
+				vec![
+					(
+						initial_collator.clone(),
+						initial_collator_aura_id.clone(),
+					),
+				],
+				vec![
+					root_key.clone(),
+					initial_collator.clone()
+				],
+				2040.into(),
+				root_key.clone()
+			)
+		},
+		// Bootnodes
+		Vec::new(),
+		// Telemetry
+		None,
+		// Protocol ID
+		Some("polkadex-parachain"),
+		// Fork ID
+		None,
+		// Properties
+		Some(properties),
+		// Extensions
+		Extensions {
+			relay_chain: "polkadot".into(), // You MUST set this to the correct network!
+			para_id: 2040,
+		},
+	)
 }
