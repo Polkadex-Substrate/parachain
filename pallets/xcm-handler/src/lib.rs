@@ -11,7 +11,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 
-	//TODO Replace this with TheaMessages #Issue:
+	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, Copy)]
 	pub enum TheaMessage<AccountId> {
 		/// AssetDeposited(Recipient, AssetId, Amount)
@@ -83,6 +83,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 
+		// TODO: Assets Pallet and AssetId convertor is not implemented yet. Issue :#35
 		///Deposit to Orderbook
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn deposit_asset(origin: OriginFor<T>, recipient: T::AccountId, asset_id: u128, amount: u128) -> DispatchResultWithPostInfo {
@@ -90,10 +91,9 @@ pub mod pallet {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
 				ingress_messages
 					.try_push(TheaMessage::AssetDeposited(recipient.clone(), asset_id, amount))
-					.map_err(|_| Error::<T>::IngressMessagesLimitReached)?;
-				Self::deposit_event(Event::AssetDeposited(recipient, asset_id, amount));
-				Ok(().into())
-			})
+			}).map_err(|_| Error::<T>::IngressMessagesLimitReached)?;
+			Self::deposit_event(Event::AssetDeposited(recipient, asset_id, amount));
+			Ok(().into())
 		}
 	}
 
