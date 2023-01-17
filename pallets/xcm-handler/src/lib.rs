@@ -19,17 +19,25 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{
-		dispatch::DispatchResultWithPostInfo, pallet_prelude::*,
-		sp_runtime::traits::AccountIdConversion, PalletId,
-	};
-	use frame_support::traits::fungibles::{Create, Inspect, Mutate};
-	use frame_support::traits::tokens::Balance;
-	use frame_system::pallet_prelude::*;
-	use xcm_executor::traits::TransactAsset;
-	use xcm::latest::{AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result};
-	use xcm::prelude::X1;
 	use crate::pallet;
+	use frame_support::{
+		dispatch::DispatchResultWithPostInfo,
+		pallet_prelude::*,
+		sp_runtime::traits::AccountIdConversion,
+		traits::{
+			fungibles::{Create, Inspect, Mutate},
+			tokens::Balance,
+		},
+		PalletId,
+	};
+	use frame_system::pallet_prelude::*;
+	use xcm::{
+		latest::{
+			AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
+		},
+		prelude::X1,
+	};
+	use xcm_executor::traits::TransactAsset;
 
 	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, TypeInfo)]
@@ -49,15 +57,12 @@ pub mod pallet {
 
 	pub struct AssetAndAmount {
 		pub asset: u128,
-		pub amount: u128
+		pub amount: u128,
 	}
 
 	impl AssetAndAmount {
 		pub fn new(asset: u128, amount: u128) -> Self {
-			AssetAndAmount {
-				asset,
-				amount
-			}
+			AssetAndAmount { asset, amount }
 		}
 	}
 
@@ -125,15 +130,12 @@ pub mod pallet {
 		}
 	}
 
-    impl<T: Config> TransactAsset for Pallet<T> {
+	impl<T: Config> TransactAsset for Pallet<T> {
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(TheaMessage::AssetDeposited(
-					who.clone(),
-					what.clone()
-				))
+				ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
 			})
-				.map_err(|_| XcmError::Trap(10))?;
+			.map_err(|_| XcmError::Trap(10))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
 			Ok(())
 		}
