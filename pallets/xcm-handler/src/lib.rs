@@ -31,12 +31,10 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use xcm::{
-		latest::{
-			AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
-		},
-		prelude::X1,
-	};
+	use xcm::{latest::{
+		AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
+	}, prelude::X1, VersionedMultiLocation};
+	use xcm::latest::{ExecuteXcm, Junctions, SendError, Xcm};
 	use xcm_executor::traits::TransactAsset;
 
 	//TODO Replace this with TheaMessages #Issue: 38
@@ -68,7 +66,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_xcm::Config{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Pallet Id
@@ -121,11 +119,13 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn withdraw_asset(
 			origin: OriginFor<T>,
-			recipient: T::AccountId,
-			asset_id: u128,
-			amount: u128,
+			messages: Xcm<()>,
+			destination: MultiLocation
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
+			let interior: Junctions =
+				Junctions::Here;
+			pallet_xcm::Pallet::<T>::send_xcm(interior, destination.clone(), messages).map_err(|_| Error::<T>::InvalidSender)?;
 			Ok(().into())
 		}
 	}
