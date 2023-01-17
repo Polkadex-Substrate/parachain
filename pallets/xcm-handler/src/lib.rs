@@ -19,15 +19,23 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*, PalletId};
+	use frame_support::{
+		dispatch::DispatchResultWithPostInfo, pallet_prelude::*,
+		sp_runtime::traits::AccountIdConversion, PalletId,
+	};
+	use frame_support::traits::fungibles::{Create, Inspect, Mutate};
+	use frame_support::traits::tokens::Balance;
 	use frame_system::pallet_prelude::*;
-	use frame_support::sp_runtime::traits::AccountIdConversion;
+	use xcm_executor::traits::TransactAsset;
+	use xcm::latest::{AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result};
+	use xcm::prelude::X1;
+	use crate::pallet;
 
 	//TODO Replace this with TheaMessages #Issue: 38
-	#[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, Copy)]
-	pub enum TheaMessage<AccountId> {
-		/// AssetDeposited(Recipient, AssetId, Amount)
-		AssetDeposited(AccountId, u128, u128)
+	#[derive(Encode, Decode, TypeInfo)]
+	pub enum TheaMessage {
+		/// AssetDeposited(Recipient, Asset & Amount)
+		AssetDeposited(MultiLocation, MultiAsset),
 	}
 
 	#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode)]
@@ -36,6 +44,20 @@ pub mod pallet {
 	impl Get<u32> for IngressMessageLimit {
 		fn get() -> u32 {
 			20 // TODO: Arbitrary value
+		}
+	}
+
+	pub struct AssetAndAmount {
+		pub asset: u128,
+		pub amount: u128
+	}
+
+	impl AssetAndAmount {
+		pub fn new(asset: u128, amount: u128) -> Self {
+			AssetAndAmount {
+				asset,
+				amount
+			}
 		}
 	}
 
@@ -52,14 +74,12 @@ pub mod pallet {
 	// Queue for enclave ingress messages
 	#[pallet::storage]
 	#[pallet::getter(fn ingress_messages)]
-	pub(super) type IngressMessages<T: Config> = StorageValue<
-		_,
-		BoundedVec<TheaMessage<T::AccountId>, IngressMessageLimit>,
-		ValueQuery,
-	>;
+	pub(super) type IngressMessages<T: Config> =
+		StorageValue<_, BoundedVec<TheaMessage, IngressMessageLimit>, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	// Pallets use events to inform users when important changes are made.
@@ -69,7 +89,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, asset_id, amount]
-		AssetDeposited(T::AccountId, u128, u128),
+		AssetDeposited(MultiLocation, MultiAsset),
 	}
 
 	// Errors inform users that something went wrong.
@@ -78,7 +98,7 @@ pub mod pallet {
 		/// Invalid Sender
 		InvalidSender,
 		/// Ingress Messages Limit Reached
-		IngressMessagesLimitReached
+		IngressMessagesLimitReached,
 	}
 
 	#[pallet::hooks]
@@ -89,23 +109,33 @@ pub mod pallet {
 		}
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
-		// TODO: Assets Pallet and AssetId convertor is not implemented yet. Issue :#35
+		// TODO: Will be implemented in another issue
 		///Deposit to Orderbook
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn deposit_asset(origin: OriginFor<T>, recipient: T::AccountId, asset_id: u128, amount: u128) -> DispatchResultWithPostInfo {
+		pub fn withdraw_asset(
+			origin: OriginFor<T>,
+			recipient: T::AccountId,
+			asset_id: u128,
+			amount: u128,
+		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages
-					.try_push(TheaMessage::AssetDeposited(recipient.clone(), asset_id, amount))
-			}).map_err(|_| Error::<T>::IngressMessagesLimitReached)?;
-			Self::deposit_event(Event::AssetDeposited(recipient, asset_id, amount));
 			Ok(().into())
+		}
+	}
+
+    impl<T: Config> TransactAsset for Pallet<T> {
+		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
+			<IngressMessages<T>>::try_mutate(|ingress_messages| {
+				ingress_messages.try_push(TheaMessage::AssetDeposited(
+					who.clone(),
+					what.clone()
+				))
+			})
+				.map_err(|_| XcmError::Trap(10))?;
+			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
+			Ok(())
 		}
 	}
 

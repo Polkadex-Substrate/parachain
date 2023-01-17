@@ -36,6 +36,7 @@ pallet-session = { workspace = true, default-features = false }
 pallet-sudo = { workspace = true, default-features = false }
 pallet-timestamp = { workspace = true, default-features = false }
 pallet-transaction-payment = { workspace = true, default-features = false }
+pallet-assets = { workspace = true, default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { workspace = true, default-features = false }
 sp-api = { workspace = true, default-features = false }
 sp-block-builder = { workspace = true, default-features = false }
@@ -120,7 +121,8 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"xcm-handler/std"
+	"xcm-handler/std",
+	"pallet-assets/std"
 ]
 
 runtime-benchmarks = [

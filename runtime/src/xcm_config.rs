@@ -4,10 +4,10 @@ use super::{
 };
 use core::marker::PhantomData;
 use frame_support::{
+	dispatch::{Dispatchable, RawOrigin},
 	log, match_types, parameter_types,
 	traits::{Everything, Nothing},
 };
-use frame_support::dispatch::RawOrigin;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
@@ -20,40 +20,6 @@ use xcm_builder::{
 	UsingComponents,
 };
 use xcm_executor::{traits::ShouldExecute, XcmExecutor};
-use frame_support::dispatch::Dispatchable;
-
-pub struct DepositEvent {
-	pub deposit_amount: u128,
-	pub recipient: AccountId
-}
-
-impl DepositEvent {
-	pub fn new() -> Self {
-		Self {
-			deposit_amount: 0,
-			recipient: AccountId::new([0;32])
-		}
-	}
-
-	pub fn set_deposit_amount(&mut self, deposit_amount: u128) {
-		self.deposit_amount = deposit_amount;
-	}
-
-	pub fn get_recipient(asset: &MultiLocation) -> Option<AccountId> {
-		match asset {
-			MultiLocation {parents:_, interior: X1(Junction::AccountId32{network:_, id })} => {
-				Some(AccountId::from(id.clone()))
-			}
-			_ => {
-				None
-			}
-		}
-	}
-
-	pub fn set_recipient(&mut self, recipient: AccountId) {
-		self.recipient = recipient;
-	}
-}
 
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
@@ -182,33 +148,7 @@ impl ShouldExecute for DenyReserveTransferToRelayChain {
 				"Unexpected ReserveAssetDeposited from the Relay Chain",
 			);
 		}
-		let mut deposit_event = DepositEvent::new();
-		for instruction in & message.0 {
-			match instruction {
-				ReserveAssetDeposited(multi_asset) => {
-					if let Some(ele) = multi_asset.inner().into_iter().nth(0) {
-						if let Fungibility::Fungible(amount) = ele.fun {
-							deposit_event.set_deposit_amount(amount);
-						}
-					}
-				}
-				DepositAsset { beneficiary, .. } => {
-					if let Some(recipient) = DepositEvent::get_recipient(beneficiary) {
-						deposit_event.set_recipient(recipient);
-					}
-				}
-				_ => {}
-			};
-
-		}
-		// TODO: Assets Pallet and AssetId convertor is not implemented yet. Issue :#35
-		let deposit_call = crate::RuntimeCall::XcmHandler(
-			xcm_handler::Call::<Runtime>::deposit_asset { recipient: deposit_event.recipient, asset_id: 100000u128, amount: deposit_event.deposit_amount },
-		);
-		match deposit_call.dispatch(RawOrigin::Root.into()) {
-			Ok(_) => Ok(()),
-			Err(_) => Err(())
-		}
+		Ok(())
 	}
 }
 
@@ -222,12 +162,13 @@ pub type Barrier = DenyThenTry<
 	),
 >;
 
+use crate::XcmHandler;
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
 	// How to withdraw and deposit an asset.
-	type AssetTransactor = LocalAssetTransactor;
+	type AssetTransactor = XcmHandler;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
 	type IsTeleporter = (); // Teleporting is disabled.
