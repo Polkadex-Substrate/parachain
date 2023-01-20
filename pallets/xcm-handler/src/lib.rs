@@ -31,10 +31,12 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
+	use sp_core::sp_std;
+	use sp_runtime::traits::Verify;
 	use xcm::{latest::{
 		AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
-	}, prelude::X1, VersionedMultiLocation};
-	use xcm::latest::{ExecuteXcm, Junctions, SendError, Xcm};
+	}, prelude::X1, VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation};
+	use xcm::v2::WeightLimit;
 	use xcm_executor::traits::TransactAsset;
 
 	//TODO Replace this with TheaMessages #Issue: 38
@@ -66,7 +68,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_xcm::Config{
+	pub trait Config: frame_system::Config + orml_xtokens::Config{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Pallet Id
@@ -79,6 +81,11 @@ pub mod pallet {
 	#[pallet::getter(fn ingress_messages)]
 	pub(super) type IngressMessages<T: Config> =
 		StorageValue<_, BoundedVec<TheaMessage, IngressMessageLimit>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_thea_key)]
+	pub(super) type ActiveTheaKey<T: Config> =
+	StorageValue<_, sp_core::ecdsa::Public, OptionQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -102,6 +109,10 @@ pub mod pallet {
 		InvalidSender,
 		/// Ingress Messages Limit Reached
 		IngressMessagesLimitReached,
+		/// Signature verification failed
+		SignatureVerificationFailed,
+		/// Public Key not set
+		PublicKeyNotSet
 	}
 
 	#[pallet::hooks]
@@ -119,13 +130,31 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn withdraw_asset(
 			origin: OriginFor<T>,
-			messages: Xcm<()>,
-			destination: MultiLocation
+			payload: BoundedVec<(sp_std::boxed::Box<VersionedMultiAssets>, sp_std::boxed::Box<VersionedMultiLocation>), ConstU32<10>>,
+            signature: sp_core::ecdsa::Signature,
 		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
-			let interior: Junctions =
-				Junctions::Here;
-			pallet_xcm::Pallet::<T>::send_xcm(interior, destination.clone(), messages).map_err(|_| Error::<T>::InvalidSender)?;
+			ensure_signed(origin.clone())?;
+			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
+			if signature.verify(payload.encode().as_ref(), &pubic_key) {
+				for (asset, dest) in payload{
+						orml_xtokens::module::Pallet::<T>::transfer_multiassets(origin.clone(), asset, 0, dest, WeightLimit::Unlimited).unwrap();
+					}
+			}else{
+				return Err(Error::<T>::SignatureVerificationFailed.into())
+			}
+			Ok(().into())
+		}
+
+		///Update Thea Key
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn change_thea_key(origin: OriginFor<T>, new_thea_key: sp_core::ecdsa::Public, signature: sp_core::ecdsa::Signature) -> DispatchResultWithPostInfo {
+			ensure_signed(origin.clone())?;
+			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
+			if signature.verify(new_thea_key.encode().as_ref(), &pubic_key) {
+				  <ActiveTheaKey<T>>::put(new_thea_key);
+			}else{
+				  return Err(Error::<T>::SignatureVerificationFailed.into())
+			}
 			Ok(().into())
 		}
 	}

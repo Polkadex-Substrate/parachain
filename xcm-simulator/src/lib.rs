@@ -144,6 +144,7 @@ mod tests {
 
 		ParaA::execute_with(|| {
 			use parachain::{RuntimeEvent, System};
+			println!("All events {:?}", System::events());
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited { .. })
