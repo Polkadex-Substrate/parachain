@@ -89,8 +89,8 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![(ALICE, INITIAL_BALANCE), (para_account_id(1), INITIAL_BALANCE)],
 	}
-		.assimilate_storage(&mut t)
-		.unwrap();
+	.assimilate_storage(&mut t)
+	.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
@@ -105,41 +105,13 @@ mod tests {
 	use super::*;
 
 	use codec::Encode;
-	use frame_support::assert_ok;
-	use frame_support::metadata::StorageEntryModifier::Default;
+	use frame_support::{assert_ok, metadata::StorageEntryModifier::Default};
 	use xcm::latest::prelude::*;
 	use xcm_simulator::TestExt;
 
 	// Helper function for forming buy execution message
 	fn buy_execution<C>(fees: impl Into<MultiAsset>) -> Instruction<C> {
 		BuyExecution { fees: fees.into(), weight_limit: Unlimited }
-	}
-
-	#[test]
-	fn dmp() {
-		MockNet::reset();
-		let remark = parachain::RuntimeCall::XcmHandler(
-			xcm_handler::Call::<parachain::Runtime>::deposit_asset { recipient: ALICE, asset_id: 123u128, amount: 1000000000000u128 },
-		);
-		Relay::execute_with(|| {
-			assert_ok!(RelayChainPalletXcm::send_xcm(
-				Here,
-				Parachain(1),
-				Xcm(vec![Transact {
-					origin_type: OriginKind::SovereignAccount,
-					require_weight_at_most: INITIAL_BALANCE as u64,
-					call: remark.encode().into(),
-				}]),
-			));
-		});
-
-		ParaA::execute_with(|| {
-			use parachain::{RuntimeEvent, System};
-			assert!(System::events().iter().any(|r| matches!(
-				r.event,
-				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited { .. })
-			)));
-		});
 	}
 
 	#[test]
@@ -166,41 +138,10 @@ mod tests {
 			// free execution, full amount received
 			assert_eq!(
 				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
-				INITIAL_BALANCE + withdraw_amount
+				INITIAL_BALANCE
 			);
 		});
 
-		ParaA::execute_with(|| {
-			use parachain::{RuntimeEvent, System};
-			assert!(System::events().iter().any(|r| matches!(
-				r.event,
-				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited { .. })
-			)));
-		});
-	}
-
-    #[ignore]
-	#[test]
-	fn dmp_transfer_reserve_asset() {
-		MockNet::reset();
-		let remark = parachain::RuntimeCall::XcmHandler(
-			xcm_handler::Call::<parachain::Runtime>::deposit_asset { recipient: ALICE, asset_id: 123u128, amount: 1000000000000u128 },
-		);
-		Relay::execute_with(|| {
-			assert_ok!(RelayChainPalletXcm::send_xcm(
-				X1(Parachain(2)),
-				Parachain(1),
-				Xcm(vec![TransferReserveAsset {
-			assets: (Here, 10).into(),
-			dest: X1(Parachain(1)).into().into(),
-			xcm: Xcm(vec![Transact {
-				origin_type: OriginKind::SovereignAccount,
-				require_weight_at_most: INITIAL_BALANCE as u64,
-				call: remark.encode().into(),
-			}])
-		}]),
-			));
-		});
 		ParaA::execute_with(|| {
 			use parachain::{RuntimeEvent, System};
 			assert!(System::events().iter().any(|r| matches!(

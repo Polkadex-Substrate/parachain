@@ -17,8 +17,12 @@ scale-info = { workspace = true, default-features = false, features = ["derive"]
 pallet-timestamp = { workspace = true, default-features = false }
 # Substrate
 frame-benchmarking = { workspace = true, default-features = false, optional = true }
+pallet-assets = { workspace = true, default-features = false, optional = true }
 frame-support = {  default-features = false, workspace = true }
 frame-system = { workspace = true, default-features = false }
+xcm-executor = { workspace = true, default-features = false }
+xcm = { workspace = true, default-features = false }
+pallet-xcm = { workspace = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true }
@@ -37,5 +41,8 @@ std = [
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"frame-system/std",
+	"xcm-executor/std",
+	"pallet-assets/std",
+	"pallet-xcm/std"
 ]
 try-runtime = [ "frame-support/try-runtime" ]
