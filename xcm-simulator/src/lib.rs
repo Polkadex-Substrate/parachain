@@ -121,7 +121,7 @@ mod tests {
 		let withdraw_amount = 123;
 
 		Relay::execute_with(|| {
-			assert_ok!(RelayChainPalletXcm::reserve_transfer_assets(
+			assert_ok!(RelayChainPalletXcm::(
 				relay_chain::RuntimeOrigin::signed(ALICE),
 				Box::new(X1(Parachain(1)).into().into()),
 				Box::new(X1(AccountId32 { network: Any, id: ALICE.into() }).into().into()),
