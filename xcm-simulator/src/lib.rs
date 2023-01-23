@@ -151,4 +151,13 @@ mod tests {
 			)));
 		});
 	}
+
+	#[test]
+	fn test_withdraw_from_parachain_to_relay_chain() {
+		MockNet::reset();
+		let
+		ParaA::execute_with(|| {
+			orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(origin.clone(), asset, 0, dest, WeightLimit::Unlimited)?;
+		});
+	}
 }

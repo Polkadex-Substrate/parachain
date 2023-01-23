@@ -37,7 +37,7 @@ pub mod pallet {
 		AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
 	}, prelude::X1, VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation};
 	use xcm::v2::WeightLimit;
-	use xcm_executor::traits::TransactAsset;
+	use xcm_executor::traits::{InvertLocation, TransactAsset};
 
 	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, TypeInfo)]
@@ -137,7 +137,7 @@ pub mod pallet {
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
 			if signature.verify(payload.encode().as_ref(), &pubic_key) {
 				for (asset, dest) in payload{
-						orml_xtokens::module::Pallet::<T>::transfer_multiassets(origin.clone(), asset, 0, dest, WeightLimit::Unlimited).unwrap();
+						orml_xtokens::module::Pallet::<T>::transfer_multiassets(origin.clone(), asset, 0, dest, WeightLimit::Unlimited)?;
 					}
 			}else{
 				return Err(Error::<T>::SignatureVerificationFailed.into())
@@ -157,16 +157,30 @@ pub mod pallet {
 			}
 			Ok(().into())
 		}
+
+		///Set Thea Key
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn set_thea_key(origin: OriginFor<T>, thea_key: sp_core::ecdsa::Public) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+			<ActiveTheaKey<T>>::put(thea_key);
+			Ok(().into())
+		}
 	}
 
 	impl<T: Config> TransactAsset for Pallet<T> {
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
-			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
-			})
-			.map_err(|_| XcmError::Trap(10))?;
-			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
-			Ok(())
+			if let AssetId::Concrete(location)  = what.id.clone() {
+				let inverted_location = T::LocationInverter::invert_location(&location).map_err(|_| XcmError::Trap(10))?;
+				let new_asset = MultiAsset {id: AssetId::Concrete(inverted_location), fun: what.fun.clone()};
+				<IngressMessages<T>>::try_mutate(|ingress_messages| {
+					ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
+				})
+					.map_err(|_| XcmError::Trap(10))?;
+				Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
+				Ok(())
+			} else {
+			    Err(XcmError::Trap(10))
+			}
 		}
 	}
 
