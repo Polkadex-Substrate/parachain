@@ -36,6 +36,7 @@ use xcm::latest::{prelude::*, Weight as XCMWeight};
 
 use crate::parachain;
 use frame_support::PalletId;
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain::primitives::{
@@ -50,7 +51,6 @@ use xcm_builder::{
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{traits::ShouldExecute, Config, XcmExecutor};
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
 
 pub type AccountId = AccountId32;
 pub type Balance = u128;
@@ -449,11 +449,7 @@ impl xcm_handler::Config for Runtime {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 	fn convert(account: AccountId) -> MultiLocation {
-		X1(Junction::AccountId32 {
-			network: NetworkId::Any,
-			id: account.into(),
-		})
-			.into()
+		X1(Junction::AccountId32 { network: NetworkId::Any, id: account.into() }).into()
 	}
 }
 

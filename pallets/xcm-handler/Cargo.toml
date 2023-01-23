@@ -26,6 +26,7 @@ pallet-xcm = { workspace = true, default-features = false }
 orml-xtokens = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
 sp-core = { workspace = true, default-features = false }
+sp-io = { workspace = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true }

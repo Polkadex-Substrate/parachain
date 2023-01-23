@@ -105,10 +105,10 @@ mod tests {
 	use super::*;
 
 	use codec::Encode;
-	use frame_support::{assert_ok, metadata::StorageEntryModifier::Default};
-	use frame_support::traits::Currency;
-	use xcm::latest::prelude::*;
-	use xcm::{VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation};
+	use frame_support::{assert_ok, metadata::StorageEntryModifier::Default, traits::Currency};
+	use xcm::{
+		latest::prelude::*, VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation,
+	};
 	use xcm_simulator::TestExt;
 
 	// Helper function for forming buy execution message
@@ -161,25 +161,43 @@ mod tests {
 		// TODO for R
 		Relay::execute_with(|| {
 			//pallet_balances::Pallet::<parachain::Runtime>::deposit_creating(&para_account_id(1), 1_000_000_000_000);
-		    assert_eq!(pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)), 1_000_000_000);
-			assert_eq!(pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()), 1_000_000_000);
+			assert_eq!(
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
+				1_000_000_000
+			);
+			assert_eq!(
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
+				1_000_000_000
+			);
 		});
 		ParaA::execute_with(|| {
-			let multi_asset = MultiAsset {id: AssetId::Concrete(Parent.into()), fun: Fungibility::Fungible(1_000_000u128) };
+			let multi_asset = MultiAsset {
+				id: AssetId::Concrete(Parent.into()),
+				fun: Fungibility::Fungible(1_000_000u128),
+			};
 			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
 			let dest = MultiLocation::new(
 				1,
-				X1(Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: ALICE.into(),
-				})
+				X1(Junction::AccountId32 { network: NetworkId::Any, id: ALICE.into() }),
 			);
 			let versioned_dest = VersionedMultiLocation::V1(dest);
-			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(Some(ALICE).into(), Box::from(multi_assets), 0, Box::from(versioned_dest), WeightLimit::Unlimited));
+			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
+				Some(ALICE).into(),
+				Box::from(multi_assets),
+				0,
+				Box::from(versioned_dest),
+				WeightLimit::Unlimited
+			));
 		});
 		Relay::execute_with(|| {
-			assert_eq!(pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)), 999_000_000);
-			assert_eq!(pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()), 1001_000_000);
+			assert_eq!(
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
+				999_000_000
+			);
+			assert_eq!(
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
+				1001_000_000
+			);
 		});
 	}
 }

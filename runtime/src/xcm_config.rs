@@ -8,6 +8,7 @@ use frame_support::{
 	log, match_types, parameter_types,
 	traits::{Everything, Nothing},
 };
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
@@ -20,7 +21,6 @@ use xcm_builder::{
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	UsingComponents,
 };
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
 use xcm_executor::{traits::ShouldExecute, XcmExecutor};
 
 parameter_types! {
@@ -226,11 +226,7 @@ impl cumulus_pallet_xcm::Config for Runtime {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 	fn convert(account: AccountId) -> MultiLocation {
-		X1(AccountId32 {
-			network: NetworkId::Any,
-			id: account.into(),
-		})
-			.into()
+		X1(AccountId32 { network: NetworkId::Any, id: account.into() }).into()
 	}
 }
 
