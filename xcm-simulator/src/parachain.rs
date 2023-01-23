@@ -234,7 +234,7 @@ impl ShouldExecute for DenyReserveTransferToRelayChain {
 					}
 			)
 		}) {
-			return Err(()) // Deny
+			//return Err(()) // Deny
 		}
 
 		// An unexpected reserve transfer has arrived from the Relay Chain. Generally, `IsReserve`
@@ -248,24 +248,6 @@ impl ShouldExecute for DenyReserveTransferToRelayChain {
 			);
 		}
 
-		let mut deposit_event = DepositEvent::new();
-		for instruction in &message.0 {
-			match instruction {
-				ReserveAssetDeposited(multi_asset) => {
-					if let Some(ele) = multi_asset.inner().into_iter().nth(0) {
-						if let Fungibility::Fungible(amount) = ele.fun {
-							deposit_event.set_deposit_amount(amount);
-						}
-					}
-				},
-				DepositAsset { beneficiary, .. } => {
-					if let Some(recipient) = DepositEvent::get_recipient(beneficiary) {
-						deposit_event.set_recipient(recipient);
-					}
-				},
-				_ => {},
-			};
-		}
 		Ok(())
 	}
 }
@@ -487,11 +469,25 @@ parameter_type_with_key! {
 	};
 }
 
+pub struct CurrencyIdConvert;
+
+impl Convert<u128, Option<MultiLocation>> for CurrencyIdConvert {
+	fn convert(a: u128) -> Option<MultiLocation> {
+		Some(MultiLocation::default())
+	}
+}
+
+impl Convert<MultiLocation, Option<u128>> for CurrencyIdConvert {
+	fn convert(a: MultiLocation) -> Option<u128> {
+		Some(200)
+	}
+}
+
 impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type CurrencyId = u128;
-	type CurrencyIdConvert = ();
+	type CurrencyIdConvert = CurrencyIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type MinXcmFee = ParachainMinFee;

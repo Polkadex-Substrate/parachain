@@ -137,7 +137,7 @@ impl ShouldExecute for DenyReserveTransferToRelayChain {
 					}
 			)
 		}) {
-			return Err(()) // Deny
+			//return Err(()) // Deny //TODO: Rewrite barrier
 		}
 
 		// An unexpected reserve transfer has arrived from the Relay Chain. Generally, `IsReserve`
@@ -235,7 +235,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 }
 
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1001))); //TODO: CHnage to our Parachin Id
+	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2040)));
 	pub const BaseXcmWeight: XCMWeight = 100_000_000; // TODO: recheck this
 	pub const MaxAssetsForTransfer: usize = 2;
 }

@@ -19,6 +19,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use std::collections::BTreeMap;
 	use crate::pallet;
 	use frame_support::{
 		dispatch::DispatchResultWithPostInfo,
@@ -37,6 +38,7 @@ pub mod pallet {
 		AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
 	}, prelude::X1, VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation};
 	use xcm::v2::WeightLimit;
+	use xcm_executor::Assets;
 	use xcm_executor::traits::{InvertLocation, TransactAsset};
 
 	//TODO Replace this with TheaMessages #Issue: 38
@@ -100,6 +102,7 @@ pub mod pallet {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, asset_id, amount]
 		AssetDeposited(MultiLocation, MultiAsset),
+		AssetWithdrawn(MultiLocation, MultiAsset)
 	}
 
 	// Errors inform users that something went wrong.
@@ -182,6 +185,12 @@ pub mod pallet {
 			    Err(XcmError::Trap(10))
 			}
 		}
+
+		fn withdraw_asset(what: &MultiAsset, who: &MultiLocation) -> sp_std::result::Result<Assets, XcmError> {
+			Self::deposit_event(Event::<T>::AssetWithdrawn(who.clone(), what.clone()));
+			Ok(what.clone().into())
+		}
+
 	}
 
 	impl<T: Config> Pallet<T> {
