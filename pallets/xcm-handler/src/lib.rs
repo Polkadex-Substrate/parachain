@@ -92,7 +92,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_thea_key)]
-	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, sp_core::ecdsa::Public, OptionQuery>;
+	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, [u8;64], OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_nonce)]
@@ -159,7 +159,7 @@ pub mod pallet {
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
 			let encoded_payload = Encode::encode(&payload);
 			let payload_hash = sp_io::hashing::keccak_256(&encoded_payload);
-			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash) {
+			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
 				for (asset, dest) in payload {
 					orml_xtokens::module::Pallet::<T>::transfer_multiassets(
 						origin.clone(),
@@ -179,16 +179,11 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
-			new_thea_key: sp_core::ecdsa::Public,
+			new_thea_key: [u8;64],
 			signature: sp_core::ecdsa::Signature,
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin.clone())?;
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
-			if signature.verify(new_thea_key.encode().as_ref(), &pubic_key) {
-				<ActiveTheaKey<T>>::put(new_thea_key);
-			} else {
-				return Err(Error::<T>::SignatureVerificationFailed.into())
-			}
 			Ok(().into())
 		}
 
@@ -196,7 +191,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn set_thea_key(
 			origin: OriginFor<T>,
-			thea_key: sp_core::ecdsa::Public,
+			thea_key: [u8;64],
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			<ActiveTheaKey<T>>::put(thea_key);
@@ -237,17 +232,19 @@ pub mod pallet {
 			T::AssetHandlerPalletId::get().into_account_truncating()
 		}
 
+
+
 		pub fn verify_ecdsa_prehashed(
 			signature: &sp_core::ecdsa::Signature,
-			public_key: &sp_core::ecdsa::Public,
-			message: &[u8; 32],
-		) -> bool {
-			// if let Some(pubk) = signature.recover_prehashed(message) {
-			// 	&pubk == public_key
-			// } else {
-			// 	false
-			// }
-			true
+			public_key: &[u8;64],
+			payload_hash: &[u8; 32],
+		) -> sp_std::result::Result<bool, DispatchError> {
+			let recovered_pb = sp_io::crypto::secp256k1_ecdsa_recover(
+				&signature.0,
+				payload_hash,
+			).map_err(|_| Error::<T>::SignatureVerificationFailed)?;
+			ensure!(recovered_pb == *public_key, Error::<T>::SignatureVerificationFailed);
+			Ok(true)
 		}
 	}
 }
