@@ -125,7 +125,7 @@ pub fn local_testnet_config() -> ChainSpec {
 	properties.insert("tokenDecimals".into(), 12.into());
 	properties.insert("ss58Format".into(), 89.into());
 	let root_key: AccountId =
-		hex!["70a5f4e786b47baf52d5a34742bb8312139cfe1c747fbeb3912c197d38c53332"].into();
+		get_account_id_from_seed::<sr25519::Public>("Alice");
 
 	ChainSpec::from_genesis(
 		// Name
