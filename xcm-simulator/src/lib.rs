@@ -116,7 +116,6 @@ mod tests {
 		BuyExecution { fees: fees.into(), weight_limit: Unlimited }
 	}
 
-	#[ignore]
 	#[test]
 	fn reserve_transfer() {
 		MockNet::reset();

@@ -201,21 +201,13 @@ pub mod pallet {
 
 	impl<T: Config> TransactAsset for Pallet<T> {
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
-			if let AssetId::Concrete(location) = what.id.clone() {
-				let inverted_location = T::LocationInverter::invert_location(&location)
-					.map_err(|_| XcmError::Trap(10))?;
-				let new_asset =
-					MultiAsset { id: AssetId::Concrete(inverted_location), fun: what.fun.clone() };
-				<IngressMessages<T>>::try_mutate(|ingress_messages| {
-					ingress_messages
-						.try_push(TheaMessage::AssetDeposited(who.clone(), new_asset.clone()))
-				})
+			<IngressMessages<T>>::try_mutate(|ingress_messages| {
+				ingress_messages
+					.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
+			})
 				.map_err(|_| XcmError::Trap(10))?;
-				Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
-				Ok(())
-			} else {
-				Err(XcmError::Trap(10))
-			}
+			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
+			Ok(())
 		}
 
 		fn withdraw_asset(
