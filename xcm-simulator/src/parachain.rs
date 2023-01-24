@@ -18,9 +18,7 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	construct_runtime,
-	dispatch::RawOrigin,
-	log, match_types, parameter_types,
+	construct_runtime, log, match_types, parameter_types,
 	traits::{Everything, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
@@ -34,9 +32,8 @@ use sp_std::prelude::*;
 use std::marker::PhantomData;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 
-use crate::parachain;
 use frame_support::PalletId;
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain::primitives::{
@@ -45,10 +42,10 @@ use polkadot_parachain::primitives::{
 use sp_runtime::traits::Convert;
 use xcm::VersionedXcm;
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
-	CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-	IsConcrete, LocationInverter, NativeAsset, ParentIsPreset, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
+	FixedRateOfFungible, FixedWeightBounds, LocationInverter, NativeAsset, ParentIsPreset,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{traits::ShouldExecute, Config, XcmExecutor};
 
@@ -144,9 +141,6 @@ parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 }
 
-pub type LocalAssetTransactor =
-	XcmCurrencyAdapter<Balances, IsConcrete<KsmLocation>, LocationToAccountId, AccountId, ()>;
-
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
 pub type Barrier = DenyThenTry<
 	DenyReserveTransferToRelayChain,
@@ -179,35 +173,6 @@ where
 	) -> Result<(), ()> {
 		Deny::should_execute(origin, message, max_weight, weight_credit)?;
 		Allow::should_execute(origin, message, max_weight, weight_credit)
-	}
-}
-
-pub struct DepositEvent {
-	pub deposit_amount: u128,
-	pub recipient: AccountId32,
-}
-
-impl DepositEvent {
-	pub fn new() -> Self {
-		Self { deposit_amount: 0, recipient: AccountId32::new([0; 32]) }
-	}
-
-	pub fn set_deposit_amount(&mut self, deposit_amount: u128) {
-		self.deposit_amount = deposit_amount;
-	}
-
-	pub fn get_recipient(asset: &MultiLocation) -> Option<AccountId32> {
-		match asset {
-			MultiLocation {
-				parents: _,
-				interior: X1(Junction::AccountId32 { network: _, id }),
-			} => Some(AccountId32::from(id.clone())),
-			_ => None,
-		}
-	}
-
-	pub fn set_recipient(&mut self, recipient: AccountId32) {
-		self.recipient = recipient;
 	}
 }
 
@@ -345,7 +310,7 @@ pub mod mock_msg_queue {
 				Ok(xcm) => {
 					let location = (1, Parachain(sender.into()));
 					match T::XcmExecutor::execute_xcm(location, xcm, max_weight.ref_time()) {
-						Outcome::Error(e) => (Err(e.clone()), Event::Fail(Some(hash), e)),
+						Outcome::Error(e) => (Err(e), Event::Fail(Some(hash), e)),
 						Outcome::Complete(w) =>
 							(Ok(Weight::from_ref_time(w)), Event::Success(Some(hash))),
 						// As far as the caller is concerned, this was dispatched without error, so
@@ -372,7 +337,7 @@ pub mod mock_msg_queue {
 				let _ = XcmpMessageFormat::decode(&mut data_ref)
 					.expect("Simulator encodes with versioned xcm format; qed");
 
-				let mut remaining_fragments = &data_ref[..];
+				let mut remaining_fragments = data_ref;
 				while !remaining_fragments.is_empty() {
 					if let Ok(xcm) =
 						VersionedXcm::<T::RuntimeCall>::decode(&mut remaining_fragments)
@@ -460,7 +425,7 @@ parameter_types! {
 }
 
 parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
+	pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
 		Some(1u128)
 	};
 }
@@ -468,13 +433,13 @@ parameter_type_with_key! {
 pub struct CurrencyIdConvert;
 
 impl Convert<u128, Option<MultiLocation>> for CurrencyIdConvert {
-	fn convert(a: u128) -> Option<MultiLocation> {
+	fn convert(_a: u128) -> Option<MultiLocation> {
 		Some(MultiLocation::default())
 	}
 }
 
 impl Convert<MultiLocation, Option<u128>> for CurrencyIdConvert {
-	fn convert(a: MultiLocation) -> Option<u128> {
+	fn convert(_a: MultiLocation) -> Option<u128> {
 		Some(200)
 	}
 }

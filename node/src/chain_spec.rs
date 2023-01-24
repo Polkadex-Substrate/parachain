@@ -124,8 +124,7 @@ pub fn local_testnet_config() -> ChainSpec {
 	properties.insert("tokenSymbol".into(), "PDEX".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 	properties.insert("ss58Format".into(), 89.into());
-	let root_key: AccountId =
-		get_account_id_from_seed::<sr25519::Public>("Alice");
+	let root_key: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
 
 	ChainSpec::from_genesis(
 		// Name

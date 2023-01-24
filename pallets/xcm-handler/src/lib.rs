@@ -19,33 +19,18 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::pallet;
 	use frame_support::{
-		dispatch::DispatchResultWithPostInfo,
-		pallet_prelude::*,
-		sp_runtime::traits::AccountIdConversion,
-		traits::{
-			fungibles::{Create, Inspect, Mutate},
-			tokens::Balance,
-		},
-		PalletId,
+		dispatch::DispatchResultWithPostInfo, pallet_prelude::*,
+		sp_runtime::traits::AccountIdConversion, PalletId,
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_core::sp_std;
-	use sp_runtime::traits::Verify;
-	use sp_std::collections::btree_map::BTreeMap;
 	use xcm::{
-		latest::{
-			AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
-		},
-		prelude::X1,
+		latest::{Error as XcmError, MultiAsset, MultiLocation, Result},
 		v2::WeightLimit,
-		VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation,
+		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm_executor::{
-		traits::{InvertLocation, TransactAsset},
-		Assets,
-	};
+	use xcm_executor::{traits::TransactAsset, Assets};
 
 	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, TypeInfo)]
@@ -92,7 +77,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_thea_key)]
-	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, [u8;64], OptionQuery>;
+	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, [u8; 64], OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_nonce)]
@@ -125,6 +110,8 @@ pub mod pallet {
 		SignatureVerificationFailed,
 		/// Public Key not set
 		PublicKeyNotSet,
+		/// Nonce is not valid
+		NonceIsNotValid,
 	}
 
 	#[pallet::hooks]
@@ -137,8 +124,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		// TODO: Will be implemented in another issue
-		///Deposit to Orderbook
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn withdraw_asset(
 			origin: OriginFor<T>,
@@ -154,7 +139,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin.clone())?;
 			let current_withdraw_nonce = <WithdrawNonce<T>>::get();
-			ensure!(withdraw_nonce == current_withdraw_nonce, Error::<T>::PublicKeyNotSet);
+			ensure!(withdraw_nonce == current_withdraw_nonce, Error::<T>::NonceIsNotValid);
 			<WithdrawNonce<T>>::put(current_withdraw_nonce.saturating_add(1));
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
 			let encoded_payload = Encode::encode(&payload);
@@ -179,11 +164,10 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
-			new_thea_key: [u8;64],
-			signature: sp_core::ecdsa::Signature,
+			_new_thea_key: [u8; 64],
+			_signature: sp_core::ecdsa::Signature,
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin.clone())?;
-			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
 			Ok(().into())
 		}
 
@@ -191,7 +175,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn set_thea_key(
 			origin: OriginFor<T>,
-			thea_key: [u8;64],
+			thea_key: [u8; 64],
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			<ActiveTheaKey<T>>::put(thea_key);
@@ -202,10 +186,9 @@ pub mod pallet {
 	impl<T: Config> TransactAsset for Pallet<T> {
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages
-					.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
+				ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
 			})
-				.map_err(|_| XcmError::Trap(10))?;
+			.map_err(|_| XcmError::Trap(10))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
 			Ok(())
 		}
@@ -224,17 +207,13 @@ pub mod pallet {
 			T::AssetHandlerPalletId::get().into_account_truncating()
 		}
 
-
-
 		pub fn verify_ecdsa_prehashed(
 			signature: &sp_core::ecdsa::Signature,
-			public_key: &[u8;64],
+			public_key: &[u8; 64],
 			payload_hash: &[u8; 32],
 		) -> sp_std::result::Result<bool, DispatchError> {
-			let recovered_pb = sp_io::crypto::secp256k1_ecdsa_recover(
-				&signature.0,
-				payload_hash,
-			).map_err(|_| Error::<T>::SignatureVerificationFailed)?;
+			let recovered_pb = sp_io::crypto::secp256k1_ecdsa_recover(&signature.0, payload_hash)
+				.map_err(|_| Error::<T>::SignatureVerificationFailed)?;
 			ensure!(recovered_pb == *public_key, Error::<T>::SignatureVerificationFailed);
 			Ok(true)
 		}
