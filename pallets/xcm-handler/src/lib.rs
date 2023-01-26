@@ -25,6 +25,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_core::sp_std;
+	use sp_runtime::SaturatedConversion;
 	use xcm::{
 		latest::{Error as XcmError, MultiAsset, MultiLocation, Result},
 		v2::WeightLimit,
@@ -59,6 +60,13 @@ pub mod pallet {
 		}
 	}
 
+	#[derive(Clone, PartialEq, Eq, Encode, Decode, TypeInfo)]
+	pub struct PendingWithdrawal {
+		asset: Box<VersionedMultiAssets>,
+		destination: Box<VersionedMultiLocation>
+	}
+
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + orml_xtokens::Config {
@@ -67,6 +75,9 @@ pub mod pallet {
 		/// Pallet Id
 		#[pallet::constant]
 		type AssetHandlerPalletId: Get<PalletId>;
+		/// Pallet Id
+		#[pallet::constant]
+		type WithdrawalExecutionBlockDiff: Get<Self::BlockNumber>;
 	}
 
 	// Queue for enclave ingress messages
@@ -82,6 +93,17 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_nonce)]
 	pub(super) type WithdrawNonce<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	/// Pending Withdrawals
+	#[pallet::storage]
+	#[pallet::getter(fn get_pending_withdrawls)]
+	pub(super) type PendingWithdrawals<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::BlockNumber,
+		BoundedVec<PendingWithdrawal, ConstU32<100>>,
+		ValueQuery,
+	>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -117,6 +139,13 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: T::BlockNumber) -> Weight {
+			// orml_xtokens::module::Pallet::<T>::transfer_multiassets(
+			// origin.clone(),
+			// asset,
+			// 0,
+			// dest,
+			// WeightLimit::Unlimited,
+			// )?;
 			<IngressMessages<T>>::kill();
 			Weight::default()
 		}
@@ -145,14 +174,14 @@ pub mod pallet {
 			let encoded_payload = Encode::encode(&payload);
 			let payload_hash = sp_io::hashing::keccak_256(&encoded_payload);
 			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
+				let withdrawal_execution_block: T::BlockNumber = <frame_system::Pallet<T>>::block_number()
+					.saturated_into::<u32>()
+					.saturating_add(T::WithdrawalExecutionBlockDiff::get().saturated_into::<u32>()).into();
 				for (asset, dest) in payload {
-					orml_xtokens::module::Pallet::<T>::transfer_multiassets(
-						origin.clone(),
-						asset,
-						0,
-						dest,
-						WeightLimit::Unlimited,
-					)?;
+                    let pending_withdrawal = PendingWithdrawal { asset, destination: dest };
+					<PendingWithdrawals<T>>::try_mutate(withdrawal_execution_block, |pending_withdrawals| {
+						pending_withdrawals.try_push(pending_withdrawal).map_err(|_| Error::<T>::IngressMessagesLimitReached) //TODO: Change the error
+					})?;
 				}
 			} else {
 				return Err(Error::<T>::SignatureVerificationFailed.into())
@@ -216,6 +245,13 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::SignatureVerificationFailed)?;
 			ensure!(recovered_pb == *public_key, Error::<T>::SignatureVerificationFailed);
 			Ok(true)
+		}
+
+		pub fn delete_by_ele(block_no: T::BlockNumber, index: u32) -> DispatchResult {
+			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
+			pending_withdrawals.remove(index as usize);
+			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
+		    Ok(())
 		}
 	}
 }

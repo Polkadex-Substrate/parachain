@@ -6,7 +6,8 @@ members = [
 	"node",
 	"runtime",
 	"xcm-simulator",
-	"pallets/*"
+	"pallets/xcm-handler",
+	"pallets/thea-council"
 ]
 
 [workspace.dependencies]
