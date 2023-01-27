@@ -6055,6 +6055,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "substrate-wasm-builder",
+ "thea-council",
  "xcm",
  "xcm-builder",
  "xcm-executor",

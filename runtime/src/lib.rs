@@ -465,11 +465,17 @@ impl pallet_sudo::Config for Runtime {
 
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
+	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
 }
 
 impl xcm_handler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
+	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
+}
+
+impl thea_council::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -505,7 +511,10 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 		XTokens: orml_xtokens::{Pallet, Call, Storage, Event<T>} = 34,
 
+		// Custom Pallets
 		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>}  = 40,
+		TheaCouncil: thea_council::{Pallet, Call, Storage, Event<T>} = 41,
+
 
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
 

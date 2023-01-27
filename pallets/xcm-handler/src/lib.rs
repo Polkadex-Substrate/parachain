@@ -62,8 +62,8 @@ pub mod pallet {
 
 	#[derive(Clone, PartialEq, Eq, Encode, Decode, TypeInfo)]
 	pub struct PendingWithdrawal {
-		asset: Box<VersionedMultiAssets>,
-		destination: Box<VersionedMultiLocation>
+		asset: sp_std::boxed::Box<VersionedMultiAssets>,
+		destination: sp_std::boxed::Box<VersionedMultiLocation>
 	}
 
 

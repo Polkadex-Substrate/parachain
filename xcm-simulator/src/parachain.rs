@@ -406,9 +406,14 @@ impl pallet_xcm::Config for Runtime {
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
+parameter_types! {
+	pub const WithdrawalExecutionBlockDiff: u32 = 7000;
+}
+
 impl xcm_handler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
+	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 }
 
 pub struct AccountIdToMultiLocation;
