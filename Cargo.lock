@@ -10906,12 +10906,18 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "orml-traits",
+ "orml-xtokens",
+ "pallet-xcm",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
  "xcm-handler",
 ]
 

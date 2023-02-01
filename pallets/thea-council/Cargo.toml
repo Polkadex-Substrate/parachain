@@ -18,11 +18,18 @@ frame-support = { workspace = true, default-features = false }
 frame-system = { workspace = true, default-features = false }
 sp-std = { workspace = true, default-features = false }
 xcm-handler = {path = "../xcm-handler", default-features = false}
+sp-runtime = { workspace = true, default-features = false }
 
 [dev-dependencies]
 sp-core = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
-sp-runtime = { workspace = true, default-features = false }
+orml-xtokens = { workspace = true, default-features = false }
+orml-traits = { workspace = true, default-features = false }
+xcm-executor = { workspace = true, default-features = false }
+xcm = { workspace = true, default-features = false }
+pallet-xcm = { workspace = true, default-features = false }
+xcm-builder = { workspace = true, default-features = false }
+
 
 [features]
 default = ["std"]
@@ -32,7 +39,13 @@ std = [
     "frame-support/std",
     "frame-system/std",
     "scale-info/std",
-    "xcm-handler/std"
+    "xcm-handler/std",
+    "orml-xtokens/std",
+    "orml-traits/std",
+    "xcm-executor/std",
+    "xcm/std",
+    "pallet-xcm/std",
+    "xcm-builder/std"
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]

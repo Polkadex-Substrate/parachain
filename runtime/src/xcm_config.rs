@@ -4,11 +4,10 @@ use super::{
 };
 use core::marker::PhantomData;
 use frame_support::{
-	dispatch::{Dispatchable, RawOrigin},
 	log, match_types, parameter_types,
 	traits::{Everything, Nothing},
 };
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
@@ -237,7 +236,7 @@ parameter_types! {
 }
 
 parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
+	pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
 		Some(1u128)
 	};
 }

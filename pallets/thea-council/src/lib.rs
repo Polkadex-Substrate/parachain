@@ -22,38 +22,8 @@ pub mod pallet {
 		RemoveExistingMember(AccountId),
 	}
 
-	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen, Copy, Clone, Eq, PartialEq)]
-	pub struct Voted<AccountId>(AccountId);
-
-	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen)]
-	pub enum MembershipStatus {
-		Active,
-		Pending,
-		Suspended,
-		Nothing
-	}
-
-	impl Default for MembershipStatus {
-		fn default() -> Self {
-			Self::Nothing
-		}
-	}
-
-	impl MembershipStatus {
-		pub fn is_active(&self) -> bool {
-			match self {
-				MembershipStatus::Active => true,
-				_ => false,
-			}
-		}
-
-		pub fn is_pending(&self) -> bool {
-			match self {
-				MembershipStatus::Pending => true,
-				_ => false,
-			}
-		}
-	}
+	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen, Copy, Clone, Eq, PartialEq, Debug)]
+	pub struct Voted<AccountId>(pub AccountId);
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -61,33 +31,22 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + xcm_handler::Config{
+	pub trait Config: frame_system::Config + xcm_handler::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 	}
-
-	/// Thea Council Members
-	#[pallet::storage]
-	#[pallet::getter(fn get_thea_member_status)]
-	pub(super) type TheaCouncilMembers<T: Config> = StorageMap<
-		_,
-		frame_support::Blake2_128Concat,
-		T::AccountId,
-		MembershipStatus,
-		ValueQuery,
-	>;
 
 	/// Active Council Members
 	#[pallet::storage]
 	#[pallet::getter(fn get_council_members)]
 	pub(super) type ActiveCouncilMembers<T: Config> =
-	StorageValue<_, BoundedVec<T::AccountId, ConstU32<10>>, ValueQuery>;
+		StorageValue<_, BoundedVec<T::AccountId, ConstU32<10>>, ValueQuery>;
 
 	/// Pending Council Members
 	#[pallet::storage]
 	#[pallet::getter(fn get_pending_council_members)]
 	pub(super) type PendingCouncilMembers<T: Config> =
-	StorageValue<_, BoundedVec<T::AccountId, ConstU32<10>>, ValueQuery>;
+		StorageValue<_, BoundedVec<T::AccountId, ConstU32<10>>, ValueQuery>;
 
 	/// Proposals
 	#[pallet::storage]
@@ -110,7 +69,9 @@ pub mod pallet {
 		/// New active member added [new_active_member]
 		NewActiveMemberAdded(T::AccountId),
 		/// Member removed [member]
-		MemberRemoved(T::AccountId)
+		MemberRemoved(T::AccountId),
+		/// Transaction deleted
+		TransactionDeleted(u32),
 	}
 
 	// Errors inform users that something went wrong.
@@ -139,17 +100,19 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn add_member(origin: OriginFor<T>, new_member: T::AccountId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-            ensure!(Self::is_council_member(&sender), Error::<T>::SenderNotCouncilMember);
+			ensure!(Self::is_council_member(&sender), Error::<T>::SenderNotCouncilMember);
 			Self::do_add_member(sender, new_member)?;
 			Ok(())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn remove_member(origin: OriginFor<T>, member_to_be_removed: T::AccountId) -> DispatchResult {
+		pub fn remove_member(
+			origin: OriginFor<T>,
+			member_to_be_removed: T::AccountId,
+		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(Self::is_council_member(&sender), Error::<T>::SenderNotCouncilMember);
 			Self::do_remove_member(sender, member_to_be_removed)?;
@@ -165,23 +128,23 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn delete_transaction(origin: OriginFor<T>, block_no: T::BlockNumber, index: u32) -> DispatchResult {
+		pub fn delete_transaction(
+			origin: OriginFor<T>,
+			block_no: T::BlockNumber,
+			index: u32,
+		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(Self::is_council_member(&sender), Error::<T>::SenderNotCouncilMember);
-			xcm_handler::Pallet::<T>::delete_by_ele(block_no, index)?;
-
-		    Ok(())
+			xcm_handler::Pallet::<T>::block_by_ele(block_no, index)?;
+			Self::deposit_event(Event::<T>::TransactionDeleted(index));
+			Ok(())
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
 		fn is_council_member(sender: &T::AccountId) -> bool {
 			let active_members = <ActiveCouncilMembers<T>>::get();
-			if active_members.contains(sender) {
-				true
-			} else {
-				false
-			}
+			active_members.contains(sender)
 		}
 
 		fn do_add_member(sender: T::AccountId, new_member: T::AccountId) -> DispatchResult {
@@ -190,58 +153,89 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn do_remove_member(sender: T::AccountId, member_to_be_removed: T::AccountId) -> DispatchResult {
+		fn do_remove_member(
+			sender: T::AccountId,
+			member_to_be_removed: T::AccountId,
+		) -> DispatchResult {
 			let proposal = Proposal::RemoveExistingMember(member_to_be_removed);
 			Self::evaluate_proposal(proposal, sender)?;
 			Ok(())
 		}
 
-		fn evaluate_proposal(proposal: Proposal<T::AccountId>, sender: T::AccountId) -> DispatchResult {
-			let current_votes = |votes:  &BoundedVec<Voted<T::AccountId>, ConstU32<100>>| -> usize {
-				votes.len()
-			};
+		fn evaluate_proposal(
+			proposal: Proposal<T::AccountId>,
+			sender: T::AccountId,
+		) -> DispatchResult {
+			let current_votes =
+				|votes: &BoundedVec<Voted<T::AccountId>, ConstU32<100>>| -> usize { votes.len() };
 			let expected_votes = || -> usize {
 				let total_active_council_size = <ActiveCouncilMembers<T>>::get().len();
 				total_active_council_size.saturating_mul(2).saturating_div(3)
 			};
+			let mut remove_proposal = false;
 			<Proposals<T>>::try_mutate(proposal.clone(), |votes| {
 				ensure!(!votes.contains(&Voted(sender.clone())), Error::<T>::SenderAlreadyVoted);
+				votes.try_push(Voted(sender)).map_err(|_| Error::<T>::StorageOverflow)?;
 				if current_votes(votes) >= expected_votes() {
-					Self::execute_proposal(proposal)
-				} else {
-					votes.try_push(Voted(sender)).map_err(|_| Error::<T>::StorageOverflow)?;
-					Ok(())
+					Self::execute_proposal(proposal.clone())?;
+					remove_proposal = true;
 				}
-			})
+				Ok::<(), sp_runtime::DispatchError>(())
+			})?;
+			if remove_proposal {
+				Self::remove_proposal(proposal);
+			}
+			Ok(())
+		}
+
+		fn remove_proposal(proposal: Proposal<T::AccountId>) {
+			<Proposals<T>>::remove(proposal);
 		}
 
 		fn execute_proposal(proposal: Proposal<T::AccountId>) -> DispatchResult {
 			match proposal {
 				Proposal::AddNewMember(new_member) => Self::execute_add_member(new_member),
-				Proposal::RemoveExistingMember(member_to_be_removed) => Self::execute_remove_member(member_to_be_removed)
+				Proposal::RemoveExistingMember(member_to_be_removed) =>
+					Self::execute_remove_member(member_to_be_removed),
 			}
 		}
 
 		fn execute_add_member(new_member: T::AccountId) -> DispatchResult {
 			let mut pending_council_member = <PendingCouncilMembers<T>>::get();
-			pending_council_member.try_push(new_member.clone()).map_err(|_| Error::<T>::StorageOverflow)?;
+			pending_council_member
+				.try_push(new_member.clone())
+				.map_err(|_| Error::<T>::StorageOverflow)?;
 			<PendingCouncilMembers<T>>::put(pending_council_member);
 			Self::deposit_event(Event::<T>::NewPendingMemberAdded(new_member));
-		    Ok(())
+			Ok(())
 		}
 
 		fn execute_remove_member(member_to_be_removed: T::AccountId) -> DispatchResult {
 			let mut active_council_member = <ActiveCouncilMembers<T>>::get();
-			let index = active_council_member.iter().position(|member| *member == member_to_be_removed).ok_or(Error::<T>::NotActiveMember)?;
+			let index = active_council_member
+				.iter()
+				.position(|member| *member == member_to_be_removed)
+				.ok_or(Error::<T>::NotActiveMember)?;
 			active_council_member.remove(index);
-			<PendingCouncilMembers<T>>::put(active_council_member);
+			<ActiveCouncilMembers<T>>::put(active_council_member);
 			Self::deposit_event(Event::<T>::MemberRemoved(member_to_be_removed));
 			Ok(())
 		}
 
 		fn do_claim_membership(sender: &T::AccountId) -> DispatchResult {
-			ensure!(<TheaCouncilMembers<T>>::get(sender).is_pending(), Error::<T>::NotPendingMember);
-			<TheaCouncilMembers<T>>::insert(sender, MembershipStatus::Active);
+			let mut pending_members = <PendingCouncilMembers<T>>::get();
+			ensure!(pending_members.contains(sender), Error::<T>::NotPendingMember);
+			let index = pending_members
+				.iter()
+				.position(|member| *member == *sender)
+				.ok_or(Error::<T>::NotActiveMember)?;
+			pending_members.remove(index);
+			<PendingCouncilMembers<T>>::put(pending_members);
+			let mut active_council_member = <ActiveCouncilMembers<T>>::get();
+			active_council_member
+				.try_push(sender.clone())
+				.map_err(|_| Error::<T>::StorageOverflow)?;
+			<ActiveCouncilMembers<T>>::put(active_council_member);
 			Ok(())
 		}
 	}
