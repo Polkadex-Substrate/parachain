@@ -146,7 +146,6 @@ mod tests {
 
 		ParaA::execute_with(|| {
 			use parachain::{RuntimeEvent, System};
-			println!("All events {:?}", System::events());
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited { .. })
@@ -157,9 +156,7 @@ mod tests {
 	#[test]
 	fn test_withdraw_from_parachain_to_relay_chain() {
 		MockNet::reset();
-		// TODO for R
 		Relay::execute_with(|| {
-			//pallet_balances::Pallet::<parachain::Runtime>::deposit_creating(&para_account_id(1), 1_000_000_000_000);
 			assert_eq!(
 				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
 				1_000_000_000
