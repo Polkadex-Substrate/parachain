@@ -19,6 +19,7 @@ mod relay_chain;
 
 use polkadot_parachain::primitives::Id as ParaId;
 use sp_runtime::traits::AccountIdConversion;
+use parachain::{RuntimeEvent, System};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub const ALICE: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([0u8; 32]);
@@ -145,7 +146,6 @@ mod tests {
 		});
 
 		ParaA::execute_with(|| {
-			use parachain::{RuntimeEvent, System};
 			println!("All events {:?}", System::events());
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
@@ -157,7 +157,6 @@ mod tests {
 	#[test]
 	fn test_withdraw_from_parachain_to_relay_chain() {
 		MockNet::reset();
-		// TODO for R
 		Relay::execute_with(|| {
 			//pallet_balances::Pallet::<parachain::Runtime>::deposit_creating(&para_account_id(1), 1_000_000_000_000);
 			assert_eq!(
@@ -197,6 +196,82 @@ mod tests {
 				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
 				1001_000_000
 			);
+		});
+	}
+
+	#[test]
+	fn test_relay_chain_asset_to_sibling() {
+		MockNet::reset();
+		Relay::execute_with(|| {
+			assert_eq!(
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
+				1_000_000_000
+			);
+		});
+
+		ParaA::execute_with(|| {
+			let multi_asset = MultiAsset {
+				id: AssetId::Concrete(Parent.into()),
+				fun: Fungibility::Fungible(1_000_000u128),
+			};
+			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
+			let dest = MultiLocation::new(1, X2(
+				Parachain(2),
+				Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: ALICE.into(),
+				}
+			));
+			let versioned_dest = VersionedMultiLocation::V1(dest);
+			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
+				Some(ALICE).into(),
+				Box::from(multi_assets),
+				0,
+				Box::from(versioned_dest),
+				WeightLimit::Unlimited
+			));
+		});
+
+		ParaB::execute_with(|| {
+			println!("All events {:?}", System::events());
+			assert!(System::events().iter().any(|r| matches!(
+				r.event,
+				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited(..))
+			)));
+		});
+	}
+
+	#[test]
+	fn test_send_sibling_asset_to_reserve_sibling() {
+		MockNet::reset();
+		ParaA::execute_with(|| {
+			let multi_asset = MultiAsset {
+				id: AssetId::Concrete(MultiLocation { parents: 1, interior: Junctions::X1(Parachain(1)) }),
+				fun: Fungibility::Fungible(1_000_000u128),
+			};
+			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
+			let dest = MultiLocation::new(1, X2(
+				Parachain(2),
+				Junction::AccountId32 {
+					network: NetworkId::Any,
+					id: ALICE.into(),
+				}
+			));
+			let versioned_dest = VersionedMultiLocation::V1(dest);
+			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
+				Some(ALICE).into(),
+				Box::from(multi_assets),
+				0,
+				Box::from(versioned_dest),
+				WeightLimit::Unlimited
+			));
+		});
+
+		ParaB::execute_with(|| {
+			assert!(System::events().iter().any(|r| matches!(
+				r.event,
+				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited(..))
+			)));
 		});
 	}
 }
