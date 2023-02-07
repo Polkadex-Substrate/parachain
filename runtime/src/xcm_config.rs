@@ -11,7 +11,7 @@ use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
-use sp_runtime::traits::Convert;
+use sp_runtime::traits::{AccountIdConversion, Convert};
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
@@ -21,6 +21,7 @@ use xcm_builder::{
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	UsingComponents,
 };
+use sp_core::crypto::ByteArray;
 use xcm_executor::{traits::ShouldExecute, XcmExecutor};
 
 parameter_types! {
@@ -114,16 +115,35 @@ where
 	}
 }
 
-pub type Barrier = (
-	TakeWeightCredit,
-	AllowTopLevelPaidExecutionFrom<Everything>,
-	// Expected responses are OK.
-	AllowKnownQueryResponses<PolkadotXcm>,
-	// Subscriptions for version tracking are OK.
-	AllowSubscriptionsFrom<Everything>,
-);
+pub type Barrier = DenyThenTry<
+	DenyReserveTransferToRelayChain,
+	(
+		TakeWeightCredit,
+		AllowTopLevelPaidExecutionFrom<Everything>,
+		AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+		// ^^^ Parent and its exec plurality get free execution
+	),
+>;
 
-use crate::{Balance, XcmHandler};
+pub struct DenyReserveTransferToRelayChain;
+impl ShouldExecute for DenyReserveTransferToRelayChain {
+	fn should_execute<RuntimeCall>(
+		origin: &MultiLocation,
+		_message: &mut Xcm<RuntimeCall>,
+		_max_weight: XCMWeight,
+		_weight_credit: &mut XCMWeight,
+	) -> Result<(), ()> {
+		let asset_handler_account: AccountId = AssetHandlerPalletId::get().into_account_truncating();
+		let asset_handler: [u8;32] = asset_handler_account.to_raw_vec().try_into().map_err(|_| ())?;
+		let MultiLocation{ parents, interior} = origin;
+		match (parents, interior) {
+			(0, junctions) if Junctions::X1(Junction::AccountId32 { network: NetworkId::Any, id: asset_handler }) != *junctions => return Err(()),
+			_ => Ok(())
+		}
+	}
+}
+
+use crate::{AssetHandlerPalletId, Balance, XcmHandler};
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
