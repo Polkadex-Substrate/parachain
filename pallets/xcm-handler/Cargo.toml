@@ -23,6 +23,10 @@ frame-system = { workspace = true, default-features = false }
 xcm-executor = { workspace = true, default-features = false }
 xcm = { workspace = true, default-features = false }
 pallet-xcm = { workspace = true, default-features = false }
+orml-xtokens = { workspace = true, default-features = false }
+sp-runtime = { workspace = true, default-features = false }
+sp-core = { workspace = true, default-features = false }
+sp-io = { workspace = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true }
@@ -43,6 +47,9 @@ std = [
 	"frame-system/std",
 	"xcm-executor/std",
 	"pallet-assets/std",
-	"pallet-xcm/std"
+	"pallet-xcm/std",
+	"orml-xtokens/std",
+	"sp-runtime/std",
+	"sp-core/std"
 ]
 try-runtime = [ "frame-support/try-runtime" ]

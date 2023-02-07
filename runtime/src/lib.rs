@@ -503,6 +503,7 @@ construct_runtime!(
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin, Config} = 31,
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
+		XTokens: orml_xtokens::{Pallet, Call, Storage, Event<T>} = 34,
 
 		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>}  = 40,
 

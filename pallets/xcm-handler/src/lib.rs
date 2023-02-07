@@ -19,23 +19,18 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::pallet;
 	use frame_support::{
-		dispatch::DispatchResultWithPostInfo,
-		pallet_prelude::*,
-		sp_runtime::traits::AccountIdConversion,
-		traits::{
-			fungibles::{Create, Inspect, Mutate},
-			tokens::Balance,
-		},
-		PalletId,
+		dispatch::DispatchResultWithPostInfo, pallet_prelude::*,
+		sp_runtime::traits::AccountIdConversion, PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use xcm::{latest::{
-		AssetId, Error as XcmError, Fungibility, Junction, MultiAsset, MultiLocation, Result,
-	}, prelude::X1, VersionedMultiLocation};
-	use xcm::latest::{ExecuteXcm, Junctions, SendError, Xcm};
-	use xcm_executor::traits::TransactAsset;
+	use sp_core::sp_std;
+	use xcm::{
+		latest::{Error as XcmError, MultiAsset, MultiLocation, Result},
+		v2::WeightLimit,
+		VersionedMultiAssets, VersionedMultiLocation,
+	};
+	use xcm_executor::{traits::TransactAsset, Assets};
 
 	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, TypeInfo)]
@@ -66,7 +61,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_xcm::Config{
+	pub trait Config: frame_system::Config + orml_xtokens::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Pallet Id
@@ -79,6 +74,14 @@ pub mod pallet {
 	#[pallet::getter(fn ingress_messages)]
 	pub(super) type IngressMessages<T: Config> =
 		StorageValue<_, BoundedVec<TheaMessage, IngressMessageLimit>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_thea_key)]
+	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, [u8; 64], OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn withdraw_nonce)]
+	pub(super) type WithdrawNonce<T: Config> = StorageValue<_, u32, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -93,6 +96,7 @@ pub mod pallet {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, asset_id, amount]
 		AssetDeposited(MultiLocation, MultiAsset),
+		AssetWithdrawn(MultiLocation, MultiAsset),
 	}
 
 	// Errors inform users that something went wrong.
@@ -102,6 +106,12 @@ pub mod pallet {
 		InvalidSender,
 		/// Ingress Messages Limit Reached
 		IngressMessagesLimitReached,
+		/// Signature verification failed
+		SignatureVerificationFailed,
+		/// Public Key not set
+		PublicKeyNotSet,
+		/// Nonce is not valid
+		NonceIsNotValid,
 	}
 
 	#[pallet::hooks]
@@ -114,18 +124,61 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		// TODO: Will be implemented in another issue
-		///Deposit to Orderbook
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn withdraw_asset(
 			origin: OriginFor<T>,
-			messages: Xcm<()>,
-			destination: MultiLocation
+			payload: BoundedVec<
+				(
+					sp_std::boxed::Box<VersionedMultiAssets>,
+					sp_std::boxed::Box<VersionedMultiLocation>,
+				),
+				ConstU32<10>,
+			>,
+			withdraw_nonce: u32,
+			signature: sp_core::ecdsa::Signature,
+		) -> DispatchResultWithPostInfo {
+			ensure_signed(origin.clone())?;
+			let current_withdraw_nonce = <WithdrawNonce<T>>::get();
+			ensure!(withdraw_nonce == current_withdraw_nonce, Error::<T>::NonceIsNotValid);
+			<WithdrawNonce<T>>::put(current_withdraw_nonce.saturating_add(1));
+			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
+			let encoded_payload = Encode::encode(&payload);
+			let payload_hash = sp_io::hashing::keccak_256(&encoded_payload);
+			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
+				for (asset, dest) in payload {
+					orml_xtokens::module::Pallet::<T>::transfer_multiassets(
+						origin.clone(),
+						asset,
+						0,
+						dest,
+						WeightLimit::Unlimited,
+					)?;
+				}
+			} else {
+				return Err(Error::<T>::SignatureVerificationFailed.into())
+			}
+			Ok(().into())
+		}
+
+		///Update Thea Key
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn change_thea_key(
+			origin: OriginFor<T>,
+			_new_thea_key: [u8; 64],
+			_signature: sp_core::ecdsa::Signature,
+		) -> DispatchResultWithPostInfo {
+			ensure_signed(origin.clone())?;
+			Ok(().into())
+		}
+
+		///Set Thea Key
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn set_thea_key(
+			origin: OriginFor<T>,
+			thea_key: [u8; 64],
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			let interior: Junctions =
-				Junctions::Here;
-			pallet_xcm::Pallet::<T>::send_xcm(interior, destination.clone(), messages).map_err(|_| Error::<T>::InvalidSender)?;
+			<ActiveTheaKey<T>>::put(thea_key);
 			Ok(().into())
 		}
 	}
@@ -139,11 +192,30 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
 			Ok(())
 		}
+
+		fn withdraw_asset(
+			what: &MultiAsset,
+			who: &MultiLocation,
+		) -> sp_std::result::Result<Assets, XcmError> {
+			Self::deposit_event(Event::<T>::AssetWithdrawn(who.clone(), what.clone()));
+			Ok(what.clone().into())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
 		pub fn get_pallet_account() -> T::AccountId {
 			T::AssetHandlerPalletId::get().into_account_truncating()
+		}
+
+		pub fn verify_ecdsa_prehashed(
+			signature: &sp_core::ecdsa::Signature,
+			public_key: &[u8; 64],
+			payload_hash: &[u8; 32],
+		) -> sp_std::result::Result<bool, DispatchError> {
+			let recovered_pb = sp_io::crypto::secp256k1_ecdsa_recover(&signature.0, payload_hash)
+				.map_err(|_| Error::<T>::SignatureVerificationFailed)?;
+			ensure!(recovered_pb == *public_key, Error::<T>::SignatureVerificationFailed);
+			Ok(true)
 		}
 	}
 }
