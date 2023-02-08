@@ -76,6 +76,7 @@ orml-traits = { workspace = true, default-features = false }
 
 # Local
 xcm-handler = { path = "../pallets/xcm-handler", default-features = false }
+thea-council = { path = "../pallets/thea-council", default-features = false}
 
 [features]
 default = [
@@ -126,7 +127,8 @@ std = [
 	"xcm/std",
 	"xcm-handler/std",
 	"orml-xtokens/std",
-	"orml-traits/std"
+	"orml-traits/std",
+	"thea-council/std"
 ]
 
 runtime-benchmarks = [
