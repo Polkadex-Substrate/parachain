@@ -22,7 +22,7 @@ use frame_support::{
 	traits::{Everything, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
-use sp_core::H256;
+use sp_core::{ByteArray, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{Hash, IdentityLookup},
@@ -39,7 +39,7 @@ use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain::primitives::{
 	DmpMessageHandler, Id as ParaId, Sibling, XcmpMessageFormat, XcmpMessageHandler,
 };
-use sp_runtime::traits::Convert;
+use sp_runtime::traits::{AccountIdConversion, Convert};
 use xcm::VersionedXcm;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
@@ -142,14 +142,33 @@ parameter_types! {
 }
 
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
-pub type Barrier = (
-	TakeWeightCredit,
-	AllowTopLevelPaidExecutionFrom<Everything>,
-	// Expected responses are OK.
-	AllowKnownQueryResponses<PolkadotXcm>,
-	// Subscriptions for version tracking are OK.
-	AllowSubscriptionsFrom<Everything>,
-);
+pub type Barrier = DenyThenTry<
+	DenyReserveTransferToRelayChain,
+	(
+		TakeWeightCredit,
+		AllowTopLevelPaidExecutionFrom<Everything>,
+		AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+		// ^^^ Parent and its exec plurality get free execution
+	),
+>;
+
+pub struct DenyReserveTransferToRelayChain;
+impl ShouldExecute for DenyReserveTransferToRelayChain {
+	fn should_execute<RuntimeCall>(
+		origin: &MultiLocation,
+		_message: &mut Xcm<RuntimeCall>,
+		_max_weight: XCMWeight,
+		_weight_credit: &mut XCMWeight,
+	) -> Result<(), ()> {
+		let asset_handler_account: AccountId32 = XcmHandlerId::get().into_account_truncating();
+		let asset_handler: [u8;32] = asset_handler_account.to_raw_vec().try_into().map_err(|_| ())?;
+		let MultiLocation{ parents, interior} = origin;
+		match (parents, interior) {
+			(0, junctions) if Junctions::X1(Junction::AccountId32 { network: NetworkId::Any, id: asset_handler }) != *junctions => return Err(()),
+			_ => Ok(())
+		}
+	}
+}
 
 //TODO: move DenyThenTry to polkadot's xcm module.
 /// Deny executing the xcm message if it matches any of the Deny filter regardless of anything else.
@@ -366,6 +385,7 @@ impl pallet_xcm::Config for Runtime {
 
 parameter_types! {
 	pub const WithdrawalExecutionBlockDiff: u32 = 7000;
+	pub const XcmHandlerId: PalletId = PalletId(*b"XcmHandl");
 }
 
 impl xcm_handler::Config for Runtime {
