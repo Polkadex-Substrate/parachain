@@ -18,9 +18,7 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	construct_runtime,
-	dispatch::RawOrigin,
-	log, match_types, parameter_types,
+	construct_runtime, log, match_types, parameter_types,
 	traits::{Everything, Nothing},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
@@ -34,9 +32,8 @@ use sp_std::prelude::*;
 use std::marker::PhantomData;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 
-use crate::parachain;
 use frame_support::PalletId;
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain::primitives::{
@@ -45,9 +42,9 @@ use polkadot_parachain::primitives::{
 use sp_runtime::traits::Convert;
 use xcm::VersionedXcm;
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
-	CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-	IsConcrete, LocationInverter, NativeAsset, ParentIsPreset, SiblingParachainConvertsVia,
+	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible,
+	FixedWeightBounds, LocationInverter, NativeAsset, ParentIsPreset, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{traits::ShouldExecute, Config, XcmExecutor};
@@ -144,19 +141,15 @@ parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 }
 
-pub type LocalAssetTransactor =
-	XcmCurrencyAdapter<Balances, IsConcrete<KsmLocation>, LocationToAccountId, AccountId, ()>;
-
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
-pub type Barrier = DenyThenTry<
-	DenyReserveTransferToRelayChain,
-	(
-		TakeWeightCredit,
-		AllowTopLevelPaidExecutionFrom<Everything>,
-		AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
-		// ^^^ Parent and its exec plurality get free execution
-	),
->;
+pub type Barrier = (
+	TakeWeightCredit,
+	AllowTopLevelPaidExecutionFrom<Everything>,
+	// Expected responses are OK.
+	AllowKnownQueryResponses<PolkadotXcm>,
+	// Subscriptions for version tracking are OK.
+	AllowSubscriptionsFrom<Everything>,
+);
 
 //TODO: move DenyThenTry to polkadot's xcm module.
 /// Deny executing the xcm message if it matches any of the Deny filter regardless of anything else.
@@ -179,76 +172,6 @@ where
 	) -> Result<(), ()> {
 		Deny::should_execute(origin, message, max_weight, weight_credit)?;
 		Allow::should_execute(origin, message, max_weight, weight_credit)
-	}
-}
-
-pub struct DepositEvent {
-	pub deposit_amount: u128,
-	pub recipient: AccountId32,
-}
-
-impl DepositEvent {
-	pub fn new() -> Self {
-		Self { deposit_amount: 0, recipient: AccountId32::new([0; 32]) }
-	}
-
-	pub fn set_deposit_amount(&mut self, deposit_amount: u128) {
-		self.deposit_amount = deposit_amount;
-	}
-
-	pub fn get_recipient(asset: &MultiLocation) -> Option<AccountId32> {
-		match asset {
-			MultiLocation {
-				parents: _,
-				interior: X1(Junction::AccountId32 { network: _, id }),
-			} => Some(AccountId32::from(id.clone())),
-			_ => None,
-		}
-	}
-
-	pub fn set_recipient(&mut self, recipient: AccountId32) {
-		self.recipient = recipient;
-	}
-}
-
-// See issue #5233
-pub struct DenyReserveTransferToRelayChain;
-impl ShouldExecute for DenyReserveTransferToRelayChain {
-	fn should_execute<RuntimeCall>(
-		origin: &MultiLocation,
-
-		message: &mut Xcm<RuntimeCall>,
-		_max_weight: XCMWeight,
-		_weight_credit: &mut XCMWeight,
-	) -> Result<(), ()> {
-		if message.0.iter().any(|inst| {
-			matches!(
-				inst,
-				InitiateReserveWithdraw {
-					reserve: MultiLocation { parents: 1, interior: Here },
-					..
-				} | DepositReserveAsset { dest: MultiLocation { parents: 1, interior: Here }, .. } |
-					TransferReserveAsset {
-						dest: MultiLocation { parents: 1, interior: Here },
-						..
-					}
-			)
-		}) {
-			//return Err(()) // Deny
-		}
-
-		// An unexpected reserve transfer has arrived from the Relay Chain. Generally, `IsReserve`
-		// should not allow this, but we just log it here.
-		if matches!(origin, MultiLocation { parents: 1, interior: Here }) &&
-			message.0.iter().any(|inst| matches!(inst, ReserveAssetDeposited { .. }))
-		{
-			log::warn!(
-				target: "xcm::barriers",
-				"Unexpected ReserveAssetDeposited from the Relay Chain",
-			);
-		}
-
-		Ok(())
 	}
 }
 
@@ -345,7 +268,7 @@ pub mod mock_msg_queue {
 				Ok(xcm) => {
 					let location = (1, Parachain(sender.into()));
 					match T::XcmExecutor::execute_xcm(location, xcm, max_weight.ref_time()) {
-						Outcome::Error(e) => (Err(e.clone()), Event::Fail(Some(hash), e)),
+						Outcome::Error(e) => (Err(e), Event::Fail(Some(hash), e)),
 						Outcome::Complete(w) =>
 							(Ok(Weight::from_ref_time(w)), Event::Success(Some(hash))),
 						// As far as the caller is concerned, this was dispatched without error, so
@@ -372,7 +295,7 @@ pub mod mock_msg_queue {
 				let _ = XcmpMessageFormat::decode(&mut data_ref)
 					.expect("Simulator encodes with versioned xcm format; qed");
 
-				let mut remaining_fragments = &data_ref[..];
+				let mut remaining_fragments = data_ref;
 				while !remaining_fragments.is_empty() {
 					if let Ok(xcm) =
 						VersionedXcm::<T::RuntimeCall>::decode(&mut remaining_fragments)
@@ -441,9 +364,14 @@ impl pallet_xcm::Config for Runtime {
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
+parameter_types! {
+	pub const WithdrawalExecutionBlockDiff: u32 = 7000;
+}
+
 impl xcm_handler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
+	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 }
 
 pub struct AccountIdToMultiLocation;
@@ -460,7 +388,7 @@ parameter_types! {
 }
 
 parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
+	pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
 		Some(1u128)
 	};
 }
@@ -468,13 +396,13 @@ parameter_type_with_key! {
 pub struct CurrencyIdConvert;
 
 impl Convert<u128, Option<MultiLocation>> for CurrencyIdConvert {
-	fn convert(a: u128) -> Option<MultiLocation> {
+	fn convert(_a: u128) -> Option<MultiLocation> {
 		Some(MultiLocation::default())
 	}
 }
 
 impl Convert<MultiLocation, Option<u128>> for CurrencyIdConvert {
-	fn convert(a: MultiLocation) -> Option<u128> {
+	fn convert(_a: MultiLocation) -> Option<u128> {
 		Some(200)
 	}
 }
