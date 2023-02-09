@@ -40,6 +40,10 @@ pub mod pallet {
 	pub enum TheaMessage {
 		/// AssetDeposited(Recipient, Asset & Amount)
 		AssetDeposited(MultiLocation, MultiAsset),
+		/// Thea Key Set by Sudo
+		TheaKeySetBySudo([u8; 64]),
+		/// New Thea Key Set by Current Relayer Set
+		TheaKeyChanged([u8; 64])
 	}
 
 	#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode)]
@@ -145,6 +149,8 @@ pub mod pallet {
 		SignatureVerificationFailed,
 		/// Public Key not set
 		PublicKeyNotSet,
+		/// Ingress Message Vector full
+		IngressMessagesFull,
 		/// Nonce is not valid
 		NonceIsNotValid,
 		/// Index not found
@@ -238,10 +244,23 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
-			_new_thea_key: [u8; 64],
-			_signature: sp_core::ecdsa::Signature,
+			new_thea_key: [u8; 64],
+			signature: sp_core::ecdsa::Signature,
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin.clone())?;
+			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
+			// let encoded_payload = Encode::encode(&new_thea_key);
+			let payload_hash = sp_io::hashing::keccak_256(&new_thea_key.to_vec());
+			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
+				<ActiveTheaKey<T>>::set(Some(new_thea_key));
+				<IngressMessages<T>>::try_mutate(|ingress_messages| {
+					ingress_messages.try_push(
+						TheaMessage::TheaKeyChanged(new_thea_key)
+					)
+				}).map_err(|_| Error::<T>::IngressMessagesFull)?;
+			} else {
+				return Err(Error::<T>::SignatureVerificationFailed.into());
+			}
 			Ok(().into())
 		}
 
@@ -253,6 +272,11 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			<ActiveTheaKey<T>>::put(thea_key);
+			<IngressMessages<T>>::try_mutate(|ingress_messages| {
+				ingress_messages.try_push(
+					TheaMessage::TheaKeySetBySudo(thea_key)
+				)
+			}).map_err(|_| Error::<T>::IngressMessagesFull)?;
 			Ok(().into())
 		}
 	}
