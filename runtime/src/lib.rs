@@ -52,10 +52,12 @@ pub use sp_runtime::BuildStorage;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
+use cumulus_primitives_core::ParaId;
 
 // XCM Imports
 use xcm::latest::prelude::BodyId;
 use xcm_executor::XcmExecutor;
+use crate::xcm_config::LocationToAccountId;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -465,12 +467,16 @@ impl pallet_sudo::Config for Runtime {
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
+	pub const ParachainId: u32 = 2040;
 }
 
 impl xcm_handler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type AccountIdConvert = LocationToAccountId;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
+	type ParachainId = ParachainId;
 }
 
 impl thea_council::Config for Runtime {

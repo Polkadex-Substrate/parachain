@@ -25,6 +25,7 @@ pub mod pallet {
 		sp_runtime::traits::AccountIdConversion,
 		PalletId,
 	};
+	use frame_support::traits::{Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons};
 	use frame_system::pallet_prelude::*;
 	use sp_core::sp_std;
 	use sp_runtime::SaturatedConversion;
@@ -33,7 +34,10 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm_executor::{traits::TransactAsset, Assets};
+	use xcm::latest::{Fungibility, Junction, Junctions};
+	use xcm::v1::AssetId;
+	use xcm_executor::{traits::{TransactAsset, Convert as MoreConvert}, Assets};
+	use cumulus_primitives_core::ParaId;
 
 	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, TypeInfo)]
@@ -74,12 +78,19 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + orml_xtokens::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// Integrate Balances Pallet
+		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		/// Multilocation to AccountId Convetor
+        type AccountIdConvert: MoreConvert<MultiLocation, Self::AccountId>;
 		/// Pallet Id
 		#[pallet::constant]
 		type AssetHandlerPalletId: Get<PalletId>;
 		/// Pallet Id
 		#[pallet::constant]
 		type WithdrawalExecutionBlockDiff: Get<Self::BlockNumber>;
+		 /// PDEX Asset ID
+		#[pallet::constant]
+		type ParachainId: Get<u32>;
 	}
 
 	// Queue for enclave ingress messages
@@ -271,14 +282,54 @@ pub mod pallet {
 			what: &MultiAsset,
 			who: &MultiLocation,
 		) -> sp_std::result::Result<Assets, XcmError> {
+			let MultiAsset {id, fun} = what;
+			if Self::is_native_asset(id) {
+				let who = T::AccountIdConvert::convert_ref(who)
+					.map_err(|_| XcmError::FailedToDecode)?;
+				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
+				T::Currency::withdraw(&who, amount.saturated_into(), WithdrawReasons::all(), ExistenceRequirement::KeepAlive).map_err(|_| XcmError::Trap(21))?; //TODO: Check for withdraw reason and error
+			} else {
+                //TODO: Handle non-native asset
+			}
 			Self::deposit_event(Event::<T>::AssetWithdrawn(who.clone(), what.clone()));
 			Ok(what.clone().into())
+		}
+
+		fn transfer_asset(asset: &MultiAsset, from: &MultiLocation, to: &MultiLocation) -> sp_std::result::Result<Assets, XcmError> {
+			let MultiAsset {id, fun} = asset;
+			if Self::is_native_asset(id) {
+				let from = T::AccountIdConvert::convert_ref(from)
+					.map_err(|_| XcmError::FailedToDecode)?;
+				let to = T::AccountIdConvert::convert_ref(to)
+					.map_err(|_| XcmError::FailedToDecode)?;
+				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
+				T::Currency::transfer(&from, &to, amount.saturated_into(), ExistenceRequirement::KeepAlive).map_err(|_| XcmError::Trap(21))?;
+			} else {
+				//TODO: Handle non-native asset
+			}
+			Ok(asset.clone().into())
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
 		pub fn get_pallet_account() -> T::AccountId {
 			T::AssetHandlerPalletId::get().into_account_truncating()
+		}
+
+		pub fn get_amount(fun: &Fungibility) -> Option<u128> {
+			if let Fungibility::Fungible(amount) = fun {
+				return Some(*amount)
+			} else {
+				None
+			}
+		}
+
+		pub fn is_native_asset(asset: &AssetId) -> bool {
+			let native_asset = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(T::ParachainId::get().into())) };
+			match asset {
+				AssetId::Concrete(location) if location == &native_asset => true,
+				_ => false
+			}
 		}
 
 		pub fn verify_ecdsa_prehashed(
