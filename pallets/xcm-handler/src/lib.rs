@@ -150,7 +150,7 @@ pub mod pallet {
 		/// Public Key not set
 		PublicKeyNotSet,
 		/// Ingress Message Vector full
-		IngressMessagesFull
+		IngressMessagesFull,
 		/// Nonce is not valid
 		NonceIsNotValid,
 		/// Index not found
@@ -244,8 +244,8 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
-			_new_thea_key: [u8; 64],
-			_signature: sp_core::ecdsa::Signature,
+			new_thea_key: [u8; 64],
+			signature: sp_core::ecdsa::Signature,
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin.clone())?;
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
