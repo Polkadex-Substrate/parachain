@@ -38,6 +38,13 @@ pub mod pallet {
 	use xcm::v1::AssetId;
 	use xcm_executor::{traits::{TransactAsset, Convert as MoreConvert}, Assets};
 	use cumulus_primitives_core::ParaId;
+	use frame_support::traits::fungibles::{Create, Inspect, Mutate, Transfer};
+	use frame_system::Origin;
+	use sp_runtime::traits::{One, UniqueSaturatedInto};
+	use sp_std::vec;
+
+	pub type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, TypeInfo)]
@@ -73,6 +80,18 @@ pub mod pallet {
 		is_blocked: bool,
 	}
 
+	#[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
+	pub enum AssetType {
+		Fungible,
+		NonFungible,
+	}
+
+	#[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
+	pub struct ParachainAsset {
+		pub location: MultiLocation,
+		pub asset_type: AssetType,
+	}
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + orml_xtokens::Config {
@@ -82,6 +101,13 @@ pub mod pallet {
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// Multilocation to AccountId Convetor
         type AccountIdConvert: MoreConvert<MultiLocation, Self::AccountId>;
+		/// Asset Manager
+		type AssetManager: Create<<Self as frame_system::Config>::AccountId>
+		+ Mutate<<Self as frame_system::Config>::AccountId, Balance = u128, AssetId = u128>
+		+ Inspect<<Self as frame_system::Config>::AccountId>
+		+ Transfer<<Self as frame_system::Config>::AccountId>;
+		/// Asset Create/ Update Origin
+		type AssetCreateUpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Pallet Id
 		#[pallet::constant]
 		type AssetHandlerPalletId: Get<PalletId>;
@@ -91,6 +117,8 @@ pub mod pallet {
 		 /// PDEX Asset ID
 		#[pallet::constant]
 		type ParachainId: Get<u32>;
+		#[pallet::constant]
+		type ParachainNetworkId: Get<u8>;
 	}
 
 	// Queue for enclave ingress messages
@@ -129,6 +157,13 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
+	/// Thea Assets, asset_id(u128) -> (network_id(u8), identifier_length(u8),
+	/// identifier(BoundedVec<>))
+	#[pallet::storage]
+	#[pallet::getter(fn get_thea_assets)]
+	pub type TheaAssets<T: Config> =
+	StorageMap<_, Blake2_128Concat, u128, (u8, u8, BoundedVec<u8, ConstU32<1000>>), ValueQuery>;
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
@@ -142,7 +177,9 @@ pub mod pallet {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, asset_id, amount]
 		AssetDeposited(MultiLocation, MultiAsset),
-		AssetWithdrawn(MultiLocation, MultiAsset),
+		AssetWithdrawn(T::AccountId, MultiAsset),
+		/// New Asset Created [asset_id]
+		TheaAssetCreated(u128)
 	}
 
 	// Errors inform users that something went wrong.
@@ -160,6 +197,10 @@ pub mod pallet {
 		NonceIsNotValid,
 		/// Index not found
 		IndexNotFound,
+		/// Identifier Length Mismatch
+		IdentifierLengthMismatch,
+		/// AssetId Abstract Not Handled
+		AssetIdAbstractNotHandled
 	}
 
 	#[pallet::hooks]
@@ -266,6 +307,31 @@ pub mod pallet {
 			<ActiveTheaKey<T>>::put(thea_key);
 			Ok(().into())
 		}
+
+		///Create Asset
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn create_parachain_asset(
+			origin: OriginFor<T>,
+			asset: sp_std::boxed::Box<AssetId>,
+		) -> DispatchResult {
+			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
+			let (network_id, asset_identifier, identifier_length) =
+				Self::get_asset_info(*asset.clone())?;
+			let asset_id = Self::generate_asset_id_for_parachain(*asset)?;
+			// Call Assets Pallet
+			T::AssetManager::create(
+				asset_id,
+				T::AssetHandlerPalletId::get().into_account_truncating(),
+				false,
+				BalanceOf::<T>::one().unique_saturated_into(),
+			)?;
+			<TheaAssets<T>>::insert(
+				asset_id,
+				(network_id, identifier_length as u8, asset_identifier),
+			);
+			Self::deposit_event(Event::<T>::TheaAssetCreated(asset_id));
+			Ok(())
+		}
 	}
 
 	impl<T: Config> TransactAsset for Pallet<T> {
@@ -283,13 +349,14 @@ pub mod pallet {
 			who: &MultiLocation,
 		) -> sp_std::result::Result<Assets, XcmError> {
 			let MultiAsset {id, fun} = what;
+			let who = T::AccountIdConvert::convert_ref(who)
+				.map_err(|_| XcmError::FailedToDecode)?;
+			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			if Self::is_native_asset(id) {
-				let who = T::AccountIdConvert::convert_ref(who)
-					.map_err(|_| XcmError::FailedToDecode)?;
-				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 				T::Currency::withdraw(&who, amount.saturated_into(), WithdrawReasons::all(), ExistenceRequirement::KeepAlive).map_err(|_| XcmError::Trap(21))?; //TODO: Check for withdraw reason and error
 			} else {
-                //TODO: Handle non-native asset
+                let asset_id = Self::generate_asset_id_for_parachain(what.id.clone()).map_err(|_| XcmError::Trap(22))?;//TODO: Verify error
+                T::AssetManager::burn_from(asset_id,&who, amount.saturated_into()).map_err(|_| XcmError::Trap(24))?;
 			}
 			Self::deposit_event(Event::<T>::AssetWithdrawn(who.clone(), what.clone()));
 			Ok(what.clone().into())
@@ -297,15 +364,17 @@ pub mod pallet {
 
 		fn transfer_asset(asset: &MultiAsset, from: &MultiLocation, to: &MultiLocation) -> sp_std::result::Result<Assets, XcmError> {
 			let MultiAsset {id, fun} = asset;
+			let from = T::AccountIdConvert::convert_ref(from)
+				.map_err(|_| XcmError::FailedToDecode)?;
+			let to = T::AccountIdConvert::convert_ref(to)
+				.map_err(|_| XcmError::FailedToDecode)?;
+			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			if Self::is_native_asset(id) {
-				let from = T::AccountIdConvert::convert_ref(from)
-					.map_err(|_| XcmError::FailedToDecode)?;
-				let to = T::AccountIdConvert::convert_ref(to)
-					.map_err(|_| XcmError::FailedToDecode)?;
-				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 				T::Currency::transfer(&from, &to, amount.saturated_into(), ExistenceRequirement::KeepAlive).map_err(|_| XcmError::Trap(21))?;
 			} else {
 				//TODO: Handle non-native asset
+				let asset_id = Self::generate_asset_id_for_parachain(id.clone()).map_err(|_| XcmError::Trap(22))?;
+				T::AssetManager::transfer(asset_id, &from, &to, amount, true).map_err(|_| XcmError::Trap(23))?;
 			}
 			Ok(asset.clone().into())
 		}
@@ -314,6 +383,39 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		pub fn get_pallet_account() -> T::AccountId {
 			T::AssetHandlerPalletId::get().into_account_truncating()
+		}
+
+		pub fn generate_asset_id_for_parachain(asset: AssetId) -> sp_std::result::Result<u128, DispatchError> {
+			let (network_id, asset_identifier, identifier_length) = Self::get_asset_info(asset)?;
+			let mut derived_asset_id: sp_std::vec::Vec<u8> = vec![];
+			derived_asset_id.push(network_id);
+			derived_asset_id.push(identifier_length as u8);
+			derived_asset_id.extend(&asset_identifier);
+			let asset_id = Self::get_asset_id(derived_asset_id);
+			Ok(asset_id)
+		}
+
+		pub fn get_asset_id(derived_asset_id: sp_std::vec::Vec<u8>) -> u128 {
+			let derived_asset_id_hash = &sp_io::hashing::keccak_256(derived_asset_id.as_ref())[0..16];
+			let mut temp = [0u8; 16];
+			temp.copy_from_slice(derived_asset_id_hash);
+			u128::from_le_bytes(temp)
+		}
+
+		pub fn get_asset_info(
+			asset: AssetId,
+		) -> sp_std::result::Result<(u8, BoundedVec<u8, ConstU32<1000>>, usize), DispatchError> {
+			let network_id = T::ParachainNetworkId::get();
+			if let AssetId::Concrete(asset_location) = asset {
+				let asset_identifier =
+					ParachainAsset { location: asset_location, asset_type: AssetType::Fungible };
+				let asset_identifier = BoundedVec::try_from(asset_identifier.encode())
+					.map_err(|_| Error::<T>::IdentifierLengthMismatch)?;
+				let identifier_length = asset_identifier.len();
+				Ok((network_id, asset_identifier, identifier_length))
+			} else {
+				Err(Error::<T>::AssetIdAbstractNotHandled.into())
+			}
 		}
 
 		pub fn get_amount(fun: &Fungibility) -> Option<u128> {

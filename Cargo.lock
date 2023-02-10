@@ -6027,6 +6027,7 @@ dependencies = [
  "log",
  "orml-traits",
  "orml-xtokens",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
