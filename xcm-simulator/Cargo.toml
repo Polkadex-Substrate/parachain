@@ -25,6 +25,7 @@ pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release
 polkadot-core-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.32" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.32" }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.32" }
+pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.32" }
 
 # ORML Pallets
 orml-xtokens = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false, branch = "polkadot-v0.9.32"}

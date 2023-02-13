@@ -33,6 +33,7 @@ use std::marker::PhantomData;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 
 use frame_support::PalletId;
+use frame_system::EnsureRoot;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
@@ -142,33 +143,14 @@ parameter_types! {
 }
 
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
-pub type Barrier = DenyThenTry<
-	DenyReserveTransferToRelayChain,
-	(
-		TakeWeightCredit,
-		AllowTopLevelPaidExecutionFrom<Everything>,
-		AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
-		// ^^^ Parent and its exec plurality get free execution
-	),
->;
-
-pub struct DenyReserveTransferToRelayChain;
-impl ShouldExecute for DenyReserveTransferToRelayChain {
-	fn should_execute<RuntimeCall>(
-		origin: &MultiLocation,
-		_message: &mut Xcm<RuntimeCall>,
-		_max_weight: XCMWeight,
-		_weight_credit: &mut XCMWeight,
-	) -> Result<(), ()> {
-		let asset_handler_account: AccountId32 = XcmHandlerId::get().into_account_truncating();
-		let asset_handler: [u8;32] = asset_handler_account.to_raw_vec().try_into().map_err(|_| ())?;
-		let MultiLocation{ parents, interior} = origin;
-		match (parents, interior) {
-			(0, junctions) if Junctions::X1(Junction::AccountId32 { network: NetworkId::Any, id: asset_handler }) != *junctions => return Err(()),
-			_ => Ok(())
-		}
-	}
-}
+pub type Barrier = (
+	TakeWeightCredit,
+	AllowTopLevelPaidExecutionFrom<Everything>,
+	// Expected responses are OK.
+	AllowKnownQueryResponses<PolkadotXcm>,
+	// Subscriptions for version tracking are OK.
+	AllowSubscriptionsFrom<Everything>,
+);
 
 //TODO: move DenyThenTry to polkadot's xcm module.
 /// Deny executing the xcm message if it matches any of the Deny filter regardless of anything else.
@@ -386,12 +368,45 @@ impl pallet_xcm::Config for Runtime {
 parameter_types! {
 	pub const WithdrawalExecutionBlockDiff: u32 = 7000;
 	pub const XcmHandlerId: PalletId = PalletId(*b"XcmHandl");
+	pub ParachainId: u32 = MsgQueue::parachain_id().into();
+	pub const ParachainNetworkId: u8 = 1;
 }
 
 impl xcm_handler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type AccountIdConvert = LocationToAccountId;
+	type AssetManager = AssetsPallet;
+	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
+	type ParachainId = ParachainId;
+	type ParachainNetworkId = ParachainNetworkId;
+}
+
+parameter_types! {
+	pub const AssetDeposit: Balance = 100;
+	pub const ApprovalDeposit: Balance = 1;
+	pub const StringLimit: u32 = 50;
+	pub const MetadataDepositBase: Balance = 10;
+	pub const MetadataDepositPerByte: Balance = 1;
+}
+
+impl pallet_assets::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = Balance;
+	type AssetId = u128;
+	type Currency = Balances;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = AssetDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = StringLimit;
+	type Freezer = ();
+	type Extra = ();
+	type WeightInfo = ();
 }
 
 pub struct AccountIdToMultiLocation;
@@ -402,7 +417,8 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 }
 
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(1001))); //TODO: CHnage to our Parachin Id
+	//pub ParaId: ParaId = mock_msg_queue::<Runtime>::get();
+	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(MsgQueue::parachain_id().into()))); //TODO: CHnage to our Parachin Id
 	pub const BaseXcmWeight: XCMWeight = 100_000_000; // TODO: recheck this
 	pub const MaxAssetsForTransfer: usize = 2;
 }
@@ -458,6 +474,7 @@ construct_runtime!(
 		MsgQueue: mock_msg_queue::{Pallet, Storage, Event<T>},
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
 		XTokens: orml_xtokens::{Pallet, Call, Event<T>},
-		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>}
+		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>},
+		AssetsPallet: pallet_assets::{Pallet, Call, Storage, Event<T>}
 	}
 );

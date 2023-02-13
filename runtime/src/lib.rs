@@ -14,14 +14,13 @@ use crate::constants::currency::DOLLARS;
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, Get, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
-
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -52,13 +51,13 @@ pub use sp_runtime::BuildStorage;
 // Polkadot imports
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
-use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 use cumulus_primitives_core::ParaId;
+use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 // XCM Imports
+use crate::xcm_config::LocationToAccountId;
 use xcm::latest::prelude::BodyId;
 use xcm_executor::XcmExecutor;
-use crate::xcm_config::LocationToAccountId;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -468,16 +467,20 @@ impl pallet_sudo::Config for Runtime {
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
-	pub const ParachainId: u32 = 2040;
+	pub ParachainId: u32 = ParachainInfo::get().into();
+	pub const ParachainNetworkId: u8 = 1;
 }
 
 impl xcm_handler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type AccountIdConvert = LocationToAccountId;
+	type AssetManager = Assets;
+	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
+	type ParachainNetworkId = ParachainNetworkId;
 }
 
 impl thea_council::Config for Runtime {
@@ -549,7 +552,6 @@ construct_runtime!(
 
 
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
-
 	}
 );
 
