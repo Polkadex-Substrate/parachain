@@ -50,6 +50,7 @@ pub mod pallet {
 		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
 	};
+	use sp_runtime::traits::Convert;
 
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -352,6 +353,18 @@ pub mod pallet {
 		}
 	}
 
+    impl<T: Config>	Convert<u128, Option<MultiLocation>> for Pallet<T> {
+		fn convert(asset_id: u128) -> Option<MultiLocation> {
+            Self::convert_asset_id_to_location(asset_id)
+		}
+	}
+
+	impl<T: Config>	Convert<MultiLocation, Option<u128>> for Pallet<T> {
+		fn convert(a: MultiLocation) -> Option<u128> {
+			todo!()
+		}
+	}
+
 	impl<T: Config> TransactAsset for Pallet<T> {
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
@@ -597,6 +610,21 @@ pub mod pallet {
 			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
 			pending_withdrawals.try_push(pending_withdrawal).unwrap();
 			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
+		}
+
+		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
+			let (_, _, asset_identifier) = <TheaAssets<T>>::get(asset_id);
+			let asset_identifier = asset_identifier.to_vec();
+			let parachain_asset: Option<ParachainAsset> = Decode::decode(&mut &asset_identifier[..]).ok();
+			if let Some(asset) = parachain_asset {
+				Some(asset.location)
+			} else {
+				None
+			}
+		}
+
+		pub fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
+			Self::generate_asset_id_for_parachain(AssetId::Concrete(location)).ok()
 		}
 	}
 }
