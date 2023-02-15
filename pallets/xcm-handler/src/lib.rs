@@ -33,7 +33,7 @@ pub mod pallet {
 	use frame_system::{pallet_prelude::*, Origin};
 	use sp_core::sp_std;
 	use sp_runtime::{
-		traits::{One, UniqueSaturatedInto},
+		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
 	use sp_std::vec;
@@ -50,7 +50,6 @@ pub mod pallet {
 		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
 	};
-	use sp_runtime::traits::Convert;
 
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -353,13 +352,13 @@ pub mod pallet {
 		}
 	}
 
-    impl<T: Config>	Convert<u128, Option<MultiLocation>> for Pallet<T> {
+	impl<T: Config> Convert<u128, Option<MultiLocation>> for Pallet<T> {
 		fn convert(asset_id: u128) -> Option<MultiLocation> {
-            Self::convert_asset_id_to_location(asset_id)
+			Self::convert_asset_id_to_location(asset_id)
 		}
 	}
 
-	impl<T: Config>	Convert<MultiLocation, Option<u128>> for Pallet<T> {
+	impl<T: Config> Convert<MultiLocation, Option<u128>> for Pallet<T> {
 		fn convert(a: MultiLocation) -> Option<u128> {
 			todo!()
 		}
@@ -615,7 +614,8 @@ pub mod pallet {
 		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
 			let (_, _, asset_identifier) = <TheaAssets<T>>::get(asset_id);
 			let asset_identifier = asset_identifier.to_vec();
-			let parachain_asset: Option<ParachainAsset> = Decode::decode(&mut &asset_identifier[..]).ok();
+			let parachain_asset: Option<ParachainAsset> =
+				Decode::decode(&mut &asset_identifier[..]).ok();
 			if let Some(asset) = parachain_asset {
 				Some(asset.location)
 			} else {
