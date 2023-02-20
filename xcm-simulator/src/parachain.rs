@@ -32,8 +32,8 @@ use sp_std::prelude::*;
 use std::marker::PhantomData;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 
-use frame_support::PalletId;
-use frame_system::EnsureRoot;
+use frame_support::{traits::AsEnsureOriginWithArg, PalletId};
+use frame_system::{EnsureRoot, EnsureSigned};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
@@ -397,6 +397,7 @@ impl pallet_assets::Config for Runtime {
 	type Balance = Balance;
 	type AssetId = u128;
 	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
 	type ForceOrigin = EnsureRoot<AccountId>;
 	type AssetDeposit = AssetDeposit;
 	type AssetAccountDeposit = AssetDeposit;
