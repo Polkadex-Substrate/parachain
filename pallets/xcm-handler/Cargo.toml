@@ -27,6 +27,7 @@ orml-xtokens = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
 sp-core = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
+cumulus-primitives-core = { workspace = true, default-features = false }
 [dev-dependencies]
 serde = { workspace = true }
 
@@ -45,10 +46,11 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"xcm-executor/std",
-	"pallet-assets/std",
 	"pallet-xcm/std",
 	"orml-xtokens/std",
 	"sp-runtime/std",
-	"sp-core/std"
+	"sp-core/std",
+	"cumulus-primitives-core/std",
+	"pallet-assets/std"
 ]
 try-runtime = [ "frame-support/try-runtime" ]

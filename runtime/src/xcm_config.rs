@@ -11,6 +11,7 @@ use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
+use sp_core::{crypto::ByteArray, Get};
 use sp_runtime::traits::{AccountIdConversion, Convert};
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
@@ -21,7 +22,6 @@ use xcm_builder::{
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 	UsingComponents,
 };
-use sp_core::crypto::ByteArray;
 use xcm_executor::{traits::ShouldExecute, XcmExecutor};
 
 parameter_types! {
@@ -115,33 +115,14 @@ where
 	}
 }
 
-pub type Barrier = DenyThenTry<
-	DenyReserveTransferToRelayChain,
-	(
-		TakeWeightCredit,
-		AllowTopLevelPaidExecutionFrom<Everything>,
-		AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
-		// ^^^ Parent and its exec plurality get free execution
-	),
->;
-
-pub struct DenyReserveTransferToRelayChain;
-impl ShouldExecute for DenyReserveTransferToRelayChain {
-	fn should_execute<RuntimeCall>(
-		origin: &MultiLocation,
-		_message: &mut Xcm<RuntimeCall>,
-		_max_weight: XCMWeight,
-		_weight_credit: &mut XCMWeight,
-	) -> Result<(), ()> {
-		let asset_handler_account: AccountId = AssetHandlerPalletId::get().into_account_truncating();
-		let asset_handler: [u8;32] = asset_handler_account.to_raw_vec().try_into().map_err(|_| ())?;
-		let MultiLocation{ parents, interior} = origin;
-		match (parents, interior) {
-			(0, junctions) if Junctions::X1(Junction::AccountId32 { network: NetworkId::Any, id: asset_handler }) != *junctions => return Err(()),
-			_ => Ok(())
-		}
-	}
-}
+pub type Barrier = (
+	TakeWeightCredit,
+	AllowTopLevelPaidExecutionFrom<Everything>,
+	// Expected responses are OK.
+	AllowKnownQueryResponses<PolkadotXcm>,
+	// Subscriptions for version tracking are OK.
+	AllowSubscriptionsFrom<Everything>,
+);
 
 use crate::{AssetHandlerPalletId, Balance, XcmHandler};
 pub struct XcmConfig;
@@ -210,7 +191,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 }
 
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(2040)));
+	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
 	pub const BaseXcmWeight: XCMWeight = 100_000_000; // TODO: recheck this
 	pub const MaxAssetsForTransfer: usize = 2;
 }
@@ -225,7 +206,7 @@ impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type CurrencyId = u128;
-	type CurrencyIdConvert = ();
+	type CurrencyIdConvert = XcmHandler;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type MinXcmFee = ParachainMinFee;

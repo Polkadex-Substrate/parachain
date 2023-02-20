@@ -227,6 +227,7 @@ fn testnet_genesis(
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
 		sudo: parachain_polkadex_runtime::SudoConfig { key: Some(root_key.clone()) },
+		assets: Default::default(),
 	}
 }
 
