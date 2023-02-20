@@ -310,7 +310,7 @@ pub mod pallet {
 					)?;
 				}
 			} else {
-				return Err(Error::<T>::SignatureVerificationFailed.into())
+				return Err(Error::<T>::SignatureVerificationFailed.into());
 			}
 			Ok(().into())
 		}
@@ -461,7 +461,7 @@ pub mod pallet {
 					}
 				}
 			} else {
-				return Err(Error::<T>::InternalError.into())
+				return Err(Error::<T>::InternalError.into());
 			}
 			Ok(())
 		}
@@ -572,7 +572,7 @@ pub mod pallet {
 
 		pub fn get_amount(fun: &Fungibility) -> Option<u128> {
 			if let Fungibility::Fungible(amount) = fun {
-				return Some(*amount)
+				return Some(*amount);
 			} else {
 				None
 			}

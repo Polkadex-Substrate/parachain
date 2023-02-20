@@ -311,12 +311,14 @@ pub mod mock_msg_queue {
 					let location = (1, Parachain(sender.into()));
 					match T::XcmExecutor::execute_xcm(location, xcm, max_weight.ref_time()) {
 						Outcome::Error(e) => (Err(e), Event::Fail(Some(hash), e)),
-						Outcome::Complete(w) =>
-							(Ok(Weight::from_ref_time(w)), Event::Success(Some(hash))),
+						Outcome::Complete(w) => {
+							(Ok(Weight::from_ref_time(w)), Event::Success(Some(hash)))
+						},
 						// As far as the caller is concerned, this was dispatched without error, so
 						// we just report the weight used.
-						Outcome::Incomplete(w, e) =>
-							(Ok(Weight::from_ref_time(w)), Event::Fail(Some(hash), e)),
+						Outcome::Incomplete(w, e) => {
+							(Ok(Weight::from_ref_time(w)), Event::Fail(Some(hash), e))
+						},
 					}
 				},
 				Err(()) => (Err(XcmError::UnhandledXcmVersion), Event::BadVersion(Some(hash))),
@@ -694,22 +696,20 @@ where
 	BalanceConv: xcm_executor::traits::Convert<u128, AM::Balance>,
 {
 	fn take_revenue(revenue: MultiAsset) {
-		println!("Here 10");
 		if let AssetId::Concrete(location) = revenue.id {
-			if let (Some(asset_id), Fungibility::Fungible(amount)) =
+			if let (Some(asset_id_u128), Fungibility::Fungible(amount)) =
 				(AC::convert_location_to_asset_id(location), revenue.fun)
 			{
 				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
-				let asset_id = AssetConv::convert_ref(asset_id).unwrap();
-				println!("asse_id: {:?}", asset_id);
+				let asset_id = AssetConv::convert_ref(asset_id_u128).unwrap();
 				AM::mint_into(
 					asset_id,
 					&asset_handler_account,
 					BalanceConv::convert_ref(1_000_000_000_000_000).unwrap(),
 				)
 				.expect("TODO: panic message"); //TODO: Print Error log
-				                // AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount)
-				                // 	.expect("TODO: panic message"); // TODO Print Error log
+				AMM::swap(&asset_handler_account, (asset_id_u128, NativeCurrencyId::get()), amount)
+					.expect("TODO: panic message"); // TODO Print Error log
 			}
 		}
 	}

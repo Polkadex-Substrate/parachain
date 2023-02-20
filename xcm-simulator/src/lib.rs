@@ -16,6 +16,7 @@
 
 mod parachain;
 mod relay_chain;
+mod mock_amm;
 
 use crate::parachain::XcmHandler;
 use frame_support::{
