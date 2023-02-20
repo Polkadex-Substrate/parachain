@@ -363,14 +363,14 @@ where
 				(AC::convert_location_to_asset_id(location), revenue.fun)
 			{
 				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
-				AM::mint_into(
-					AssetConv::convert_ref(asset_id).unwrap(),
-					&asset_handler_account,
-					BalanceConv::convert_ref(amount).unwrap(),
-				)
-				.expect("TODO: panic message"); //TODO: Print Error log
-				AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount)
-					.expect("TODO: panic message"); // TODO Print Error log
+				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) = (AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount)) {
+					AM::mint_into(
+						asset_id_associated_type,
+						&asset_handler_account,
+						amount_associated_type,
+					);
+					AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount);
+				}
 			}
 		}
 	}
