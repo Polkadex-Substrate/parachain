@@ -265,8 +265,8 @@ pub mod pallet {
 					);
 
 					ensure!(
-						ideal_base_amount >= minimum_base_amount
-							&& ideal_quote_amount >= minimum_quote_amount,
+						ideal_base_amount >= minimum_base_amount &&
+							ideal_quote_amount >= minimum_quote_amount,
 						Error::<T, I>::NotAnIdealPrice
 					);
 
@@ -499,11 +499,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		(curr_a, curr_b): (AssetIdOf<T, I>, AssetIdOf<T, I>),
 	) -> Result<(bool, AssetIdOf<T, I>, AssetIdOf<T, I>), DispatchError> {
 		if curr_a > curr_b {
-			return Ok((false, curr_a, curr_b));
+			return Ok((false, curr_a, curr_b))
 		}
 
 		if curr_a < curr_b {
-			return Ok((true, curr_b, curr_a));
+			return Ok((true, curr_b, curr_a))
 		}
 
 		log::trace!(
@@ -528,7 +528,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		);
 
 		if pool.is_empty() {
-			return Ok((base_amount, quote_amount));
+			return Ok((base_amount, quote_amount))
 		}
 
 		let ideal_quote_amount = Self::quote(base_amount, pool.base_amount, pool.quote_amount)?;
@@ -947,7 +947,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			}
 
 			// if fees are off and k_last is zero return
-			return Ok(Zero::zero());
+			return Ok(Zero::zero())
 		}
 
 		// if the early exits do not return we know that k_last is not zero
@@ -966,7 +966,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			.sqrt();
 
 		if root_k <= root_k_last {
-			return Ok(Zero::zero());
+			return Ok(Zero::zero())
 		}
 
 		let total_supply = T::Assets::total_issuance(pool.lp_token_id).get_big_uint();
@@ -1145,7 +1145,7 @@ impl<T: Config<I>, I: 'static>
 	)> {
 		for (base_asset, quote_asset, pool) in Pools::<T, I>::iter() {
 			if pool.lp_token_id == asset_id {
-				return Some((base_asset, quote_asset, pool));
+				return Some((base_asset, quote_asset, pool))
 			}
 		}
 		None
@@ -1156,7 +1156,7 @@ impl<T: Config<I>, I: 'static>
 		(base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
 	) -> Option<Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>> {
 		if let Ok((_, base_asset, quote_asset)) = Self::sort_assets((base_asset, quote_asset)) {
-			return Pools::<T, I>::get(base_asset, quote_asset);
+			return Pools::<T, I>::get(base_asset, quote_asset)
 		}
 		None
 	}

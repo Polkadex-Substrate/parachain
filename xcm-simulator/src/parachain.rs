@@ -224,7 +224,13 @@ impl Config for XcmConfig {
 		UsingComponents<WeightToFee, PdexLocation, AccountId, Balances, ()>,
 		ForeignAssetFeeHandler<
 			WeightToFee,
-			RevenueCollector<AssetsPallet, XcmHandler, MockedAMM<AccountId, u128, u128, u64>, TypeConv, TypeConv>,
+			RevenueCollector<
+				AssetsPallet,
+				XcmHandler,
+				MockedAMM<AccountId, u128, u128, u64>,
+				TypeConv,
+				TypeConv,
+			>,
 			MockedAMM<AccountId, u128, u128, u64>,
 			XcmHandler,
 		>,
@@ -311,14 +317,12 @@ pub mod mock_msg_queue {
 					let location = (1, Parachain(sender.into()));
 					match T::XcmExecutor::execute_xcm(location, xcm, max_weight.ref_time()) {
 						Outcome::Error(e) => (Err(e), Event::Fail(Some(hash), e)),
-						Outcome::Complete(w) => {
-							(Ok(Weight::from_ref_time(w)), Event::Success(Some(hash)))
-						},
+						Outcome::Complete(w) =>
+							(Ok(Weight::from_ref_time(w)), Event::Success(Some(hash))),
 						// As far as the caller is concerned, this was dispatched without error, so
 						// we just report the weight used.
-						Outcome::Incomplete(w, e) => {
-							(Ok(Weight::from_ref_time(w)), Event::Fail(Some(hash), e))
-						},
+						Outcome::Incomplete(w, e) =>
+							(Ok(Weight::from_ref_time(w)), Event::Fail(Some(hash), e)),
 					}
 				},
 				Err(()) => (Err(XcmError::UnhandledXcmVersion), Event::BadVersion(Some(hash))),
@@ -590,10 +594,10 @@ where
 	_pd: PhantomData<(T, R, AMM, AC)>,
 }
 
+use crate::mock_amm::MockedAMM;
 use sp_std::vec;
 use xcm_executor::traits::WeightTrader;
 use xcm_handler::AssetIdConverter;
-use crate::mock_amm::MockedAMM;
 
 impl<T, R, AMM, AC> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC>
 where

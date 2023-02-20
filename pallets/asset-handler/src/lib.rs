@@ -77,7 +77,7 @@ pub mod pallet {
 				T::MultiCurrency::total_issuance(asset.saturated_into()).saturated_into()
 			} else {
 				T::Currency::total_issuance().saturated_into()
-			};
+			}
 		}
 
 		fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
@@ -85,7 +85,7 @@ pub mod pallet {
 				T::MultiCurrency::minimum_balance(asset.saturated_into()).saturated_into()
 			} else {
 				T::Currency::minimum_balance().saturated_into()
-			};
+			}
 		}
 
 		fn balance(asset: Self::AssetId, who: &T::AccountId) -> Self::Balance {
@@ -93,7 +93,7 @@ pub mod pallet {
 				T::MultiCurrency::balance(asset.saturated_into(), who).saturated_into()
 			} else {
 				T::Currency::total_balance(who).saturated_into()
-			};
+			}
 		}
 
 		fn reducible_balance(
@@ -106,7 +106,7 @@ pub mod pallet {
 					.saturated_into()
 			} else {
 				T::Currency::free_balance(who).saturated_into()
-			};
+			}
 		}
 
 		fn can_deposit(
@@ -120,7 +120,7 @@ pub mod pallet {
 			} else {
 				// balance of native asset can always be increased
 				DepositConsequence::Success
-			};
+			}
 		}
 
 		fn can_withdraw(
@@ -134,10 +134,10 @@ pub mod pallet {
 					who,
 					amount.saturated_into(),
 				);
-				return consequences.into();
+				return consequences.into()
 			} else {
 				todo!()
-			};
+			}
 		}
 	}
 
@@ -165,7 +165,7 @@ pub mod pallet {
 					existence_requirement,
 				)?;
 				Ok(amount)
-			};
+			}
 		}
 	}
 
@@ -180,7 +180,7 @@ pub mod pallet {
 					.map(|x| x.saturated_into())
 			} else {
 				fail!(Error::<T>::CannotMintNativeAsset)
-			};
+			}
 		}
 
 		fn burn_from(
@@ -193,7 +193,7 @@ pub mod pallet {
 					.map(|x| x.saturated_into())
 			} else {
 				fail!(Error::<T>::CannotBurnNativeAsset)
-			};
+			}
 		}
 
 		fn slash(
@@ -207,7 +207,7 @@ pub mod pallet {
 			} else {
 				let (_, balance) = T::Currency::slash(who, amount.saturated_into());
 				Ok(balance.saturated_into())
-			};
+			}
 		}
 
 		fn teleport(
@@ -227,7 +227,7 @@ pub mod pallet {
 					ExistenceRequirement::KeepAlive,
 				)?;
 				Ok(amount)
-			};
+			}
 		}
 	}
 }
