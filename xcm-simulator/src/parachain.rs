@@ -224,8 +224,8 @@ impl Config for XcmConfig {
 		UsingComponents<WeightToFee, PdexLocation, AccountId, Balances, ()>,
 		ForeignAssetFeeHandler<
 			WeightToFee,
-			RevenueCollector<AssetsPallet, XcmHandler, Swap, TypeConv, TypeConv>,
-			Swap,
+			RevenueCollector<AssetsPallet, XcmHandler, MockedAMM<AccountId, u128, u128, u64>, TypeConv, TypeConv>,
+			MockedAMM<AccountId, u128, u128, u64>,
 			XcmHandler,
 		>,
 	);
@@ -593,6 +593,7 @@ where
 use sp_std::vec;
 use xcm_executor::traits::WeightTrader;
 use xcm_handler::AssetIdConverter;
+use crate::mock_amm::MockedAMM;
 
 impl<T, R, AMM, AC> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC>
 where
@@ -621,9 +622,8 @@ where
 				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::TooExpensive)?;
 			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
 
-			// let expected_fee_in_foreign_currency = AMM::get_amounts_in(fee_in_native_token, path)
-			// 	.map_err(|_| XcmError::TooExpensive)?;
-			let expected_fee_in_foreign_currency: Vec<u128> = vec![5];
+			let expected_fee_in_foreign_currency = AMM::get_amounts_in(fee_in_native_token, path)
+				.map_err(|_| XcmError::TooExpensive)?;
 			let expected_fee_in_foreign_currency =
 				expected_fee_in_foreign_currency.iter().next().ok_or(XcmError::TooExpensive)?;
 			let unused = payment
