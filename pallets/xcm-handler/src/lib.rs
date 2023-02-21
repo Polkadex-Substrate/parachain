@@ -614,13 +614,7 @@ pub mod pallet {
 		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
 			let (_, _, asset_identifier) = <TheaAssets<T>>::get(asset_id);
 			let asset_identifier = asset_identifier.to_vec();
-			let parachain_asset: Option<ParachainAsset> =
-				Decode::decode(&mut &asset_identifier[..]).ok();
-			if let Some(asset) = parachain_asset {
-				Some(asset.location)
-			} else {
-				None
-			}
+			Decode::decode(&mut &asset_identifier[..]).ok().map(|asset: ParachainAsset| asset.location)
 		}
 
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
