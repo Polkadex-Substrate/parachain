@@ -240,8 +240,6 @@ impl orml_xtokens::Config for Runtime {
 	type ReserveProvider = AbsoluteReserveProvider;
 }
 
-// pub struct ForeignAssetFeeHandler<T: WeightToFeeT<Balance = u128>, R: TakeRevenue, AMM: support::AMM<AccountId, u128, Balance, BlockNumber>, AC: AssetIdConverter>
-// where
 pub struct ForeignAssetFeeHandler<T, R, AMM, AC>
 where
 	T: WeightToFeeT<Balance = u128>,
@@ -275,10 +273,8 @@ where
 		weight: u64,
 		payment: Assets,
 	) -> sp_std::result::Result<Assets, XcmError> {
-		// Calculate weight to fee
 		let fee_in_native_token =
 			T::weight_to_fee(&frame_support::weights::Weight::from_ref_time(weight));
-		// Check if
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::TooExpensive)?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
