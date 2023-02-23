@@ -5,30 +5,42 @@ use super::{
 use core::marker::PhantomData;
 use frame_support::{
 	log, match_types, parameter_types,
-	traits::{Everything, Nothing},
+	traits::{
+		fungibles::{Inspect, Mutate},
+		Everything, Nothing,
+	},
+	weights::WeightToFee as WeightToFeeT,
 };
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
 use sp_core::{crypto::ByteArray, Get};
-use sp_runtime::traits::{AccountIdConversion, Convert};
+use sp_runtime::{
+	traits::{AccountIdConversion, Convert},
+	SaturatedConversion,
+};
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
 	FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentIsPreset,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	UsingComponents,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
+	TakeWeightCredit, UsingComponents,
 };
-use xcm_executor::{traits::ShouldExecute, XcmExecutor};
+use xcm_executor::{
+	traits::{ShouldExecute, WeightTrader},
+	Assets, XcmExecutor,
+};
+use xcm_handler::AssetIdConverter;
 
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = NetworkId::Any;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+	pub PdexLocation: MultiLocation = Here.into();
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -124,7 +136,9 @@ pub type Barrier = (
 	AllowSubscriptionsFrom<Everything>,
 );
 
-use crate::{AssetHandlerPalletId, Balance, XcmHandler};
+use crate::{
+	AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, NativeCurrencyId, Swap, XcmHandler,
+};
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -137,8 +151,15 @@ impl xcm_executor::Config for XcmConfig {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-	type Trader =
-		UsingComponents<WeightToFee, RelayLocation, AccountId, Balances, ToAuthor<Runtime>>;
+	type Trader = (
+		UsingComponents<WeightToFee, PdexLocation, AccountId, Balances, ToAuthor<Runtime>>, //TODO: Change destination account
+		ForeignAssetFeeHandler<
+			WeightToFee,
+			RevenueCollector<AssetHandler, XcmHandler, Swap, TypeConv, TypeConv>,
+			Swap,
+			XcmHandler,
+		>,
+	);
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;
@@ -217,4 +238,136 @@ impl orml_xtokens::Config for Runtime {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type ReserveProvider = AbsoluteReserveProvider;
+}
+
+pub struct ForeignAssetFeeHandler<T, R, AMM, AC>
+where
+	T: WeightToFeeT<Balance = u128>,
+	R: TakeRevenue,
+	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
+	AC: AssetIdConverter,
+{
+	/// Total used weight
+	weight: u64,
+	/// Total consumed assets
+	consumed: u128,
+	/// Asset Id (as MultiLocation) and units per second for payment
+	asset_location_and_units_per_second: Option<(MultiLocation, u128)>,
+	_pd: PhantomData<(T, R, AMM, AC)>,
+}
+
+use sp_std::vec;
+impl<T, R, AMM, AC> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC>
+where
+	T: WeightToFeeT<Balance = u128>,
+	R: TakeRevenue,
+	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
+	AC: AssetIdConverter,
+{
+	fn new() -> Self {
+		Self { weight: 0, consumed: 0, asset_location_and_units_per_second: None, _pd: PhantomData }
+	}
+
+	fn buy_weight(
+		&mut self,
+		weight: u64,
+		payment: Assets,
+	) -> sp_std::result::Result<Assets, XcmError> {
+		let fee_in_native_token =
+			T::weight_to_fee(&frame_support::weights::Weight::from_ref_time(weight));
+		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::TooExpensive)?;
+		if let AssetId::Concrete(location) = payment_asset.id {
+			let foreign_currency_asset_id =
+				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::TooExpensive)?;
+			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
+			let expected_fee_in_foreign_currency = AMM::get_amounts_in(fee_in_native_token, path)
+				.map_err(|_| XcmError::TooExpensive)?;
+			let expected_fee_in_foreign_currency =
+				expected_fee_in_foreign_currency.iter().next().ok_or(XcmError::TooExpensive)?;
+			let unused = payment
+				.checked_sub((location.clone(), *expected_fee_in_foreign_currency).into())
+				.map_err(|_| XcmError::TooExpensive)?;
+			self.weight = self.weight.saturating_add(weight);
+			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
+			{
+				if old_asset_location == location.clone() {
+					self.consumed = self
+						.consumed
+						.saturating_add((*expected_fee_in_foreign_currency).saturated_into());
+				}
+			} else {
+				self.consumed = self
+					.consumed
+					.saturating_add((*expected_fee_in_foreign_currency).saturated_into());
+				self.asset_location_and_units_per_second = Some((location, 0));
+			}
+			Ok(unused)
+		} else {
+			Err(XcmError::TooExpensive)
+		}
+	}
+}
+
+impl<T, R, AMM, AC> Drop for ForeignAssetFeeHandler<T, R, AMM, AC>
+where
+	T: WeightToFeeT<Balance = u128>,
+	R: TakeRevenue,
+	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
+	AC: AssetIdConverter,
+{
+	fn drop(&mut self) {
+		if let Some((asset_location, _)) = self.asset_location_and_units_per_second.clone() {
+			if self.consumed > 0 {
+				R::take_revenue((asset_location, self.consumed).into());
+			}
+		}
+	}
+}
+
+pub struct TypeConv;
+impl<Source: TryFrom<Dest> + Clone, Dest: TryFrom<Source> + Clone>
+	xcm_executor::traits::Convert<Source, Dest> for TypeConv
+{
+	fn convert(value: Source) -> Result<Dest, Source> {
+		Dest::try_from(value.clone()).map_err(|_| value)
+	}
+}
+
+pub struct RevenueCollector<AM, AC, AMM, AssetConv, BalanceConv>
+where
+	AM: Mutate<sp_runtime::AccountId32> + Inspect<sp_runtime::AccountId32>,
+	AC: AssetIdConverter,
+	AMM: support::AMM<sp_runtime::AccountId32, u128, Balance, BlockNumber>,
+	AssetConv: xcm_executor::traits::Convert<u128, AM::AssetId>,
+	BalanceConv: xcm_executor::traits::Convert<u128, AM::Balance>,
+{
+	_pd: sp_std::marker::PhantomData<(AM, AC, AMM, AssetConv, BalanceConv)>,
+}
+
+impl<AM, AC, AMM, AssetConv, BalanceConv> TakeRevenue
+	for RevenueCollector<AM, AC, AMM, AssetConv, BalanceConv>
+where
+	AM: Mutate<sp_runtime::AccountId32> + Inspect<sp_runtime::AccountId32>,
+	AC: AssetIdConverter,
+	AMM: support::AMM<sp_runtime::AccountId32, u128, Balance, BlockNumber>,
+	AssetConv: xcm_executor::traits::Convert<u128, AM::AssetId>,
+	BalanceConv: xcm_executor::traits::Convert<u128, AM::Balance>,
+{
+	fn take_revenue(revenue: MultiAsset) {
+		if let AssetId::Concrete(location) = revenue.id {
+			if let (Some(asset_id), Fungibility::Fungible(amount)) =
+				(AC::convert_location_to_asset_id(location), revenue.fun)
+			{
+				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
+				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) = (AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount)) {
+					AM::mint_into(
+						asset_id_associated_type,
+						&asset_handler_account,
+						amount_associated_type,
+					);
+					AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount);
+				}
+			}
+		}
+	}
 }

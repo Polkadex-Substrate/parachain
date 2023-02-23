@@ -12396,7 +12396,9 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "support",
  "xcm",
+ "xcm-builder",
  "xcm-executor",
 ]
 
@@ -12415,22 +12417,28 @@ dependencies = [
 name = "xcm-simulator"
 version = "0.1.0"
 dependencies = [
+ "asset-handler",
  "frame-support",
  "frame-system",
  "orml-traits",
  "orml-xtokens",
+ "pallet-amm",
  "pallet-assets",
  "pallet-balances",
  "pallet-xcm",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain",
+ "polkadot-runtime-common",
  "polkadot-runtime-parachains",
+ "router",
  "scale-info",
+ "smallvec",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "support",
  "xcm",
  "xcm-builder",
  "xcm-executor",

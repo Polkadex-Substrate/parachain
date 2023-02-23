@@ -26,8 +26,10 @@ pub mod pallet {
 		sp_runtime::traits::AccountIdConversion,
 		traits::{
 			fungibles::{Create, Inspect, Mutate, Transfer},
+			tokens::Balance,
 			Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
 		},
+		weights::WeightToFee,
 		PalletId,
 	};
 	use frame_system::{pallet_prelude::*, Origin};
@@ -37,6 +39,7 @@ pub mod pallet {
 		SaturatedConversion,
 	};
 	use sp_std::vec;
+	use support::AMM;
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -46,8 +49,9 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
+	use xcm_builder::TakeRevenue;
 	use xcm_executor::{
-		traits::{Convert as MoreConvert, TransactAsset},
+		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
 	};
 
@@ -98,6 +102,13 @@ pub mod pallet {
 	pub struct ParachainAsset {
 		pub location: MultiLocation,
 		pub asset_type: AssetType,
+	}
+
+	pub trait AssetIdConverter {
+		/// Converts AssetId to MultiLocation
+		fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation>;
+		/// Converts Location to AssetId
+		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128>;
 	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -625,6 +636,16 @@ pub mod pallet {
 
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location)).ok()
+		}
+	}
+
+	impl<T: Config> AssetIdConverter for Pallet<T> {
+		fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
+			Self::convert_asset_id_to_location(asset_id)
+		}
+
+		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
+			Self::convert_location_to_asset_id(location)
 		}
 	}
 }

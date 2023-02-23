@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
+mod mock_amm;
 mod parachain;
 mod relay_chain;
 
@@ -122,7 +123,9 @@ mod tests {
 
 	use codec::Encode;
 	use frame_support::{
-		assert_noop, assert_ok, metadata::StorageEntryModifier::Default, traits::Currency,
+		assert_noop, assert_ok,
+		metadata::StorageEntryModifier::Default,
+		traits::{fungible::Mutate, Currency},
 	};
 	use polkadot_core_primitives::AccountId;
 	use xcm::{
@@ -191,8 +194,18 @@ mod tests {
 				1_000_000_000
 			);
 		});
+		ParaB::execute_with(|| {
+			create_asset();
+		});
 
 		ParaA::execute_with(|| {
+			let asset_handler_account: AccountId =
+				AssetHandlerPalletId::get().into_account_truncating();
+			use frame_support::traits::fungible::Mutate;
+			assert_ok!(pallet_balances::Pallet::<parachain::Runtime>::mint_into(
+				&asset_handler_account,
+				1_000_000_000_000
+			));
 			let multi_asset = MultiAsset {
 				id: AssetId::Concrete(Parent.into()),
 				fun: Fungibility::Fungible(1_000_000u128),
@@ -234,6 +247,9 @@ mod tests {
 	#[test]
 	fn test_send_sibling_asset_to_reserve_sibling() {
 		MockNet::reset();
+		ParaB::execute_with(|| {
+			create_parachain_a_asset();
+		});
 		ParaA::execute_with(|| {
 			let multi_asset = MultiAsset {
 				id: AssetId::Concrete(MultiLocation {
@@ -371,8 +387,9 @@ mod tests {
 		});
 	}
 
-	use crate::parachain::{AssetsPallet, LocationToAccountId};
+	use crate::parachain::{AssetHandlerPalletId, AssetsPallet, LocationToAccountId};
 	fn mint_dot_token(account: AccountId) {
+		use frame_support::traits::fungibles::Mutate;
 		let asset_id = 313675452054768990531043083915731189857u128;
 		assert_ok!(AssetsPallet::mint_into(asset_id, &account, 100_000_000_000_000));
 	}
@@ -394,6 +411,11 @@ mod tests {
 
 	fn create_asset() {
 		let asset_id = 313675452054768990531043083915731189857u128;
+		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), asset_id, ALICE, 1));
+	}
+
+	fn create_parachain_a_asset() {
+		let asset_id = 156196688103131917113824807979374298996u128;
 		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), asset_id, ALICE, 1));
 	}
 

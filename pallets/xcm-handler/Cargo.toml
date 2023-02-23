@@ -23,11 +23,13 @@ frame-system = { workspace = true, default-features = false }
 xcm-executor = { workspace = true, default-features = false }
 xcm = { workspace = true, default-features = false }
 pallet-xcm = { workspace = true, default-features = false }
+xcm-builder = { workspace = true, default-features = false }
 orml-xtokens = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
 sp-core = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 cumulus-primitives-core = { workspace = true, default-features = false }
+support = { path = "../support", default-features = false }
 [dev-dependencies]
 serde = { workspace = true }
 
@@ -51,6 +53,8 @@ std = [
 	"sp-runtime/std",
 	"sp-core/std",
 	"cumulus-primitives-core/std",
-	"pallet-assets/std"
+	"pallet-assets/std",
+	"xcm-builder/std",
+	"support/std"
 ]
 try-runtime = [ "frame-support/try-runtime" ]
