@@ -7,7 +7,11 @@ members = [
 	"runtime",
 	"xcm-simulator",
 	"pallets/xcm-handler",
-	"pallets/thea-council"
+	"pallets/thea-council",
+	"pallets/swap",
+	"pallets/support",
+	"pallets/router",
+	"pallets/asset-handler"
 ]
 
 [workspace.dependencies]
@@ -47,6 +51,8 @@ sp-std = { git = "https://github.com/paritytech/substrate", default-features = f
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.33" }
 sp-version = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.33" }
 sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.33" }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.33" }
+sp-keystore = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.33" }
 
 # ORML
 orml-xtokens = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false, branch = "polkadot-v0.9.33"}
@@ -72,5 +78,8 @@ cumulus-primitives-timestamp = { git = "https://github.com/paritytech/cumulus.gi
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.33", default-features = false }
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.33", default-features = false }
 parachain-info = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.33", default-features = false }
+
+#Polkadex Dependecies
+polkadex-primitives = { tag = "polkadot-v0.9.33v0.1.0", git = "https://github.com/Polkadex-Substrate/polkadex-primitives.git", default-features = false }
 
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }

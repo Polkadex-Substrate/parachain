@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 scale-info = { version = "2.1.2", features = ["derive"] }
-
+smallvec = {workspace = true}
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
@@ -16,6 +16,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.33" }
+polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
 xcm-simulator = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.33" }
@@ -33,6 +34,10 @@ orml-traits = {git = "https://github.com/open-web3-stack/open-runtime-module-lib
 
 # Custom pallets
 xcm-handler = {path = "../pallets/xcm-handler"}
+asset-handler = {path = "../pallets/asset-handler"}
+router = {path = "../pallets/router"}
+pallet-amm = {path = "../pallets/swap"}
+support = {path = "../pallets/support"}
 
 [lib]
 doctest = false

@@ -77,7 +77,11 @@ orml-traits = { workspace = true, default-features = false }
 
 # Local
 xcm-handler = { path = "../pallets/xcm-handler", default-features = false }
-thea-council = { path = "../pallets/thea-council", default-features = false}
+thea-council = { path = "../pallets/thea-council", default-features = false }
+pallet-amm = { path = "../pallets/swap", default-features = false }
+support = { path = "../pallets/support", default-features = false }
+router = { path = "../pallets/router", default-features = false }
+asset-handler = { path = "../pallets/asset-handler", default-features = false }
 
 [features]
 default = [
@@ -130,7 +134,11 @@ std = [
 	"xcm-handler/std",
 	"orml-xtokens/std",
 	"orml-traits/std",
-	"thea-council/std"
+	"thea-council/std",
+	"pallet-amm/std",
+	"support/std",
+	"router/std",
+	"asset-handler/std"
 ]
 
 runtime-benchmarks = [

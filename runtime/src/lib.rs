@@ -10,7 +10,7 @@ mod constants;
 mod weights;
 pub mod xcm_config;
 
-use crate::constants::currency::DOLLARS;
+use crate::constants::currency::{CENTS, DOLLARS};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
@@ -19,7 +19,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
+	ApplyExtrinsicResult, MultiSignature, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -136,10 +136,9 @@ pub struct WeightToFee;
 impl WeightToFeePolynomial for WeightToFee {
 	type Balance = Balance;
 	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
-		// in our xcm-handler, we map to 1/10 of that, or 1/10 MILLIUNIT
-		let p = MILLIUNIT / 10;
-		let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+		// Extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+		let p = CENTS;
+		let q = 10 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
 		smallvec![WeightToFeeCoefficient {
 			degree: 1,
 			negative: false,
@@ -514,6 +513,61 @@ impl pallet_assets::Config for Runtime {
 	type WeightInfo = ();
 }
 
+//Install Nomination Pool
+parameter_types! {
+	pub const PostUnbondPoolsWindow: u32 = 4;
+	pub const NominationPoolsPalletId: PalletId = PalletId(*b"py/nopls");
+	pub const MaxPointsToBalance: u8 = 10;
+}
+
+//Install Swap pallet
+parameter_types! {
+	pub const SwapPalletId: PalletId = PalletId(*b"sw/accnt");
+	pub DefaultLpFee: Permill = Permill::from_rational(30u32, 10000u32);
+	pub OneAccount: AccountId = AccountId::from([1u8; 32]);
+	pub DefaultProtocolFee: Permill = Permill::from_rational(0u32, 10000u32);
+	pub const MinimumLiquidity: u128 = 1_000u128;
+	pub const MaxLengthRoute: u8 = 10;
+}
+
+impl pallet_amm::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Assets = AssetHandler;
+	type PalletId = SwapPalletId;
+	type LockAccountId = OneAccount;
+	type CreatePoolOrigin = EnsureRoot<Self::AccountId>;
+	type ProtocolFeeUpdateOrigin = EnsureRoot<Self::AccountId>;
+	type LpFee = DefaultLpFee;
+	type MinimumLiquidity = MinimumLiquidity;
+	type MaxLengthRoute = MaxLengthRoute;
+	type GetNativeCurrencyId = NativeCurrencyId;
+}
+
+parameter_types! {
+	pub const NativeCurrencyId: u128 = 0;
+}
+
+impl asset_handler::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type MultiCurrency = Assets;
+	type NativeCurrencyId = NativeCurrencyId;
+}
+
+//Install Router pallet
+parameter_types! {
+	pub const RouterPalletId: PalletId = PalletId(*b"rw/accnt");
+}
+
+impl router::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type PalletId = RouterPalletId;
+	type AMM = Swap;
+	type MaxLengthRoute = MaxLengthRoute;
+	type GetNativeCurrencyId = NativeCurrencyId;
+	type Assets = AssetHandler;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -551,7 +605,9 @@ construct_runtime!(
 		// Custom Pallets
 		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>}  = 40,
 		TheaCouncil: thea_council::{Pallet, Call, Storage, Event<T>} = 41,
-
+		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>} = 42,
+		Router: router::pallet::{Pallet, Call, Storage, Event<T>} = 43,
+		AssetHandler: asset_handler::pallet::{Pallet, Storage, Event<T>} = 44,
 
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
 	}

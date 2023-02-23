@@ -167,6 +167,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "asset-handler"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-traits",
+ "orml-xtokens",
+ "pallet-xcm",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+ "xcm-handler",
+]
+
+[[package]]
 name = "async-attributes"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4901,6 +4923,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-amm"
+version = "1.9.5"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "num-traits",
+ "pallet-assets",
+ "pallet-balances",
+ "parity-scale-codec",
+ "polkadex-primitives",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "support",
+]
+
+[[package]]
 name = "pallet-assets"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.33#2dff067e9f7f6f3cc4dbfdaaa97753eccc407689"
@@ -5965,6 +6008,7 @@ dependencies = [
 name = "parachain-polkadex-runtime"
 version = "0.1.0"
 dependencies = [
+ "asset-handler",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -5985,6 +6029,7 @@ dependencies = [
  "log",
  "orml-traits",
  "orml-xtokens",
+ "pallet-amm",
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
@@ -6000,6 +6045,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "router",
  "scale-info",
  "smallvec",
  "sp-api",
@@ -6014,6 +6060,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "substrate-wasm-builder",
+ "support",
  "thea-council",
  "xcm",
  "xcm-builder",
@@ -6315,6 +6362,24 @@ name = "platforms"
 version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3d7ddaed09e0eb771a79ab0fd64609ba0afb0a8366421957936ad14cbd13630"
+
+[[package]]
+name = "polkadex-primitives"
+version = "0.9.19"
+source = "git+https://github.com/Polkadex-Substrate/polkadex-primitives.git?tag=polkadot-v0.9.33v0.1.0#15770b8d11ec49a36f1c88ba24b1008a11e19763"
+dependencies = [
+ "anyhow",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "rust_decimal",
+ "scale-info",
+ "serde",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "polkadot-approval-distribution"
@@ -8138,6 +8203,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "router"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-sudo",
+ "parity-scale-codec",
+ "polkadex-primitives",
+ "scale-info",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-std",
+ "support",
+]
+
+[[package]]
 name = "rpassword"
 version = "7.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8171,6 +8258,19 @@ checksum = "034e22c514f5c0cb8a10ff341b9b048b5ceb21591f31c8f44c43b960f9b3524a"
 dependencies = [
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "rust_decimal"
+version = "1.26.1"
+source = "git+https://github.com/Polkadex-Substrate/rust-decimal.git?branch=master#610096f3e5b70d58b64f4e93e8a8d50822938ac6"
+dependencies = [
+ "arrayvec 0.7.2",
+ "num-traits",
+ "parity-scale-codec",
+ "parity-scale-codec-derive",
+ "scale-info",
+ "serde",
 ]
 
 [[package]]
@@ -10750,6 +10850,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
+name = "support"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "num-bigint",
+ "num-traits",
+ "parity-scale-codec",
+ "polkadex-primitives",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12277,7 +12396,9 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "support",
  "xcm",
+ "xcm-builder",
  "xcm-executor",
 ]
 
@@ -12296,22 +12417,28 @@ dependencies = [
 name = "xcm-simulator"
 version = "0.1.0"
 dependencies = [
+ "asset-handler",
  "frame-support",
  "frame-system",
  "orml-traits",
  "orml-xtokens",
+ "pallet-amm",
  "pallet-assets",
  "pallet-balances",
  "pallet-xcm",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain",
+ "polkadot-runtime-common",
  "polkadot-runtime-parachains",
+ "router",
  "scale-info",
+ "smallvec",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "support",
  "xcm",
  "xcm-builder",
  "xcm-executor",
