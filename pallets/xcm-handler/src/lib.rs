@@ -34,10 +34,7 @@ pub mod pallet {
 	};
 	use frame_system::{pallet_prelude::*, Origin};
 	use sp_core::sp_std;
-	use sp_runtime::{
-		traits::{Convert, One, UniqueSaturatedInto},
-		SaturatedConversion,
-	};
+	use sp_runtime::{traits::{Convert, One, UniqueSaturatedInto}, SaturatedConversion, print};
 	use sp_std::vec;
 	use support::AMM;
 	use xcm::{
@@ -458,6 +455,7 @@ pub mod pallet {
 					.map_err(|_| XcmError::Trap(22))?;
 				T::AssetManager::transfer(asset_id, &from, &to, amount, true)
 					.map_err(|_| XcmError::Trap(23))?;
+
 			}
 			Ok(asset.clone().into())
 		}

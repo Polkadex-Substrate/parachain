@@ -25,7 +25,7 @@ use frame_support::{
 	},
 	weights::{constants::WEIGHT_PER_SECOND, Weight, WeightToFee as WeightToFeeT},
 };
-use sp_core::{ByteArray, H256};
+use sp_core::{ByteArray, ConstU32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{Hash, IdentityLookup},
@@ -45,6 +45,7 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSigned};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
+use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::{BlockNumber as RelayBlockNumber, BlockNumber};
 use polkadot_parachain::primitives::{
@@ -154,7 +155,9 @@ parameter_types! {
 }
 
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
+
 pub type Barrier = (
+
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
 	// Expected responses are OK.
@@ -182,6 +185,7 @@ where
 		max_weight: XCMWeight,
 		weight_credit: &mut XCMWeight,
 	) -> Result<(), ()> {
+		panic!("here");
 		Deny::should_execute(origin, message, max_weight, weight_credit)?;
 		Allow::should_execute(origin, message, max_weight, weight_credit)
 	}
@@ -215,7 +219,7 @@ impl Config for XcmConfig {
 	type XcmSender = XcmRouter;
 	type AssetTransactor = XcmHandler;
 	type OriginConverter = XcmOriginToCallOrigin;
-	type IsReserve = NativeAsset;
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
@@ -337,7 +341,6 @@ pub mod mock_msg_queue {
 			iter: I,
 			max_weight: Weight,
 		) -> Weight {
-			//assert_eq!("hello", "no_hello");
 			for (sender, sent_at, data) in iter {
 				let mut data_ref = data;
 				let _ = XcmpMessageFormat::decode(&mut data_ref)
@@ -618,7 +621,6 @@ where
 		// Calculate weight to fee
 		let fee_in_native_token =
 			T::weight_to_fee(&frame_support::weights::Weight::from_ref_time(weight));
-
 		// Check if
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::TooExpensive)?;
 		if let AssetId::Concrete(location) = payment_asset.id {
