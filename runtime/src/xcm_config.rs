@@ -360,7 +360,9 @@ where
 				(AC::convert_location_to_asset_id(location), revenue.fun)
 			{
 				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
-				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) = (AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount)) {
+				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) =
+					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
+				{
 					AM::mint_into(
 						asset_id_associated_type,
 						&asset_handler_account,

@@ -157,7 +157,6 @@ parameter_types! {
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
 
 pub type Barrier = (
-
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
 	// Expected responses are OK.
