@@ -74,6 +74,7 @@ parachain-info = { workspace = true, default-features = false }
 # ORML
 orml-xtokens = { workspace = true, default-features = false }
 orml-traits = { workspace = true, default-features = false }
+orml-xcm-support = { workspace = true, default-features = false }
 
 # Local
 xcm-handler = { path = "../pallets/xcm-handler", default-features = false }
@@ -138,7 +139,8 @@ std = [
 	"pallet-amm/std",
 	"support/std",
 	"router/std",
-	"asset-handler/std"
+	"asset-handler/std",
+	"orml-xcm-support/std"
 ]
 
 runtime-benchmarks = [

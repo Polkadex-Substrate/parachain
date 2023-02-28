@@ -35,6 +35,7 @@ pub mod pallet {
 	use frame_system::{pallet_prelude::*, Origin};
 	use sp_core::sp_std;
 	use sp_runtime::{
+		print,
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
@@ -66,7 +67,7 @@ pub mod pallet {
 		/// Thea Key Set by Sudo
 		TheaKeySetBySudo([u8; 64]),
 		/// New Thea Key Set by Current Relayer Set
-		TheaKeyChanged([u8; 64])
+		TheaKeyChanged([u8; 64]),
 	}
 
 	#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode)]
@@ -335,12 +336,11 @@ pub mod pallet {
 			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
 				<ActiveTheaKey<T>>::set(Some(new_thea_key));
 				<IngressMessages<T>>::try_mutate(|ingress_messages| {
-					ingress_messages.try_push(
-						TheaMessage::TheaKeyChanged(new_thea_key)
-					)
-				}).map_err(|_| Error::<T>::IngressMessagesFull)?;
+					ingress_messages.try_push(TheaMessage::TheaKeyChanged(new_thea_key))
+				})
+				.map_err(|_| Error::<T>::IngressMessagesFull)?;
 			} else {
-				return Err(Error::<T>::SignatureVerificationFailed.into());
+				return Err(Error::<T>::SignatureVerificationFailed.into())
 			}
 			Ok(().into())
 		}
@@ -354,10 +354,9 @@ pub mod pallet {
 			ensure_root(origin)?;
 			<ActiveTheaKey<T>>::put(thea_key);
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(
-					TheaMessage::TheaKeySetBySudo(thea_key)
-				)
-			}).map_err(|_| Error::<T>::IngressMessagesFull)?;
+				ingress_messages.try_push(TheaMessage::TheaKeySetBySudo(thea_key))
+			})
+			.map_err(|_| Error::<T>::IngressMessagesFull)?;
 			Ok(().into())
 		}
 

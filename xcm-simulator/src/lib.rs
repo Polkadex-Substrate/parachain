@@ -387,6 +387,56 @@ mod tests {
 		});
 	}
 
+	#[test]
+	fn test_non_native_token_settlement() {
+		MockNet::reset();
+		ParaB::execute_with(|| {
+			mint_native_token(ALICE);
+			create_non_native_asset();
+		});
+		ParaA::execute_with(|| {
+			let multi_asset = MultiAsset {
+				id: AssetId::Concrete(MultiLocation {
+					parents: 1,
+					interior: Junctions::X2(Parachain(1), Junction::GeneralIndex(100)),
+				}),
+				fun: Fungibility::Fungible(1_000_000u128),
+			};
+			let other_chain =
+				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
+			let other_parachain_account =
+				XcmHandler::multi_location_to_account_converter(other_chain);
+			mint_native_token(other_parachain_account);
+			create_non_native_asset();
+			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
+			let dest = MultiLocation::new(
+				1,
+				X2(
+					Parachain(2),
+					Junction::AccountId32 { network: NetworkId::Any, id: ALICE.into() },
+				),
+			);
+			let versioned_dest = VersionedMultiLocation::V1(dest);
+			mint_non_native_token(ALICE);
+			//mint_native_token();
+
+			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
+				Some(ALICE).into(),
+				Box::from(multi_assets),
+				0,
+				Box::from(versioned_dest),
+				WeightLimit::Unlimited
+			));
+		});
+
+		ParaB::execute_with(|| {
+			assert!(System::events().iter().any(|r| matches!(
+				r.event,
+				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited(..))
+			)));
+		});
+	}
+
 	use crate::parachain::{AssetHandlerPalletId, AssetsPallet, LocationToAccountId};
 	fn mint_dot_token(account: AccountId) {
 		use frame_support::traits::fungibles::Mutate;
@@ -407,6 +457,17 @@ mod tests {
 			1 * 10_000_000_000_000_000u128,
 			0
 		));
+	}
+
+	fn create_non_native_asset() {
+		let asset_id = 223679455805618077770456114078724992490u128;
+		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), asset_id, ALICE, 1));
+	}
+
+	fn mint_non_native_token(account: AccountId) {
+		use frame_support::traits::fungibles::Mutate;
+		let asset_id = 223679455805618077770456114078724992490u128;
+		assert_ok!(AssetsPallet::mint_into(asset_id, &account, 100_000_000_000_000));
 	}
 
 	fn create_asset() {

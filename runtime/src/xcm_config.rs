@@ -12,6 +12,7 @@ use frame_support::{
 	weights::WeightToFee as WeightToFeeT,
 };
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
+use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
@@ -146,7 +147,7 @@ impl xcm_executor::Config for XcmConfig {
 	// How to withdraw and deposit an asset.
 	type AssetTransactor = XcmHandler;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = NativeAsset;
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = (); // Teleporting is disabled.
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
@@ -359,7 +360,9 @@ where
 				(AC::convert_location_to_asset_id(location), revenue.fun)
 			{
 				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
-				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) = (AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount)) {
+				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) =
+					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
+				{
 					AM::mint_into(
 						asset_id_associated_type,
 						&asset_handler_account,
