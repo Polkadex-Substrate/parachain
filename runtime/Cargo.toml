@@ -77,7 +77,7 @@ orml-traits = { workspace = true, default-features = false }
 orml-xcm-support = { workspace = true, default-features = false }
 
 # Local
-xcm-handler = { path = "../pallets/xcm-handler", default-features = false }
+xcm-helper = { path = "../pallets/xcm-helper", default-features = false }
 thea-council = { path = "../pallets/thea-council", default-features = false }
 pallet-amm = { path = "../pallets/swap", default-features = false }
 support = { path = "../pallets/support", default-features = false }
@@ -132,7 +132,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"xcm-handler/std",
+	"xcm-helper/std",
 	"orml-xtokens/std",
 	"orml-traits/std",
 	"thea-council/std",

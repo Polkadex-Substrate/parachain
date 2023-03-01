@@ -471,7 +471,7 @@ parameter_types! {
 	pub const ParachainNetworkId: u8 = 1;
 }
 
-impl xcm_handler::Config for Runtime {
+impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type AccountIdConvert = LocationToAccountId;
@@ -603,7 +603,7 @@ construct_runtime!(
 		XTokens: orml_xtokens::{Pallet, Call, Storage, Event<T>} = 34,
 
 		// Custom Pallets
-		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>}  = 40,
+		XcmHelper: xcm_helper::{Pallet, Call, Storage, Event<T>}  = 40,
 		TheaCouncil: thea_council::{Pallet, Call, Storage, Event<T>} = 41,
 		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>} = 42,
 		Router: router::pallet::{Pallet, Call, Storage, Event<T>} = 43,

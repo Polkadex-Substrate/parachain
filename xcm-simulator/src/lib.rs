@@ -18,7 +18,7 @@ mod mock_amm;
 mod parachain;
 mod relay_chain;
 
-use crate::parachain::XcmHandler;
+use crate::parachain::XcmHelper;
 use frame_support::{
 	dispatch::{DispatchResultWithPostInfo, RawOrigin},
 	pallet_prelude::*,

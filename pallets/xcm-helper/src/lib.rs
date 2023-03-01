@@ -13,6 +13,78 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 
+//! XCM Helper Pallet
+//!
+//! The XCM Helper Pallet provides functionality to handle XCM Messages. Also it implements multiple traits required by XCM Pallets.
+//!
+//! - [`Config`]
+//! - [`Call`]
+//! - [`Pallet`]
+//!
+//! ## Overview
+//!
+//! XCM Helper Pallet provides following functionalities:-
+//!
+//! - Handling withdrawal requests from Relayers.
+//! - Managing Thea Public Key.
+//! - Parachain asset management.
+//! - Executing Withdrawal request every block.
+//!
+//! ## Terminology
+//!
+//! - **Thea key** Thea Key is Multi-party ECDSA Public Key which has access to transfer funds from
+//!   Polkadex Sovereign Accounts to Others on Native/Foreign Chain using XCMP.
+//!
+//! - **WithdrawalExecutionBlockDiff** Delays in Blocks after which Pending withdrawal will be executed.
+//!
+//! - **TheaMessage** Thea Messages will be fetched and relayed by Relayers from Parachain to Solochain.
+//!
+//! - **ParachainAsset** Type using which native Paracdhain will identify assets from foregin Parachain.
+//!
+//! ### Implementations
+//! The XCM Helper pallet provides implementations for the following traits. If these traits provide
+//! the functionality that you need, then you can avoid coupling with the XCM Helper pallet.
+//!
+//! -[`TransactAsset`]: Used by XCM Exector to deposit, withdraw and transfer native/non-native asset on Native Chain.
+//! -[`AssetIdConverter`]: Converts Assets id from Multilocation Format to Local Asset Id and vice-versa.
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//! - `withdraw_asset` - Transfers Assets from Polkadex Sovereign Account to Others on native/non-native parachains using XCMP.
+//! - `change_thea_key` - Replaces existing Thea Key with new one.
+//! - `set_thea_key` - Initializes Thea Key.
+//! - `create_parachain_asset` - Creates new Assets using Parachain info.
+//!
+//! ### Supported Origins
+//! - `AssetCreateUpdateOrigin` - Origin which has access to Create Asset.
+//!
+//! ### Public Functions
+//! - `handle_deposit` - Handles deposits from foreign chain.
+//! - `deposit_native_asset` - Deposits Native Assets using Balances Pallet.
+//! - `deposit-non-native-asset` - Deposits Non-native Assets using Assets Pallet.
+//!
+//! ### Public Inspection functions - Immutable (getters)
+//! - `get_pallet_id` - Get xcm_helper Pallet Id
+//! - `get_destination_account` - Converts Multilocation to AccountId.
+//! - `is_polkadex_parachain_destination` - Checks if destination address belongs to native parachain or not.
+//! - `is_parachain_asset` - Checks if give asset is native asset or not.
+//! - `get_asset_id` - Get Asset Id.
+//! - `get_asset_info` - Get Asset Info.
+//!
+//! ### Storage Items
+//! - `IngressMessages` - Stores TheaMessages which will fetch and relayed to Solo-chain by Relayers.
+//! - `ActiveTheaKey` - Stores Latest Thea Key.
+//! - `WithdrawNonce` - Stores Latest withdrawal nonce.
+//! - `PendingWithdrawals` - Stores all pending withdrawal.
+//! - `FailedWithdrawals` - Stores failed withdrawals which failed during execution.
+//! - `TheaAssets` - Stores all Thea Assets.
+//! -
+//! # Events
+//! - `AssetDeposited` - Asset Deposited from XCM.
+//! - `AssetWithdrawn` - Asset burned/locked from native Parachain.
+//! - `TheaAssetCreated` - New Asset Created.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
@@ -276,6 +348,13 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Transfers Assets from Polkadex Sovereign Account to Others on native/non-native parachains using XCMP.
+		///
+		/// # Parameters
+		///
+		/// * `payload`: List of Assets and destination.
+		/// * `withdraw_nonce`: Current Nonce of Withdrawal.
+		/// * `signature`: Payload signed using Thea Public Key.
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn withdraw_asset(
 			origin: OriginFor<T>,
@@ -322,7 +401,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		///Update Thea Key
+		/// Replaces existing Thea Key with new one.
+		///
+		/// # Parameters
+		///
+		/// * `new_thea_key`: New Key which will replace existing Key.
+		/// * `signature`: Payload Signed using Thea Key.
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
@@ -345,7 +429,11 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		///Set Thea Key
+		/// Initializes Thea Key.
+		///
+		/// # Parameters
+		///
+		/// * `new_thea_key`: New Key which will replace existing Key.
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn set_thea_key(
 			origin: OriginFor<T>,
@@ -360,7 +448,11 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		///Create Asset
+		/// Creates new Assets using Parachain info.
+		///
+		/// # Parameters
+		///
+		/// * `asset`: New Asset Id.
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn create_parachain_asset(
 			origin: OriginFor<T>,
@@ -399,6 +491,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> TransactAsset for Pallet<T> {
+		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
 				ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
@@ -408,6 +501,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Burns/Lock asset from procided account.
 		fn withdraw_asset(
 			what: &MultiAsset,
 			who: &MultiLocation,
@@ -434,6 +528,7 @@ pub mod pallet {
 			Ok(what.clone().into())
 		}
 
+		/// Transfers Asset from source account to destination account
 		fn transfer_asset(
 			asset: &MultiAsset,
 			from: &MultiLocation,
@@ -463,10 +558,12 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Get Pallet Id
 		pub fn get_pallet_account() -> T::AccountId {
 			T::AssetHandlerPalletId::get().into_account_truncating()
 		}
 
+		/// Route deposit to destined function
 		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
 			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
 			let location =
@@ -489,6 +586,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Converts Multi-Location to AccountId
 		pub fn get_destination_account(location: MultiLocation) -> Option<T::AccountId> {
 			match location {
 				MultiLocation { parents, interior } if parents == 0 => {
@@ -506,6 +604,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Deposits Native Token to Destination Account
 		pub fn deposit_native_token(
 			destination: &T::AccountId,
 			amount: &Fungibility,
@@ -518,6 +617,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Deposits Non-Naitve Token to Destination Account
 		pub fn deposit_non_native_token(
 			destination: &T::AccountId,
 			asset: MultiAsset,
@@ -531,6 +631,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Check if location is meant for Native Parachain
 		pub fn is_polkadex_parachain_destination(destination: &VersionedMultiLocation) -> bool {
 			let destination: Option<MultiLocation> = destination.clone().try_into().ok();
 			if let Some(destination) = destination {
@@ -540,6 +641,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Checks if asset is meant for Parachain
 		pub fn is_parachain_asset(versioned_asset: &VersionedMultiAssets) -> bool {
 			let native_asset = MultiLocation { parents: 0, interior: Junctions::Here };
 			let assets: Option<MultiAssets> = versioned_asset.clone().try_into().ok();
@@ -557,6 +659,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Generates AssetId(u128) from XCM::AssetId
 		pub fn generate_asset_id_for_parachain(
 			asset: AssetId,
 		) -> sp_std::result::Result<u128, DispatchError> {
@@ -577,6 +680,7 @@ pub mod pallet {
 			u128::from_le_bytes(temp)
 		}
 
+		/// Get Asset Info for given AssetId
 		pub fn get_asset_info(
 			asset: AssetId,
 		) -> sp_std::result::Result<(u8, BoundedVec<u8, ConstU32<1000>>, usize), DispatchError> {
@@ -593,6 +697,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Converts XCM::Fungibility into u128
 		pub fn get_amount(fun: &Fungibility) -> Option<u128> {
 			if let Fungibility::Fungible(amount) = fun {
 				return Some(*amount)
@@ -601,6 +706,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Checks if asset is native or not
 		pub fn is_native_asset(asset: &AssetId) -> bool {
 			let native_asset = MultiLocation {
 				parents: 1,
@@ -612,6 +718,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Verifies Signature
 		pub fn verify_ecdsa_prehashed(
 			signature: &sp_core::ecdsa::Signature,
 			public_key: &[u8; 64],
@@ -623,6 +730,7 @@ pub mod pallet {
 			Ok(true)
 		}
 
+		/// Block Transaction to be Executed.
 		pub fn block_by_ele(block_no: T::BlockNumber, index: u32) -> DispatchResult {
 			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
 			let pending_withdrwal: &mut PendingWithdrawal =
@@ -632,10 +740,12 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Converts Multilocation to AccountId
 		pub fn multi_location_to_account_converter(location: MultiLocation) -> T::AccountId {
 			T::AccountIdConvert::convert_ref(location).unwrap()
 		}
 
+		/// Inserts new pending withdrawals
 		pub fn insert_pending_withdrawal(
 			block_no: T::BlockNumber,
 			pending_withdrawal: PendingWithdrawal,
@@ -645,6 +755,7 @@ pub mod pallet {
 			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
 		}
 
+		/// Converts asset_id to XCM::MultiLocation
 		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
 			let (_, _, asset_identifier) = <TheaAssets<T>>::get(asset_id);
 			let asset_identifier = asset_identifier.to_vec();
@@ -657,6 +768,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Converts Multilocation to u128
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location)).ok()
 		}

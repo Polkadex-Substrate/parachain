@@ -34,7 +34,7 @@ orml-traits = {git = "https://github.com/open-web3-stack/open-runtime-module-lib
 orml-xcm-support = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false, branch = "polkadot-v0.9.33"}
 
 # Custom pallets
-xcm-handler = {path = "../pallets/xcm-handler"}
+xcm-helper = {path = "../pallets/xcm-helper" }
 asset-handler = {path = "../pallets/asset-handler"}
 router = {path = "../pallets/router"}
 pallet-amm = {path = "../pallets/swap"}
