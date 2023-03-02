@@ -163,8 +163,6 @@ pub mod pallet {
 
 		/// Converts Pending Council Member to Active Council Member.
 		///
-		/// # Parameters
-		///
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn claim_membership(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -178,6 +176,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `block_no`: Block No which contains malicious transaction.
+		/// * `index`: Index of Malicious transaction in the list.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn delete_transaction(
 			origin: OriginFor<T>,

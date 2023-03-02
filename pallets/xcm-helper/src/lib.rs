@@ -64,11 +64,11 @@
 //! - `deposit_native_asset` - Deposits Native Assets using Balances Pallet.
 //! - `deposit-non-native-asset` - Deposits Non-native Assets using Assets Pallet.
 //!
-//! ### Public Inspection functions - Immutable (getters)
+//! ### Public Inspection functions - Immutable (accessors)
 //! - `get_pallet_id` - Get xcm_helper Pallet Id
 //! - `get_destination_account` - Converts Multilocation to AccountId.
 //! - `is_polkadex_parachain_destination` - Checks if destination address belongs to native parachain or not.
-//! - `is_parachain_asset` - Checks if give asset is native asset or not.
+//! - `is_parachain_asset` - Checks if given asset is native asset or not.
 //! - `get_asset_id` - Get Asset Id.
 //! - `get_asset_info` - Get Asset Info.
 //!
@@ -433,7 +433,7 @@ pub mod pallet {
 		///
 		/// # Parameters
 		///
-		/// * `new_thea_key`: New Key which will replace existing Key.
+		/// * `thea_key`: Key which will be initialized.
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn set_thea_key(
 			origin: OriginFor<T>,
