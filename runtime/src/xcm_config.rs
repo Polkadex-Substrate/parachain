@@ -34,7 +34,7 @@ use xcm_executor::{
 	traits::{ShouldExecute, WeightTrader},
 	Assets, XcmExecutor,
 };
-use xcm_handler::AssetIdConverter;
+use xcm_helper::AssetIdConverter;
 
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
@@ -138,14 +138,14 @@ pub type Barrier = (
 );
 
 use crate::{
-	AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, NativeCurrencyId, Swap, XcmHandler,
+	AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, NativeCurrencyId, Swap, XcmHelper,
 };
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
 	// How to withdraw and deposit an asset.
-	type AssetTransactor = XcmHandler;
+	type AssetTransactor = XcmHelper;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = (); // Teleporting is disabled.
@@ -156,9 +156,9 @@ impl xcm_executor::Config for XcmConfig {
 		UsingComponents<WeightToFee, PdexLocation, AccountId, Balances, ToAuthor<Runtime>>, //TODO: Change destination account
 		ForeignAssetFeeHandler<
 			WeightToFee,
-			RevenueCollector<AssetHandler, XcmHandler, Swap, TypeConv, TypeConv>,
+			RevenueCollector<AssetHandler, XcmHelper, Swap, TypeConv, TypeConv>,
 			Swap,
-			XcmHandler,
+			XcmHelper,
 		>,
 	);
 	type ResponseHandler = PolkadotXcm;
@@ -228,7 +228,7 @@ impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type CurrencyId = u128;
-	type CurrencyIdConvert = XcmHandler;
+	type CurrencyIdConvert = XcmHelper;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type MinXcmFee = ParachainMinFee;

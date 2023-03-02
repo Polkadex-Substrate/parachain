@@ -185,7 +185,7 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
- "xcm-handler",
+ "xcm-helper",
 ]
 
 [[package]]
@@ -6066,7 +6066,7 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
- "xcm-handler",
+ "xcm-helper",
 ]
 
 [[package]]
@@ -10973,7 +10973,7 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
- "xcm-handler",
+ "xcm-helper",
 ]
 
 [[package]]
@@ -12380,7 +12380,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "xcm-handler"
+name = "xcm-helper"
 version = "0.1.0"
 dependencies = [
  "cumulus-primitives-core",
@@ -12444,7 +12444,7 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
- "xcm-handler",
+ "xcm-helper",
  "xcm-simulator 0.9.33",
 ]
 

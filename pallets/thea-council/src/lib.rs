@@ -1,8 +1,42 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/reference/frame-pallets/>
+//! Thea Council Pallet
+//!
+//! Thea Council Pallet provides functionality to maintain council members on Parachain.
+//!
+//! - [`Config`]
+//! - [`Call`]
+//! - [`Pallet`]
+//!
+//! ## Overview
+//!
+//! Thea Council Pallet provides following functionalities:-
+//!
+//! - Adds member to Council.
+//! - Removes member from Council.
+//! - Block Transaction.
+//!
+//! ## Interface
+//!
+//! ### Dispatchable Functions
+//! - `add_member` - Adds member to council.
+//! - `remove_member` - Removes member from council.
+//! - `claim_membership` - Converts Council member status from pending to Active.
+//! - `delete_transaction` - Blocks withdrawal request.
+//!
+//! ### Public Inspection functions - Immutable (getters)
+//! - `is_council_member` - Checks if given member is council member.
+//!
+//! ### Storage Items
+//! - `ActiveCouncilMembers` - Stores Active Council Member List.
+//! - `PendingCouncilMembers` - Stores Pending Council Member List.
+//! - `Proposals` - Stores active proposals.
+//! -
+//! # Events
+//! - `NewPendingMemberAdded` - New Pending Member added.
+//! - `NewActiveMemberAdded` - New Active Member added.
+//! - `MemberRemoved` - Council Member removed.
+//! - `TransactionDeleted` - Transaction blocked.
 pub use pallet::*;
 
 #[cfg(test)]
@@ -31,7 +65,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + xcm_handler::Config {
+	pub trait Config: frame_system::Config + xcm_helper::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 	}
@@ -98,6 +132,11 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Adds member to Thea Council.
+		///
+		/// # Parameters
+		///
+		/// * `new_member`: AccountId of New Member.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn add_member(origin: OriginFor<T>, new_member: T::AccountId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -106,6 +145,11 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Removes member from Thea Council.
+		///
+		/// # Parameters
+		///
+		/// * `member_to_be_removed`: AccountId for memebr to be removed.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn remove_member(
 			origin: OriginFor<T>,
@@ -117,6 +161,8 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Converts Pending Council Member to Active Council Member.
+		///
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn claim_membership(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -125,6 +171,12 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Blocks malicious Pending Transaction.
+		///
+		/// # Parameters
+		///
+		/// * `block_no`: Block No which contains malicious transaction.
+		/// * `index`: Index of Malicious transaction in the list.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn delete_transaction(
 			origin: OriginFor<T>,
@@ -133,7 +185,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(Self::is_council_member(&sender), Error::<T>::SenderNotCouncilMember);
-			xcm_handler::Pallet::<T>::block_by_ele(block_no, index)?;
+			xcm_helper::Pallet::<T>::block_by_ele(block_no, index)?;
 			Self::deposit_event(Event::<T>::TransactionDeleted(index));
 			Ok(())
 		}

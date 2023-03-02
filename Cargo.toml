@@ -6,7 +6,7 @@ members = [
 	"node",
 	"runtime",
 	"xcm-simulator",
-	"pallets/xcm-handler",
+	"pallets/xcm-helper",
 	"pallets/thea-council",
 	"pallets/swap",
 	"pallets/support",

@@ -215,7 +215,7 @@ pub struct XcmConfig;
 impl Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
-	type AssetTransactor = XcmHandler;
+	type AssetTransactor = XcmHelper;
 	type OriginConverter = XcmOriginToCallOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
@@ -228,13 +228,13 @@ impl Config for XcmConfig {
 			WeightToFee,
 			RevenueCollector<
 				AssetsPallet,
-				XcmHandler,
+				XcmHelper,
 				MockedAMM<AccountId, u128, u128, u64>,
 				TypeConv,
 				TypeConv,
 			>,
 			MockedAMM<AccountId, u128, u128, u64>,
-			XcmHandler,
+			XcmHelper,
 		>,
 	);
 	type ResponseHandler = ();
@@ -420,7 +420,7 @@ parameter_types! {
 	pub const ParachainNetworkId: u8 = 1;
 }
 
-impl xcm_handler::Config for Runtime {
+impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type AccountIdConvert = LocationToAccountId;
@@ -571,7 +571,7 @@ construct_runtime!(
 		MsgQueue: mock_msg_queue::{Pallet, Storage, Event<T>},
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
 		XTokens: orml_xtokens::{Pallet, Call, Event<T>},
-		XcmHandler: xcm_handler::{Pallet, Call, Storage, Event<T>},
+		XcmHelper: xcm_helper::{Pallet, Call, Storage, Event<T>},
 		AssetsPallet: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>},
 		Router: router::pallet::{Pallet, Call, Storage, Event<T>},
@@ -598,7 +598,7 @@ where
 use crate::mock_amm::MockedAMM;
 use sp_std::vec;
 use xcm_executor::traits::WeightTrader;
-use xcm_handler::AssetIdConverter;
+use xcm_helper::AssetIdConverter;
 
 impl<T, R, AMM, AC> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC>
 where

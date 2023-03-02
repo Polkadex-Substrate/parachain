@@ -1,5 +1,5 @@
 [package]
-name = "xcm-handler"
+name = "xcm-helper"
 authors = ["business@polkadex.trade"]
 description = "XCM Handler."
 version = "0.1.0"
