@@ -23,7 +23,7 @@ use frame_support::{
 		fungibles::{Inspect, Mutate},
 		Everything, Nothing,
 	},
-	weights::{constants::WEIGHT_PER_SECOND, Weight, WeightToFee as WeightToFeeT},
+	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight, WeightToFee as WeightToFeeT},
 };
 use sp_core::{ByteArray, ConstU32, H256};
 use sp_runtime::{
@@ -119,11 +119,6 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = [u8; 8];
-}
-
-parameter_types! {
-	pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
-	pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND.saturating_div(4);
 }
 
 parameter_types! {
@@ -443,7 +438,9 @@ parameter_types! {
 impl pallet_assets::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
+	type RemoveItemsLimit = ConstU32<1000>;
 	type AssetId = u128;
+	type AssetIdParameter = codec::Compact<u128>;
 	type Currency = Balances;
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
 	type ForceOrigin = EnsureRoot<AccountId>;
@@ -455,6 +452,7 @@ impl pallet_assets::Config for Runtime {
 	type StringLimit = StringLimit;
 	type Freezer = ();
 	type Extra = ();
+	type CallbackHandle = ();
 	type WeightInfo = ();
 }
 
