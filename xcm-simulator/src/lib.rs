@@ -131,7 +131,7 @@ mod tests {
 	use xcm::{
 		latest::prelude::*, VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm_handler::{Error, PendingWithdrawal};
+	use xcm_helper::{Error, PendingWithdrawal};
 	use xcm_simulator::TestExt;
 
 	// Helper function for forming buy execution message
@@ -239,7 +239,7 @@ mod tests {
 		ParaB::execute_with(|| {
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
-				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited(..))
+				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
 			)));
 		});
 	}
@@ -278,14 +278,14 @@ mod tests {
 			let other_chain =
 				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
 			let other_parachain_account =
-				XcmHandler::multi_location_to_account_converter(other_chain);
+				XcmHelper::multi_location_to_account_converter(other_chain);
 			assert_eq!(Balances::free_balance(other_parachain_account), 1000000);
 		});
 
 		ParaB::execute_with(|| {
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
-				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited(..))
+				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
 			)));
 		});
 	}
@@ -349,7 +349,7 @@ mod tests {
 				destination: Box::new(destination.into()),
 				is_blocked: false,
 			};
-			XcmHandler::insert_pending_withdrawal(100, pending_withdrawal);
+			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
 			System::set_block_number(99);
 			run_to_block(100);
 			assert_eq!(
@@ -381,7 +381,7 @@ mod tests {
 			};
 			create_dot_asset();
 			mint_native_token(sp_core::crypto::AccountId32::new([1; 32]));
-			XcmHandler::insert_pending_withdrawal(100, pending_withdrawal);
+			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
 			System::set_block_number(99);
 			run_to_block(100);
 		});
@@ -405,7 +405,7 @@ mod tests {
 			let other_chain =
 				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
 			let other_parachain_account =
-				XcmHandler::multi_location_to_account_converter(other_chain);
+				XcmHelper::multi_location_to_account_converter(other_chain);
 			mint_native_token(other_parachain_account);
 			create_non_native_asset();
 			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
@@ -432,7 +432,7 @@ mod tests {
 		ParaB::execute_with(|| {
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
-				RuntimeEvent::XcmHandler(xcm_handler::Event::AssetDeposited(..))
+				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
 			)));
 		});
 	}
@@ -461,7 +461,7 @@ mod tests {
 
 	fn create_non_native_asset() {
 		let asset_id = 223679455805618077770456114078724992490u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), asset_id, ALICE, 1));
+		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
 	}
 
 	fn mint_non_native_token(account: AccountId) {
@@ -472,17 +472,17 @@ mod tests {
 
 	fn create_asset() {
 		let asset_id = 313675452054768990531043083915731189857u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), asset_id, ALICE, 1));
+		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
 	}
 
 	fn create_parachain_a_asset() {
 		let asset_id = 156196688103131917113824807979374298996u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), asset_id, ALICE, 1));
+		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
 	}
 
 	fn create_dot_asset() {
 		let asset_id = 250795704345233296850763536153850679878u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), asset_id, ALICE, 1));
+		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
 	}
 
 	pub fn run_to_block(n: u64) {
@@ -492,7 +492,7 @@ mod tests {
 			}
 			System::set_block_number(System::block_number() + 1);
 			System::on_initialize(System::block_number());
-			XcmHandler::on_initialize(System::block_number());
+			XcmHelper::on_initialize(System::block_number());
 		}
 	}
 

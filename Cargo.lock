@@ -11442,6 +11442,8 @@ dependencies = [
  "frame-system",
  "orml-traits",
  "orml-xtokens",
+ "pallet-assets",
+ "pallet-balances",
  "pallet-xcm",
  "parity-scale-codec",
  "scale-info",
