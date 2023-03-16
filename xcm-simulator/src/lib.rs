@@ -461,7 +461,12 @@ mod tests {
 
 	fn create_non_native_asset() {
 		let asset_id = 223679455805618077770456114078724992490u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
+		assert_ok!(AssetsPallet::create(
+			RuntimeOrigin::signed(ALICE),
+			codec::Compact(asset_id),
+			ALICE,
+			1
+		));
 	}
 
 	fn mint_non_native_token(account: AccountId) {
@@ -472,17 +477,32 @@ mod tests {
 
 	fn create_asset() {
 		let asset_id = 313675452054768990531043083915731189857u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
+		assert_ok!(AssetsPallet::create(
+			RuntimeOrigin::signed(ALICE),
+			codec::Compact(asset_id),
+			ALICE,
+			1
+		));
 	}
 
 	fn create_parachain_a_asset() {
 		let asset_id = 156196688103131917113824807979374298996u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
+		assert_ok!(AssetsPallet::create(
+			RuntimeOrigin::signed(ALICE),
+			codec::Compact(asset_id),
+			ALICE,
+			1
+		));
 	}
 
 	fn create_dot_asset() {
 		let asset_id = 250795704345233296850763536153850679878u128;
-		assert_ok!(AssetsPallet::create(RuntimeOrigin::signed(ALICE), codec::Compact(asset_id), ALICE, 1));
+		assert_ok!(AssetsPallet::create(
+			RuntimeOrigin::signed(ALICE),
+			codec::Compact(asset_id),
+			ALICE,
+			1
+		));
 	}
 
 	pub fn run_to_block(n: u64) {

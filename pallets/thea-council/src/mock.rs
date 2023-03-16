@@ -5,7 +5,7 @@ use frame_support::{
 };
 use frame_system as system;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
-use sp_core::{traits::RuntimeCode, H256, ConstU32};
+use sp_core::{traits::RuntimeCode, ConstU32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
@@ -61,8 +61,7 @@ impl thea_council::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 }
 
-use frame_support::PalletId;
-use frame_support::traits::AsEnsureOriginWithArg;
+use frame_support::{traits::AsEnsureOriginWithArg, PalletId};
 use frame_system::EnsureSigned;
 
 pub const TOKEN: u128 = 1_000_000_000_000;

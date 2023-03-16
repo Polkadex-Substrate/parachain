@@ -161,11 +161,11 @@ async fn start_node_impl(
 		collator_options.clone(),
 		hwbench.clone(),
 	)
-		.await
-		.map_err(|e| match e {
-			RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
-			s => s.to_string().into(),
-		})?;
+	.await
+	.map_err(|e| match e {
+		RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
+		s => s.to_string().into(),
+	})?;
 
 	let block_announce_validator =
 		BlockAnnounceValidator::new(relay_chain_interface.clone(), para_id);
@@ -332,7 +332,7 @@ fn build_import_queue(
 		spawner: &task_manager.spawn_essential_handle(),
 		telemetry,
 	})
-		.map_err(Into::into)
+	.map_err(Into::into)
 }
 
 fn build_consensus(
@@ -370,7 +370,7 @@ fn build_consensus(
 						&validation_data,
 						para_id,
 					)
-						.await;
+					.await;
 				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
 				let slot =

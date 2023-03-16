@@ -14,7 +14,7 @@ use crate::constants::currency::{CENTS, DOLLARS};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
-use sp_core::{ConstU32, crypto::KeyTypeId, Get, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU32, Get, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
@@ -26,10 +26,17 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use frame_support::{construct_runtime, dispatch::DispatchClass, parameter_types, traits::Everything, weights::{
-	ConstantMultiplier, Weight, WeightToFeeCoefficient,
-	WeightToFeeCoefficients, WeightToFeePolynomial,
-}, PalletId, codec};
+use frame_support::{
+	codec, construct_runtime,
+	dispatch::DispatchClass,
+	parameter_types,
+	traits::Everything,
+	weights::{
+		constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, Weight, WeightToFeeCoefficient,
+		WeightToFeeCoefficients, WeightToFeePolynomial,
+	},
+	PalletId,
+};
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned,
@@ -37,7 +44,6 @@ use frame_system::{
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
-use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;

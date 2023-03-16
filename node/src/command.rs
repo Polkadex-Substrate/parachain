@@ -168,7 +168,7 @@ pub fn run() -> Result<()> {
 					&polkadot_cli,
 					config.tokio_handle.clone(),
 				)
-					.map_err(|err| format!("Relay chain argument error: {}", err))?;
+				.map_err(|err| format!("Relay chain argument error: {}", err))?;
 
 				cmd.run(config, polkadot_config)
 			})
@@ -211,7 +211,7 @@ pub fn run() -> Result<()> {
 						to enable storage benchmarks."
 							.into(),
 					)
-						.into()),
+					.into()),
 				#[cfg(feature = "runtime-benchmarks")]
 				BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
 					let partials = new_partial(&config)?;
@@ -382,8 +382,8 @@ impl CliConfiguration<Self> for RelayChainCli {
 		_logger_hook: F,
 		_config: &sc_service::Configuration,
 	) -> Result<()>
-		where
-			F: FnOnce(&mut sc_cli::LoggerBuilder, &sc_service::Configuration),
+	where
+		F: FnOnce(&mut sc_cli::LoggerBuilder, &sc_service::Configuration),
 	{
 		unreachable!("PolkadotCli is never initialized; qed");
 	}
