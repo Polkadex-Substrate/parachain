@@ -22,6 +22,7 @@ use sp_runtime::{
 	SaturatedConversion,
 };
 use xcm::latest::{prelude::*, Weight as XCMWeight};
+use sp_runtime::traits::Zero;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
@@ -34,7 +35,7 @@ use xcm_executor::{
 	traits::{ShouldExecute, WeightTrader},
 	Assets, XcmExecutor,
 };
-use xcm_helper::AssetIdConverter;
+use xcm_helper::{AssetIdConverter, WhitelistedTokenHandler};
 
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
@@ -159,6 +160,7 @@ impl xcm_executor::Config for XcmConfig {
 			RevenueCollector<AssetHandler, XcmHelper, Swap, TypeConv, TypeConv>,
 			Swap,
 			XcmHelper,
+			XcmHelper
 		>,
 	);
 	type ResponseHandler = PolkadotXcm;
@@ -241,12 +243,13 @@ impl orml_xtokens::Config for Runtime {
 	type ReserveProvider = AbsoluteReserveProvider;
 }
 
-pub struct ForeignAssetFeeHandler<T, R, AMM, AC>
+pub struct ForeignAssetFeeHandler<T, R, AMM, AC, WH>
 where
 	T: WeightToFeeT<Balance = u128>,
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
+    WH: WhitelistedTokenHandler
 {
 	/// Total used weight
 	weight: u64,
@@ -254,21 +257,25 @@ where
 	consumed: u128,
 	/// Asset Id (as MultiLocation) and units per second for payment
 	asset_location_and_units_per_second: Option<(MultiLocation, u128)>,
-	_pd: PhantomData<(T, R, AMM, AC)>,
+	_pd: PhantomData<(T, R, AMM, AC, WH)>,
 }
 
 use sp_std::vec;
-impl<T, R, AMM, AC> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC>
+impl<T, R, AMM, AC, WH> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC, WH>
 where
 	T: WeightToFeeT<Balance = u128>,
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
+	WH: WhitelistedTokenHandler
 {
 	fn new() -> Self {
 		Self { weight: 0, consumed: 0, asset_location_and_units_per_second: None, _pd: PhantomData }
 	}
 
+	/// NOTE: If the token is allowlisted by AMM pallet ( probably using governance )
+	/// then it will be allowed to execute for free even if the pool is not there.
+	/// If pool is not there and token is not present in allowlisted then it will be rejected.
 	fn buy_weight(
 		&mut self,
 		weight: u64,
@@ -281,25 +288,32 @@ where
 			let foreign_currency_asset_id =
 				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::TooExpensive)?;
 			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
-			let expected_fee_in_foreign_currency = AMM::get_amounts_in(fee_in_native_token, path)
-				.map_err(|_| XcmError::TooExpensive)?;
-			let expected_fee_in_foreign_currency =
-				expected_fee_in_foreign_currency.iter().next().ok_or(XcmError::TooExpensive)?;
-			let unused = payment
-				.checked_sub((location.clone(), *expected_fee_in_foreign_currency).into())
-				.map_err(|_| XcmError::TooExpensive)?;
+			let (unused, expected_fee_in_foreign_currency) = if let Ok(expected_fee_in_foreign_currencies) = AMM::get_amounts_in(fee_in_native_token, path) {
+				let expected_fee_in_foreign_currency =
+					expected_fee_in_foreign_currencies.into_iter().next().ok_or(XcmError::TooExpensive)?;
+				let unused = payment
+					.checked_sub((location.clone(), expected_fee_in_foreign_currency).into())
+					.map_err(|_| XcmError::TooExpensive)?;
+				(unused, expected_fee_in_foreign_currency)
+			} else {
+				if WH::check_whitelisted_token(foreign_currency_asset_id) {
+					(payment, 0u128)
+				} else {
+					return Err(XcmError::TooExpensive);
+				}
+			};
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
 			{
 				if old_asset_location == location.clone() {
 					self.consumed = self
 						.consumed
-						.saturating_add((*expected_fee_in_foreign_currency).saturated_into());
+						.saturating_add((expected_fee_in_foreign_currency).saturated_into());
 				}
 			} else {
 				self.consumed = self
 					.consumed
-					.saturating_add((*expected_fee_in_foreign_currency).saturated_into());
+					.saturating_add((expected_fee_in_foreign_currency).saturated_into());
 				self.asset_location_and_units_per_second = Some((location, 0));
 			}
 			Ok(unused)
@@ -309,12 +323,13 @@ where
 	}
 }
 
-impl<T, R, AMM, AC> Drop for ForeignAssetFeeHandler<T, R, AMM, AC>
+impl<T, R, AMM, AC, WH> Drop for ForeignAssetFeeHandler<T, R, AMM, AC, WH>
 where
 	T: WeightToFeeT<Balance = u128>,
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
+	WH: WhitelistedTokenHandler
 {
 	fn drop(&mut self) {
 		if let Some((asset_location, _)) = self.asset_location_and_units_per_second.clone() {
@@ -363,12 +378,14 @@ where
 				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) =
 					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
 				{
-					AM::mint_into(
-						asset_id_associated_type,
-						&asset_handler_account,
-						amount_associated_type,
-					);
-					AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount);
+					if !amount.is_zero() {
+						AM::mint_into(
+							asset_id_associated_type,
+							&asset_handler_account,
+							amount_associated_type,
+						);
+						AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount);
+					}
 				}
 			}
 		}
