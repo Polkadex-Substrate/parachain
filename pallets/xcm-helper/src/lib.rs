@@ -89,6 +89,9 @@
 
 pub use pallet::*;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use cumulus_primitives_core::ParaId;
@@ -122,6 +125,7 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
+	use xcm::prelude::Here;
 	use xcm_builder::TakeRevenue;
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
@@ -167,6 +171,18 @@ pub mod pallet {
 		pub asset: sp_std::boxed::Box<VersionedMultiAssets>,
 		pub destination: sp_std::boxed::Box<VersionedMultiLocation>,
 		pub is_blocked: bool,
+	}
+
+	impl Default for PendingWithdrawal {
+		fn default() -> Self {
+			let asset = MultiAsset { id: AssetId::Concrete(Default::default()), fun: Fungibility::Fungible(0u128) };
+			let assets = VersionedMultiAssets::V1(MultiAssets::from(vec![asset]));
+			Self {
+				asset: Box::new(assets),
+				destination: Box::new(VersionedMultiLocation::V1(Default::default())),
+				is_blocked: false
+			}
+		}
 	}
 
 	#[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
@@ -433,7 +449,6 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin.clone())?;
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
-			// let encoded_payload = Encode::encode(&new_thea_key);
 			let payload_hash = sp_io::hashing::keccak_256(&new_thea_key.to_vec());
 			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
 				<ActiveTheaKey<T>>::set(Some(new_thea_key));
