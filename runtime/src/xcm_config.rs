@@ -18,11 +18,10 @@ use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
 use sp_core::{crypto::ByteArray, Get};
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert},
+	traits::{AccountIdConversion, Convert, Zero},
 	SaturatedConversion,
 };
 use xcm::latest::{prelude::*, Weight as XCMWeight};
-use sp_runtime::traits::Zero;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
 	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
@@ -160,7 +159,7 @@ impl xcm_executor::Config for XcmConfig {
 			RevenueCollector<AssetHandler, XcmHelper, Swap, TypeConv, TypeConv>,
 			Swap,
 			XcmHelper,
-			XcmHelper
+			XcmHelper,
 		>,
 	);
 	type ResponseHandler = PolkadotXcm;
@@ -249,7 +248,7 @@ where
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
-    WH: WhitelistedTokenHandler
+	WH: WhitelistedTokenHandler,
 {
 	/// Total used weight
 	weight: u64,
@@ -267,7 +266,7 @@ where
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
-	WH: WhitelistedTokenHandler
+	WH: WhitelistedTokenHandler,
 {
 	fn new() -> Self {
 		Self { weight: 0, consumed: 0, asset_location_and_units_per_second: None, _pd: PhantomData }
@@ -283,25 +282,30 @@ where
 	) -> sp_std::result::Result<Assets, XcmError> {
 		let fee_in_native_token =
 			T::weight_to_fee(&frame_support::weights::Weight::from_ref_time(weight));
-		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::TooExpensive)?;
+		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
-				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::TooExpensive)?;
+				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::Trap(1001))?;
 			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
-			let (unused, expected_fee_in_foreign_currency) = if let Ok(expected_fee_in_foreign_currencies) = AMM::get_amounts_in(fee_in_native_token, path) {
-				let expected_fee_in_foreign_currency =
-					expected_fee_in_foreign_currencies.into_iter().next().ok_or(XcmError::TooExpensive)?;
-				let unused = payment
-					.checked_sub((location.clone(), expected_fee_in_foreign_currency).into())
-					.map_err(|_| XcmError::TooExpensive)?;
-				(unused, expected_fee_in_foreign_currency)
-			} else {
-				if WH::check_whitelisted_token(foreign_currency_asset_id) {
-					(payment, 0u128)
+			let (unused, expected_fee_in_foreign_currency) =
+				if let Ok(expected_fee_in_foreign_currencies) =
+					AMM::get_amounts_in(fee_in_native_token, path)
+				{
+					let expected_fee_in_foreign_currency = expected_fee_in_foreign_currencies
+						.into_iter()
+						.next()
+						.ok_or(XcmError::Trap(1002))?;
+					let unused = payment
+						.checked_sub((location.clone(), expected_fee_in_foreign_currency).into())
+						.map_err(|_| XcmError::Trap(1003))?;
+					(unused, expected_fee_in_foreign_currency)
 				} else {
-					return Err(XcmError::TooExpensive);
-				}
-			};
+					if WH::check_whitelisted_token(foreign_currency_asset_id) {
+						(payment, 0u128)
+					} else {
+						return Err(XcmError::Trap(1004))
+					}
+				};
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
 			{
@@ -318,7 +322,7 @@ where
 			}
 			Ok(unused)
 		} else {
-			Err(XcmError::TooExpensive)
+			Err(XcmError::Trap(1005))
 		}
 	}
 }
@@ -329,7 +333,7 @@ where
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
-	WH: WhitelistedTokenHandler
+	WH: WhitelistedTokenHandler,
 {
 	fn drop(&mut self) {
 		if let Some((asset_location, _)) = self.asset_location_and_units_per_second.clone() {
@@ -384,7 +388,11 @@ where
 							&asset_handler_account,
 							amount_associated_type,
 						);
-						AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount);
+						AMM::swap(
+							&asset_handler_account,
+							(asset_id, NativeCurrencyId::get()),
+							amount,
+						);
 					}
 				}
 			}

@@ -269,8 +269,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
 	pub type WhitelistedTokens<T: Config> =
-	StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
-
+		StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -289,7 +288,7 @@ pub mod pallet {
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(u128),
 		/// Token Whitelisted For Xcm [token]
-		TokenWhitelistedForXcm(u128)
+		TokenWhitelistedForXcm(u128),
 	}
 
 	// Errors inform users that something went wrong.
@@ -320,7 +319,7 @@ pub mod pallet {
 		/// Token is already Whitelisted
 		TokenIsAlreadyWhitelisted,
 		/// Whitelisted Tokens limit reached
-		WhitelistedTokensLimitReached
+		WhitelistedTokensLimitReached,
 	}
 
 	#[pallet::hooks]
@@ -505,7 +504,10 @@ pub mod pallet {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			ensure!(!whitelisted_tokens.contains(&token), Error::<T>::TokenIsAlreadyWhitelisted);
-			whitelisted_tokens.try_push(token).map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
+			whitelisted_tokens
+				.try_push(token)
+				.map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
+			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
 		}
