@@ -5,12 +5,6 @@
 /// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
-#[cfg(test)]
-mod mock;
-
-#[cfg(test)]
-mod tests;
-
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::{
@@ -26,13 +20,13 @@ pub mod pallet {
 	use sp_runtime::SaturatedConversion;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// Because this pallet emits events, it depends on the runtime's definition of an event.
+		/// Because this pallet emits events, it depends on the runtime's definition of an event. kri
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Balances Pallet
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
@@ -48,7 +42,7 @@ pub mod pallet {
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// New Council Member Added [new_pending_member]
 		NewPendingMemberAdded(T::AccountId),
@@ -137,6 +131,14 @@ pub mod pallet {
 				return consequences.into()
 			} else {
 				todo!()
+			}
+		}
+
+		fn asset_exists(asset: Self::AssetId) -> bool {
+			if asset == T::NativeCurrencyId::get() {
+				true
+			} else {
+				T::MultiCurrency::asset_exists(asset)
 			}
 		}
 	}

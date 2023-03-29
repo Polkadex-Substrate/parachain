@@ -5,7 +5,7 @@ use frame_support::{
 };
 use frame_system as system;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
-use sp_core::{traits::RuntimeCode, H256};
+use sp_core::{traits::RuntimeCode, ConstU32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
@@ -22,7 +22,9 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
-		XcmHnadler: xcm_handler,
+		Balances: pallet_balances,
+		Assets: pallet_assets,
+		XcmHnadler: xcm_helper,
 		TheaCouncil: thea_council,
 		XToken: orml_xtokens
 	}
@@ -46,7 +48,7 @@ impl system::Config for Test {
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<u128>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
@@ -59,17 +61,73 @@ impl thea_council::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 }
 
-use frame_support::PalletId;
+use frame_support::{traits::AsEnsureOriginWithArg, PalletId};
+use frame_system::EnsureSigned;
+
+pub const TOKEN: u128 = 1_000_000_000_000;
+
+parameter_types! {
+	pub const ExistentialDeposit: u128 = 1 * TOKEN;
+	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
+}
+
+impl pallet_balances::Config for Test {
+	type Balance = u128;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = frame_system::Pallet<Test>;
+	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
+	type WeightInfo = ();
+	type RuntimeEvent = RuntimeEvent;
+}
 
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
 }
 
-impl xcm_handler::Config for Test {
+impl xcm_helper::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type AccountIdConvert = ();
+	type AssetManager = Assets;
+	type AssetCreateUpdateOrigin = EnsureSigned<Self::AccountId>;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
+	type ParachainId = ();
+	type ParachainNetworkId = ();
+}
+
+parameter_types! {
+	pub const AssetDeposit: u128 = 100;
+	pub const ApprovalDeposit: u128 = 1;
+	pub const StringLimit: u32 = 50;
+	pub const MetadataDepositBase: u128 = 10;
+	pub const MetadataDepositPerByte: u128 = 1;
+}
+
+impl pallet_assets::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = u128;
+	type RemoveItemsLimit = ConstU32<1000>;
+	type AssetId = u128;
+	type AssetIdParameter = codec::Compact<u128>;
+	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type ForceOrigin = EnsureSigned<Self::AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = AssetDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = StringLimit;
+	type Freezer = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type WeightInfo = ();
 }
 
 parameter_type_with_key! {

@@ -188,6 +188,11 @@ pub mod pallet {
 		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128>;
 	}
 
+	pub trait WhitelistedTokenHandler {
+		/// Check if token is whitelisted
+		fn check_whitelisted_token(asset_id: u128) -> bool;
+	}
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + orml_xtokens::Config {
@@ -260,6 +265,12 @@ pub mod pallet {
 	pub type TheaAssets<T: Config> =
 		StorageMap<_, Blake2_128Concat, u128, (u8, u8, BoundedVec<u8, ConstU32<1000>>), ValueQuery>;
 
+	/// Whitelist Tokens
+	#[pallet::storage]
+	#[pallet::getter(fn get_whitelisted_tokens)]
+	pub type WhitelistedTokens<T: Config> =
+		StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
@@ -276,6 +287,8 @@ pub mod pallet {
 		AssetWithdrawn(T::AccountId, MultiAsset),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(u128),
+		/// Token Whitelisted For Xcm [token]
+		TokenWhitelistedForXcm(u128),
 	}
 
 	// Errors inform users that something went wrong.
@@ -303,6 +316,10 @@ pub mod pallet {
 		InternalError,
 		/// Pending withdrawal Limit Reached
 		PendingWithdrawalsLimitReached,
+		/// Token is already Whitelisted
+		TokenIsAlreadyWhitelisted,
+		/// Whitelisted Tokens limit reached
+		WhitelistedTokensLimitReached,
 	}
 
 	#[pallet::hooks]
@@ -474,6 +491,24 @@ pub mod pallet {
 				(network_id, identifier_length as u8, asset_identifier),
 			);
 			Self::deposit_event(Event::<T>::TheaAssetCreated(asset_id));
+			Ok(())
+		}
+
+		/// Whitelists Token .
+		///
+		/// # Parameters
+		///
+		/// * `token`: Token to be whitelisted.
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn whitelist_token(origin: OriginFor<T>, token: u128) -> DispatchResult {
+			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
+			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
+			ensure!(!whitelisted_tokens.contains(&token), Error::<T>::TokenIsAlreadyWhitelisted);
+			whitelisted_tokens
+				.try_push(token)
+				.map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
+			<WhitelistedTokens<T>>::put(whitelisted_tokens);
+			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
 		}
 	}
@@ -781,6 +816,13 @@ pub mod pallet {
 
 		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
 			Self::convert_location_to_asset_id(location)
+		}
+	}
+
+	impl<T: Config> WhitelistedTokenHandler for Pallet<T> {
+		fn check_whitelisted_token(asset_id: u128) -> bool {
+			let whitelisted_tokens = <WhitelistedTokens<T>>::get();
+			whitelisted_tokens.contains(&asset_id)
 		}
 	}
 }
