@@ -4,9 +4,6 @@ use crate::{
 use frame_support::{assert_noop, assert_ok};
 use sp_core::{bounded::BoundedVec, ConstU32};
 
-
-
-
 #[test]
 fn test_add_member_returns_ok() {
 	new_test_ext().execute_with(|| {

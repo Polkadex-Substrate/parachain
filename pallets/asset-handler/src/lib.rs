@@ -16,7 +16,7 @@ pub mod pallet {
 			Currency, ExistenceRequirement, ReservableCurrency,
 		},
 	};
-	
+
 	use sp_runtime::SaturatedConversion;
 
 	#[pallet::pallet]
@@ -123,12 +123,7 @@ pub mod pallet {
 			amount: Self::Balance,
 		) -> WithdrawConsequence<Self::Balance> {
 			if asset != T::NativeCurrencyId::get() {
-				
-				T::MultiCurrency::can_withdraw(
-					asset.saturated_into(),
-					who,
-					amount.saturated_into(),
-				)
+				T::MultiCurrency::can_withdraw(asset.saturated_into(), who, amount.saturated_into())
 			} else {
 				todo!()
 			}

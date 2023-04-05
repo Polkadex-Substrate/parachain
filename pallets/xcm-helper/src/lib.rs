@@ -97,7 +97,7 @@ mod mock;
 
 #[frame_support::pallet]
 pub mod pallet {
-	
+
 	use frame_support::{
 		dispatch::{DispatchResultWithPostInfo, RawOrigin},
 		pallet_prelude::*,
@@ -108,14 +108,14 @@ pub mod pallet {
 		},
 		PalletId,
 	};
-	use frame_system::{pallet_prelude::*};
+	use frame_system::pallet_prelude::*;
 	use sp_core::sp_std;
 	use sp_runtime::{
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
 	use sp_std::vec;
-	
+
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -125,13 +125,12 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	
-	
+
+	use sp_std::boxed::Box;
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
 	};
-	use sp_std::boxed::Box;
 
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -176,12 +175,15 @@ pub mod pallet {
 
 	impl Default for PendingWithdrawal {
 		fn default() -> Self {
-			let asset = MultiAsset { id: AssetId::Concrete(Default::default()), fun: Fungibility::Fungible(0u128) };
+			let asset = MultiAsset {
+				id: AssetId::Concrete(Default::default()),
+				fun: Fungibility::Fungible(0u128),
+			};
 			let assets = VersionedMultiAssets::V1(MultiAssets::from(vec![asset]));
 			Self {
 				asset: Box::new(assets),
 				destination: Box::new(VersionedMultiLocation::V1(Default::default())),
-				is_blocked: false
+				is_blocked: false,
 			}
 		}
 	}
@@ -286,8 +288,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
 	pub type WhitelistedTokens<T: Config> =
-	StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
-
+		StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -306,7 +307,7 @@ pub mod pallet {
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(u128),
 		/// Token Whitelisted For Xcm [token]
-		TokenWhitelistedForXcm(u128)
+		TokenWhitelistedForXcm(u128),
 	}
 
 	// Errors inform users that something went wrong.
@@ -337,7 +338,7 @@ pub mod pallet {
 		/// Token is already Whitelisted
 		TokenIsAlreadyWhitelisted,
 		/// Whitelisted Tokens limit reached
-		WhitelistedTokensLimitReached
+		WhitelistedTokensLimitReached,
 	}
 
 	#[pallet::hooks]
@@ -366,8 +367,8 @@ pub mod pallet {
 									.expect("Vector Overflow");
 							}
 						} else if Self::handle_deposit(withdrawal.clone()).is_err() {
-      								failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
-      							}
+							failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
+						}
 					} else {
 						failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
 					}
@@ -520,7 +521,9 @@ pub mod pallet {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			ensure!(!whitelisted_tokens.contains(&token), Error::<T>::TokenIsAlreadyWhitelisted);
-			whitelisted_tokens.try_push(token).map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
+			whitelisted_tokens
+				.try_push(token)
+				.map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
 		}
@@ -614,8 +617,7 @@ pub mod pallet {
 		/// Route deposit to destined function
 		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
 			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
-			let location =
-				(*destination).try_into().map_err(|_| Error::<T>::InternalError)?;
+			let location = (*destination).try_into().map_err(|_| Error::<T>::InternalError)?;
 			let destination_account =
 				Self::get_destination_account(location).ok_or(Error::<T>::InternalError)?;
 			let assets: Option<MultiAssets> = (*asset).try_into().ok();

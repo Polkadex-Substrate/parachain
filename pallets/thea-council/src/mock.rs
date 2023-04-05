@@ -136,9 +136,7 @@ parameter_type_with_key! {
 	};
 }
 
-use xcm_builder::{
-	FixedWeightBounds, LocationInverter,
-};
+use xcm_builder::{FixedWeightBounds, LocationInverter};
 
 use xcm::v1::MultiLocation;
 

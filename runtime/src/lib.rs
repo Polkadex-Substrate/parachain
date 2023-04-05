@@ -51,7 +51,6 @@ pub use sp_runtime::BuildStorage;
 // Polkadot imports
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
-
 use frame_support::traits::AsEnsureOriginWithArg;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
