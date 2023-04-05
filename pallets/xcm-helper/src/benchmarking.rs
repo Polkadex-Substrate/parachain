@@ -11,7 +11,7 @@ use frame_support::BoundedVec;
 use frame_system::RawOrigin;
 use frame_benchmarking::Box;
 use xcm_builder::test_utils::{NetworkId};
-use sp_core::{ecdsa::{self, Signature}, Pair};
+use sp_core::{ecdsa::{self, Signature, Pair}, Pair as PairT};
 use sp_core::ConstU32;
 use xcm::{
     latest::{
