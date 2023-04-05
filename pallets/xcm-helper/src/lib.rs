@@ -97,28 +97,25 @@ mod mock;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use cumulus_primitives_core::ParaId;
+	
 	use frame_support::{
 		dispatch::{DispatchResultWithPostInfo, RawOrigin},
 		pallet_prelude::*,
 		sp_runtime::traits::AccountIdConversion,
 		traits::{
 			fungibles::{Create, Inspect, Mutate, Transfer},
-			tokens::Balance,
 			Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
 		},
-		weights::WeightToFee,
 		PalletId,
 	};
-	use frame_system::{pallet_prelude::*, Origin};
+	use frame_system::{pallet_prelude::*};
 	use sp_core::sp_std;
 	use sp_runtime::{
-		print,
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
 	use sp_std::vec;
-	use support::AMM;
+	
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -128,8 +125,8 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm::prelude::Here;
-	use xcm_builder::TakeRevenue;
+	
+	
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
@@ -368,11 +365,9 @@ pub mod pallet {
 									.try_push(withdrawal.clone())
 									.expect("Vector Overflow");
 							}
-						} else {
-							if let Err(_) = Self::handle_deposit(withdrawal.clone()) {
-								failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
-							}
-						}
+						} else if Self::handle_deposit(withdrawal.clone()).is_err() {
+      								failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
+      							}
 					} else {
 						failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
 					}
@@ -538,7 +533,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Convert<MultiLocation, Option<u128>> for Pallet<T> {
-		fn convert(a: MultiLocation) -> Option<u128> {
+		fn convert(_a: MultiLocation) -> Option<u128> {
 			todo!()
 		}
 	}
@@ -577,7 +572,7 @@ pub mod pallet {
 				T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
 					.map_err(|_| XcmError::Trap(24))?;
 			}
-			Self::deposit_event(Event::<T>::AssetWithdrawn(who.clone(), what.clone()));
+			Self::deposit_event(Event::<T>::AssetWithdrawn(who, what.clone()));
 			Ok(what.clone().into())
 		}
 
@@ -620,7 +615,7 @@ pub mod pallet {
 		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
 			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
 			let location =
-				(*destination.clone()).try_into().map_err(|_| Error::<T>::InternalError)?;
+				(*destination).try_into().map_err(|_| Error::<T>::InternalError)?;
 			let destination_account =
 				Self::get_destination_account(location).ok_or(Error::<T>::InternalError)?;
 			let assets: Option<MultiAssets> = (*asset).try_into().ok();
@@ -753,7 +748,7 @@ pub mod pallet {
 		/// Converts XCM::Fungibility into u128
 		pub fn get_amount(fun: &Fungibility) -> Option<u128> {
 			if let Fungibility::Fungible(amount) = fun {
-				return Some(*amount)
+				Some(*amount)
 			} else {
 				None
 			}
@@ -763,7 +758,7 @@ pub mod pallet {
 		pub fn is_native_asset(asset: &AssetId) -> bool {
 			let native_asset = MultiLocation {
 				parents: 1,
-				interior: Junctions::X1(Junction::Parachain(T::ParachainId::get().into())),
+				interior: Junctions::X1(Junction::Parachain(T::ParachainId::get())),
 			};
 			match asset {
 				AssetId::Concrete(location) if location == &native_asset => true,

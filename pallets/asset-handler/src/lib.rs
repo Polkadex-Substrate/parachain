@@ -16,7 +16,7 @@ pub mod pallet {
 			Currency, ExistenceRequirement, ReservableCurrency,
 		},
 	};
-	use frame_system::pallet_prelude::*;
+	
 	use sp_runtime::SaturatedConversion;
 
 	#[pallet::pallet]
@@ -67,7 +67,7 @@ pub mod pallet {
 
 		fn total_issuance(asset: Self::AssetId) -> Self::Balance {
 			// when asset is not polkadex
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::total_issuance(asset.saturated_into()).saturated_into()
 			} else {
 				T::Currency::total_issuance().saturated_into()
@@ -75,7 +75,7 @@ pub mod pallet {
 		}
 
 		fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::minimum_balance(asset.saturated_into()).saturated_into()
 			} else {
 				T::Currency::minimum_balance().saturated_into()
@@ -83,7 +83,7 @@ pub mod pallet {
 		}
 
 		fn balance(asset: Self::AssetId, who: &T::AccountId) -> Self::Balance {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::balance(asset.saturated_into(), who).saturated_into()
 			} else {
 				T::Currency::total_balance(who).saturated_into()
@@ -95,7 +95,7 @@ pub mod pallet {
 			who: &T::AccountId,
 			keep_alive: bool,
 		) -> Self::Balance {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::reducible_balance(asset.saturated_into(), who, keep_alive)
 					.saturated_into()
 			} else {
@@ -109,7 +109,7 @@ pub mod pallet {
 			amount: Self::Balance,
 			mint: bool,
 		) -> DepositConsequence {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::can_deposit(asset, who, amount.saturated_into(), mint)
 			} else {
 				// balance of native asset can always be increased
@@ -122,13 +122,13 @@ pub mod pallet {
 			who: &T::AccountId,
 			amount: Self::Balance,
 		) -> WithdrawConsequence<Self::Balance> {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				let consequences = T::MultiCurrency::can_withdraw(
 					asset.saturated_into(),
 					who,
 					amount.saturated_into(),
 				);
-				return consequences.into()
+				consequences
 			} else {
 				todo!()
 			}
@@ -151,7 +151,7 @@ pub mod pallet {
 			amount: Self::Balance,
 			keep_alive: bool,
 		) -> Result<Self::Balance, DispatchError> {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::transfer(asset, source, dest, amount.saturated_into(), keep_alive)
 					.map(|x| x.saturated_into())
 			} else {
@@ -177,7 +177,7 @@ pub mod pallet {
 			who: &T::AccountId,
 			amount: Self::Balance,
 		) -> DispatchResult {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::mint_into(asset, who, amount.saturated_into())
 					.map(|x| x.saturated_into())
 			} else {
@@ -190,7 +190,7 @@ pub mod pallet {
 			who: &T::AccountId,
 			amount: Self::Balance,
 		) -> Result<Self::Balance, DispatchError> {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::burn_from(asset, who, amount.saturated_into())
 					.map(|x| x.saturated_into())
 			} else {
@@ -203,7 +203,7 @@ pub mod pallet {
 			who: &T::AccountId,
 			amount: Self::Balance,
 		) -> Result<Self::Balance, DispatchError> {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::slash(asset, who, amount.saturated_into())
 					.map(|x| x.saturated_into())
 			} else {
@@ -218,7 +218,7 @@ pub mod pallet {
 			dest: &T::AccountId,
 			amount: Self::Balance,
 		) -> Result<Self::Balance, DispatchError> {
-			return if asset != T::NativeCurrencyId::get() {
+			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::teleport(asset, source, dest, amount.saturated_into())
 					.map(|x| x.saturated_into())
 			} else {

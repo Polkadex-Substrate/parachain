@@ -5,7 +5,7 @@ use frame_support::{
 };
 use frame_system as system;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
-use sp_core::{traits::RuntimeCode, ConstU32, H256};
+use sp_core::{ConstU32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
@@ -67,7 +67,7 @@ use frame_system::EnsureSigned;
 pub const TOKEN: u128 = 1_000_000_000_000;
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 1 * TOKEN;
+	pub const ExistentialDeposit: u128 = TOKEN;
 	pub const MaxLocks: u32 = 50;
 	pub const MaxReserves: u32 = 50;
 }
@@ -131,17 +131,13 @@ impl pallet_assets::Config for Test {
 }
 
 parameter_type_with_key! {
-	pub ParachainMinFee: |location: MultiLocation| -> Option<u128> {
+	pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
 		Some(1u128)
 	};
 }
 
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-	EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	UsingComponents,
+	FixedWeightBounds, LocationInverter,
 };
 
 use xcm::v1::MultiLocation;
