@@ -123,12 +123,12 @@ pub mod pallet {
 			amount: Self::Balance,
 		) -> WithdrawConsequence<Self::Balance> {
 			if asset != T::NativeCurrencyId::get() {
-				let consequences = T::MultiCurrency::can_withdraw(
+				
+				T::MultiCurrency::can_withdraw(
 					asset.saturated_into(),
 					who,
 					amount.saturated_into(),
-				);
-				consequences
+				)
 			} else {
 				todo!()
 			}
