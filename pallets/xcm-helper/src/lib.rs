@@ -145,9 +145,9 @@ pub mod pallet {
 		/// AssetDeposited(Recipient, Asset & Amount)
 		AssetDeposited(MultiLocation, MultiAsset),
 		/// Thea Key Set by Sudo
-		TheaKeySetBySudo([u8; 64]),
+		TheaKeySetBySudo(sp_core::ecdsa::Public),
 		/// New Thea Key Set by Current Relayer Set
-		TheaKeyChanged([u8; 64]),
+		TheaKeyChanged(sp_core::ecdsa::Public),
 	}
 
 	#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode)]
@@ -250,7 +250,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_thea_key)]
-	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, [u8; 64], OptionQuery>;
+	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, sp_core::ecdsa::Public, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_nonce)]
@@ -409,11 +409,11 @@ pub mod pallet {
 			ensure_signed(origin.clone())?;
 			let current_withdraw_nonce = <WithdrawNonce<T>>::get();
 			ensure!(withdraw_nonce == current_withdraw_nonce, Error::<T>::NonceIsNotValid);
-			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
+			let public_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
 			let signing_payload = (payload.clone(), current_withdraw_nonce);
 			let encoded_payload = Encode::encode(&signing_payload);
 			let payload_hash = sp_io::hashing::keccak_256(&encoded_payload);
-			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
+			if sp_io::crypto::ecdsa_verify_prehashed(&signature, &payload_hash, &public_key) {
 				let withdrawal_execution_block: T::BlockNumber =
 					<frame_system::Pallet<T>>::block_number()
 						.saturated_into::<u32>()
@@ -449,13 +449,13 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
-			new_thea_key: [u8; 64],
+			new_thea_key: sp_core::ecdsa::Public,
 			signature: sp_core::ecdsa::Signature,
 		) -> DispatchResultWithPostInfo {
 			ensure_signed(origin.clone())?;
-			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
-			let payload_hash = sp_io::hashing::keccak_256(&new_thea_key.to_vec());
-			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
+			let public_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
+			let payload_hash = sp_io::hashing::keccak_256(&new_thea_key.0);
+			if sp_io::crypto::ecdsa_verify_prehashed(&signature, &payload_hash, &public_key) {
 				<ActiveTheaKey<T>>::set(Some(new_thea_key));
 				<IngressMessages<T>>::try_mutate(|ingress_messages| {
 					ingress_messages.try_push(TheaMessage::TheaKeyChanged(new_thea_key))
@@ -475,7 +475,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn set_thea_key(
 			origin: OriginFor<T>,
-			thea_key: [u8; 64],
+			thea_key: sp_core::ecdsa::Public,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			<ActiveTheaKey<T>>::put(thea_key);
@@ -769,18 +769,6 @@ pub mod pallet {
 				AssetId::Concrete(location) if location == &native_asset => true,
 				_ => false,
 			}
-		}
-
-		/// Verifies Signature
-		pub fn verify_ecdsa_prehashed(
-			signature: &sp_core::ecdsa::Signature,
-			public_key: &[u8; 64],
-			payload_hash: &[u8; 32],
-		) -> sp_std::result::Result<bool, DispatchError> {
-			let recovered_pb = sp_io::crypto::secp256k1_ecdsa_recover(&signature.0, payload_hash)
-				.map_err(|_| Error::<T>::SignatureVerificationFailed)?;
-			ensure!(recovered_pb == *public_key, Error::<T>::SignatureVerificationFailed);
-			Ok(true)
 		}
 
 		/// Block Transaction to be Executed.
