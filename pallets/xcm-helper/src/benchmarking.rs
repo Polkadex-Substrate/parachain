@@ -22,7 +22,7 @@ use xcm::{
     v2::WeightLimit,
     VersionedMultiAssets, VersionedMultiLocation,
 };
-
+use parity_scale_codec::{Encode};
 
 const SEED: u32 = 0;
 
@@ -58,9 +58,11 @@ benchmarks! {
 					sp_std::boxed::Box<VersionedMultiLocation>,
 				),
 				ConstU32<10>> = BoundedVec::try_from(vec![(boxed_asset_id, boxed_multilocation)]).unwrap();
-        let withdraw_nonce = 0u32;
-        let key_pair = Pair::generate();
+        let x = 0u32;
+        let (key_pair,_) = Pair::generate();
 	    let public_key = key_pair.public();
-        let signature: sp_core::ecdsa::Signature = key_pair.sign(boundec_vec);
-    }: _(RawOrigin::Signed(2), boundec_vec, withdraw_nonce, signature)
+        let signing_payload = (boundec_vec.clone(), b-1);
+        let signature: sp_core::ecdsa::Signature = key_pair.sign(&signing_payload.encode()[..]);
+        let council_member: T::AccountId = account("mem1", b, SEED);
+    }: _(RawOrigin::Signed(council_member), boundec_vec, b-1, signature)
 }

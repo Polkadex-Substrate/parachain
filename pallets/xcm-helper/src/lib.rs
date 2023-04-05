@@ -131,6 +131,7 @@ pub mod pallet {
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
 	};
+	use sp_std::boxed::Box;
 
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -549,7 +550,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Burns/Lock asset from procided account.
+		/// Burns/Lock asset from provided account.
 		fn withdraw_asset(
 			what: &MultiAsset,
 			who: &MultiLocation,
