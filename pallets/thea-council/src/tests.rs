@@ -130,15 +130,3 @@ fn get_council_members() -> (u64, u64, u64) {
 	let third_council_member = 3;
 	(first_council_member, second_council_member, third_council_member)
 }
-
-fn create_benchmark() {
-
-	let asset_location = MultiLocation::new(1, Junctions::X1(Junction::Parachain(2011)));
-	let asset_id = AssetId::Concrete(asset_location);
-	let multi_asset = MultiAsset::from((asset_id, Fungibility::Fungible(1000000000)));
-	let wrapped_multi_asset = VersionedMultiAssets::V1(MultiAssets::from(multi_asset));
-	let boxed_asset_id = Box::new(wrapped_multi_asset);
-
-	let destination = MultiLocation::new(1, Junctions::X2(Junction::Parachain(2011), Junction::AccountId32 { network: NetworkId::Any, id: [1;32] }));
-	let boxed_multilocation =
-}

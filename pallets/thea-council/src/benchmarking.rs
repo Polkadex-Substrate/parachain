@@ -62,3 +62,9 @@ benchmarks! {
         xcm_helper::Pallet::<T>::insert_pending_withdrawal(block_no, pending_withdrawal);
     }: _(RawOrigin::Signed(council_member), block_no, 0u32)
 }
+
+#[cfg(test)]
+use frame_benchmarking::impl_benchmark_test_suite;
+
+#[cfg(test)]
+impl_benchmark_test_suite!(TheaCouncil, crate::mock::new_test_ext(), crate::mock::Test);
