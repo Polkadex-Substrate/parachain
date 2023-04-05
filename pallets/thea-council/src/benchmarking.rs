@@ -23,6 +23,9 @@ benchmarks! {
         <ActiveCouncilMembers<T>>::put(active_council_member);
         let new_member: T::AccountId = account("mem2", b, SEED);
     }: _(RawOrigin::Signed(council_member), new_member)
+    verify {
+
+    }
 
     remove_member {
         let b in 1 .. 1000;

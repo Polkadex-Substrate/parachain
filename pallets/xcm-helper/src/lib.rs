@@ -406,9 +406,9 @@ pub mod pallet {
 			ensure_signed(origin.clone())?;
 			let current_withdraw_nonce = <WithdrawNonce<T>>::get();
 			ensure!(withdraw_nonce == current_withdraw_nonce, Error::<T>::NonceIsNotValid);
-			<WithdrawNonce<T>>::put(current_withdraw_nonce.saturating_add(1));
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
-			let encoded_payload = Encode::encode(&payload);
+			let signing_payload = (payload.clone(), current_withdraw_nonce);
+			let encoded_payload = Encode::encode(&signing_payload);
 			let payload_hash = sp_io::hashing::keccak_256(&encoded_payload);
 			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
 				let withdrawal_execution_block: T::BlockNumber =
@@ -433,6 +433,7 @@ pub mod pallet {
 			} else {
 				return Err(Error::<T>::SignatureVerificationFailed.into())
 			}
+			<WithdrawNonce<T>>::put(current_withdraw_nonce.saturating_add(1));
 			Ok(().into())
 		}
 
