@@ -92,6 +92,9 @@ pub use pallet::*;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+#[cfg(test)]
+mod mock;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use cumulus_primitives_core::ParaId;
