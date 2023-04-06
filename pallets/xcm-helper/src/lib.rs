@@ -524,6 +524,7 @@ pub mod pallet {
 			whitelisted_tokens
 				.try_push(token)
 				.map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
+			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
 		}
