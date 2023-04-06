@@ -19,7 +19,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature, SaturatedConversion,
+	ApplyExtrinsicResult, MultiSignature,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -51,7 +51,6 @@ pub use sp_runtime::BuildStorage;
 // Polkadot imports
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
-use cumulus_primitives_core::ParaId;
 use frame_support::traits::AsEnsureOriginWithArg;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
@@ -791,6 +790,8 @@ impl_runtime_apis! {
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
+			list_benchmark!(list, extra, xcm_helper, XcmHelper);
+			list_benchmark!(list, extra, thea_council, TheaCouncil);
 			list_benchmarks!(list, extra);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -823,6 +824,8 @@ impl_runtime_apis! {
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
+			add_benchmark!(params, batches, xcm_helper, XcmHelper);
+			add_benchmark!(params, batches, thea_council, TheaCouncil);
 			add_benchmarks!(params, batches);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }

@@ -3,9 +3,6 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok};
 use sp_core::{bounded::BoundedVec, ConstU32};
-use xcm::v1::Junctions;
-use xcm::v2::{AssetId, Fungibility, Junction, MultiAsset, MultiAssets, MultiLocation, NetworkId};
-use xcm::VersionedMultiAssets;
 
 #[test]
 fn test_add_member_returns_ok() {
@@ -29,7 +26,7 @@ fn test_add_member_returns_ok() {
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
 		assert!(pending_set.contains(&new_member));
-		<Proposals<Test>>::remove(proposal.clone());
+		<Proposals<Test>>::remove(proposal);
 		assert!(!<Proposals<Test>>::contains_key(proposal));
 	})
 }

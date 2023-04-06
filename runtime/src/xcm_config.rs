@@ -4,7 +4,7 @@ use super::{
 };
 use core::marker::PhantomData;
 use frame_support::{
-	log, match_types, parameter_types,
+	match_types, parameter_types,
 	traits::{
 		fungibles::{Inspect, Mutate},
 		Everything, Nothing,
@@ -16,20 +16,18 @@ use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
-use sp_core::{crypto::ByteArray, Get};
+use sp_core::Get;
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert},
+	traits::{AccountIdConversion, Convert, Zero},
 	SaturatedConversion,
 };
 use xcm::latest::{prelude::*, Weight as XCMWeight};
-use sp_runtime::traits::Zero;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
-	FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-	TakeWeightCredit, UsingComponents,
+	AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
+	IsConcrete, LocationInverter, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{
 	traits::{ShouldExecute, WeightTrader},
@@ -160,7 +158,7 @@ impl xcm_executor::Config for XcmConfig {
 			RevenueCollector<AssetHandler, XcmHelper, Swap, TypeConv, TypeConv>,
 			Swap,
 			XcmHelper,
-			XcmHelper
+			XcmHelper,
 		>,
 	);
 	type ResponseHandler = PolkadotXcm;
@@ -249,7 +247,7 @@ where
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
-    WH: WhitelistedTokenHandler
+	WH: WhitelistedTokenHandler,
 {
 	/// Total used weight
 	weight: u64,
@@ -267,7 +265,7 @@ where
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
-	WH: WhitelistedTokenHandler
+	WH: WhitelistedTokenHandler,
 {
 	fn new() -> Self {
 		Self { weight: 0, consumed: 0, asset_location_and_units_per_second: None, _pd: PhantomData }
@@ -288,24 +286,27 @@ where
 			let foreign_currency_asset_id =
 				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::TooExpensive)?;
 			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
-			let (unused, expected_fee_in_foreign_currency) = if let Ok(expected_fee_in_foreign_currencies) = AMM::get_amounts_in(fee_in_native_token, path) {
-				let expected_fee_in_foreign_currency =
-					expected_fee_in_foreign_currencies.into_iter().next().ok_or(XcmError::TooExpensive)?;
-				let unused = payment
-					.checked_sub((location.clone(), expected_fee_in_foreign_currency).into())
-					.map_err(|_| XcmError::TooExpensive)?;
-				(unused, expected_fee_in_foreign_currency)
-			} else {
-				if WH::check_whitelisted_token(foreign_currency_asset_id) {
+			let (unused, expected_fee_in_foreign_currency) =
+				if let Ok(expected_fee_in_foreign_currencies) =
+					AMM::get_amounts_in(fee_in_native_token, path)
+				{
+					let expected_fee_in_foreign_currency = expected_fee_in_foreign_currencies
+						.into_iter()
+						.next()
+						.ok_or(XcmError::TooExpensive)?;
+					let unused = payment
+						.checked_sub((location.clone(), expected_fee_in_foreign_currency).into())
+						.map_err(|_| XcmError::TooExpensive)?;
+					(unused, expected_fee_in_foreign_currency)
+				} else if WH::check_whitelisted_token(foreign_currency_asset_id) {
 					(payment, 0u128)
 				} else {
-					return Err(XcmError::TooExpensive);
-				}
-			};
+					return Err(XcmError::TooExpensive)
+				};
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
 			{
-				if old_asset_location == location.clone() {
+				if old_asset_location == location {
 					self.consumed = self
 						.consumed
 						.saturating_add((expected_fee_in_foreign_currency).saturated_into());
@@ -329,7 +330,7 @@ where
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, BlockNumber>,
 	AC: AssetIdConverter,
-	WH: WhitelistedTokenHandler
+	WH: WhitelistedTokenHandler,
 {
 	fn drop(&mut self) {
 		if let Some((asset_location, _)) = self.asset_location_and_units_per_second.clone() {
@@ -384,7 +385,11 @@ where
 							&asset_handler_account,
 							amount_associated_type,
 						);
-						AMM::swap(&asset_handler_account, (asset_id, NativeCurrencyId::get()), amount);
+						AMM::swap(
+							&asset_handler_account,
+							(asset_id, NativeCurrencyId::get()),
+							amount,
+						);
 					}
 				}
 			}
