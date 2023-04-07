@@ -57,7 +57,7 @@ impl system::Config for Test {
 }
 
 use frame_support::{traits::AsEnsureOriginWithArg, PalletId};
-use frame_system::EnsureSigned;
+use frame_system::{EnsureRoot, EnsureSigned};
 
 pub const TOKEN: u128 = 1_000_000_000_000;
 
@@ -89,7 +89,7 @@ impl xcm_helper::Config for Test {
 	type Currency = Balances;
 	type AccountIdConvert = ();
 	type AssetManager = Assets;
-	type AssetCreateUpdateOrigin = EnsureSigned<Self::AccountId>;
+	type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ();

@@ -38,13 +38,13 @@ benchmarks! {
 		let asset_location = MultiLocation::new(1, Junctions::X1(Junction::Parachain(2011)));
 		let asset_id = AssetId::Concrete(asset_location);
 		let account = T::AssetCreateUpdateOrigin::successful_origin();
-	}: _(occount, Box::new(asset_id))
+	}: _(RawOrigin::Root, Box::new(asset_id))
 
 	whitelist_token {
 		let b in 1 .. 1000;
 		let token = b as u128;
-		let account = T::AssetCreateUpdateOrigin::successful_origin();
-	}: _(RawOrigin::Signed(account), token)
+		let account: T::AccountId = account("mem1", b, SEED);
+	}: _(RawOrigin::Root, token)
 
 	withdraw_asset {
 		let b in 1 .. 1000;
