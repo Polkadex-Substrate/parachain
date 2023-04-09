@@ -1,0 +1,103 @@
+name: Continuous Integration
+
+on:
+  pull_request: []
+  push:
+    branches: [develop, main]
+
+
+env:
+  RUNNER_INSTANCE_TYPE: c5d.9xlarge
+
+jobs:
+  start-runner:
+    name: Start self-hosted EC2 runner
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: start
+          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN_REPO }}
+          ec2-image-id: ami-06de69a4185c962ed
+          ec2-instance-type: ${{ env.RUNNER_INSTANCE_TYPE }}
+          subnet-id: subnet-a4d326e8
+          security-group-id: sg-078363c0f7b5f0b41
+          iam-role-name: github-runner-role
+          aws-resource-tags: >
+            [
+              {"Key": "Name", "Value": "github-runner"},
+              {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
+            ]
+  build:
+    name: Build | Run linters | Run tests
+    needs: start-runner
+    runs-on: ${{ needs.start-runner.outputs.label }}
+    steps:
+      - name: Set home environment variable # bug self hosted https://github.com/actions-rs/toolchain/issues/137
+        run: |
+          echo "HOME=/root" >> ${GITHUB_ENV} # bug
+      - name: Install latest nightly with wasm target
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+          default: true
+          components: rustfmt, clippy
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+      - name: Checkout to the current branch
+        uses: actions/checkout@v3
+      - name: Cache cargo registry
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Check versions info
+        run: |
+          rustup -V
+          cargo fmt -- --version
+          cargo clippy -V
+      - name: Build
+        run: cargo build
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+#        FIXME: Fix all warnings
+#      - name: Check Clippy
+#        run: cargo clippy -- -D warnings
+      - name: Test Project
+        run: cargo test
+  stop-runner:
+    name: Stop self-hosted EC2 runner
+    needs:
+      - start-runner
+      - build
+    runs-on: ubuntu-latest
+    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Stop EC2 runner
+        uses: machulav/ec2-github-runner@v2
+        with:
+          mode: stop
+          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN_REPO }}
+          label: ${{ needs.start-runner.outputs.label }}
+          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
