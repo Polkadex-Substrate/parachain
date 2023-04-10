@@ -20,12 +20,12 @@
 
 extern crate alloc;
 
-// #[cfg(test)]
-// mod mock;
-// #[cfg(test)]
-// mod tests;
-//
-// mod benchmarking;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
+mod benchmarking;
 //pub mod weights;
 
 use frame_support::{
