@@ -27,7 +27,7 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-//pub mod weights;
+pub mod weights;
 
 use frame_support::{
 	dispatch::DispatchResult,
@@ -50,7 +50,6 @@ use sp_std::{cmp::min, result::Result, vec::Vec};
 use support::{ConvertToBigUint, Pool};
 
 pub use pallet::*;
-//pub use weights::WeightInfo;
 
 use num_traits::{cast::ToPrimitive, CheckedDiv, CheckedMul};
 
@@ -61,6 +60,14 @@ pub type AssetIdOf<T, I = ()> =
 	<<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 pub type BalanceOf<T, I = ()> =
 	<<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
+pub trait WeightInfo {
+	fn add_liquidity() -> Weight;
+	fn remove_liquidity() -> Weight;
+	fn create_pool() -> Weight;
+	fn update_protocol_fee() -> Weight;
+	fn update_protocol_fee_receiver() -> Weight;
+}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -86,7 +93,7 @@ pub mod pallet {
 		type LockAccountId: Get<Self::AccountId>;
 
 		/// Weight information for extrinsics in this pallet.
-		//type AMMWeightInfo: WeightInfo;
+		type WeightInfo: WeightInfo;
 
 		/// Specify which origin is allowed to create new pools.
 		type CreatePoolOrigin: EnsureOrigin<Self::RuntimeOrigin>;
@@ -228,7 +235,7 @@ pub mod pallet {
 		/// - `pool`: Currency pool, in which liquidity will be added
 		/// - `liquidity_amounts`: Liquidity amounts to be added in pool
 		/// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::add_liquidity())]
 		#[transactional]
 		pub fn add_liquidity(
 			origin: OriginFor<T>,
@@ -312,7 +319,7 @@ pub mod pallet {
 		///
 		/// - `pair`: Currency pool, in which liquidity will be removed
 		/// - `liquidity`: liquidity to be removed from user's liquidity
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::remove_liquidity())]
 		#[transactional]
 		pub fn remove_liquidity(
 			origin: OriginFor<T>,
@@ -362,7 +369,7 @@ pub mod pallet {
 		/// - `liquidity_amounts`: Liquidity amounts to be added in pool
 		/// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
 		/// - `lp_token_id`: Liquidity pool share representative token
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::create_pool())]
 		#[transactional]
 		pub fn create_pool(
 			origin: OriginFor<T>,
@@ -436,7 +443,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::update_protocol_fee())]
 		#[transactional]
 		pub fn update_protocol_fee(
 			origin: OriginFor<T>,
@@ -448,7 +455,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::update_protocol_fee_receiver())]
 		#[transactional]
 		pub fn update_protocol_fee_receiver(
 			origin: OriginFor<T>,

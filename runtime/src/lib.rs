@@ -545,6 +545,7 @@ impl pallet_amm::Config for Runtime {
 	type MinimumLiquidity = MinimumLiquidity;
 	type MaxLengthRoute = MaxLengthRoute;
 	type GetNativeCurrencyId = NativeCurrencyId;
+	type WeightInfo = pallet_amm::weights::WeightInfo<Runtime>;
 }
 
 parameter_types! {
