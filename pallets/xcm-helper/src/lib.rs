@@ -91,28 +91,25 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use cumulus_primitives_core::ParaId;
+	
 	use frame_support::{
 		dispatch::{DispatchResultWithPostInfo, RawOrigin},
 		pallet_prelude::*,
 		sp_runtime::traits::AccountIdConversion,
 		traits::{
 			fungibles::{Create, Inspect, Mutate, Transfer},
-			tokens::Balance,
 			Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
 		},
-		weights::WeightToFee,
 		PalletId,
 	};
-	use frame_system::{pallet_prelude::*, Origin};
+	use frame_system::{pallet_prelude::*};
 	use sp_core::sp_std;
 	use sp_runtime::{
-		print,
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
 	use sp_std::vec;
-	use support::AMM;
+	
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -122,7 +119,7 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm_builder::TakeRevenue;
+	
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
@@ -520,7 +517,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Convert<MultiLocation, Option<u128>> for Pallet<T> {
-		fn convert(a: MultiLocation) -> Option<u128> {
+		fn convert(_a: MultiLocation) -> Option<u128> {
 			todo!()
 		}
 	}
