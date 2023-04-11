@@ -51,7 +51,7 @@ pub use sp_runtime::BuildStorage;
 // Polkadot imports
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
-use cumulus_primitives_core::ParaId;
+
 use frame_support::traits::AsEnsureOriginWithArg;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
