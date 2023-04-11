@@ -19,7 +19,7 @@ impl<AccountId, CurrencyId, Balance, BlockNumber> AMM<AccountId, CurrencyId, Bal
 		amount_out: Balance,
 		_path: Vec<CurrencyId>,
 	) -> Result<Vec<Balance>, DispatchError> {
-		Ok((vec![amount_out]))
+		Ok(vec![amount_out])
 	}
 
 	fn swap(

@@ -18,12 +18,12 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	construct_runtime, log, match_types, parameter_types,
+	construct_runtime, match_types, parameter_types,
 	traits::{
 		fungibles::{Inspect, Mutate},
 		Everything, Nothing,
 	},
-	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight, WeightToFee as WeightToFeeT},
+	weights::{Weight, WeightToFee as WeightToFeeT},
 };
 use sp_core::{ByteArray, ConstU32, H256};
 use sp_runtime::{
@@ -47,7 +47,7 @@ use frame_system::{EnsureRoot, EnsureSigned};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
-use polkadot_core_primitives::{BlockNumber as RelayBlockNumber, BlockNumber};
+use polkadot_core_primitives::{BlockNumber as RelayBlockNumber};
 use polkadot_parachain::primitives::{
 	DmpMessageHandler, Id as ParaId, Sibling, XcmpMessageFormat, XcmpMessageHandler,
 };
@@ -55,8 +55,8 @@ use sp_runtime::traits::{AccountIdConversion, Convert};
 use xcm::VersionedXcm;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible,
-	FixedWeightBounds, LocationInverter, NativeAsset, ParentIsPreset, SiblingParachainConvertsVia,
+	AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
+	FixedWeightBounds, LocationInverter, ParentIsPreset, SiblingParachainConvertsVia,
 	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
 	TakeWeightCredit, UsingComponents,
 };
@@ -205,7 +205,7 @@ parameter_types! {
 	pub PdexLocation: MultiLocation = Here.into();
 }
 
-use polkadot_runtime_common::impls::ToAuthor;
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;

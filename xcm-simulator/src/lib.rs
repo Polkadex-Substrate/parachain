@@ -18,18 +18,13 @@ mod mock_amm;
 mod parachain;
 mod relay_chain;
 
-use crate::parachain::XcmHelper;
+
 use frame_support::{
-	dispatch::{DispatchResultWithPostInfo, RawOrigin},
 	pallet_prelude::*,
 	sp_runtime::traits::AccountIdConversion,
-	traits::{
-		fungibles::{Create, Inspect, Mutate, Transfer},
-		Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
-	},
 	PalletId,
 };
-use parachain::{RuntimeEvent, System};
+
 use polkadot_parachain::primitives::Id as ParaId;
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
