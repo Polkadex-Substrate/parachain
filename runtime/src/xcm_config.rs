@@ -11,12 +11,13 @@ use frame_support::{
 	},
 	weights::WeightToFee as WeightToFeeT,
 };
+use log::error;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
-use sp_core::{Get};
+use sp_core::Get;
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Zero},
 	SaturatedConversion,
@@ -24,11 +25,10 @@ use sp_runtime::{
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
-	FixedWeightBounds, IsConcrete, LocationInverter, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-	TakeWeightCredit, UsingComponents,
+	AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
+	IsConcrete, LocationInverter, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{
 	traits::{ShouldExecute, WeightTrader},
@@ -383,16 +383,20 @@ where
 					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
 				{
 					if !amount.is_zero() {
-						AM::mint_into(
+						if let Err(e) = AM::mint_into(
 							asset_id_associated_type,
 							&asset_handler_account,
 							amount_associated_type,
-						);
-						AMM::swap(
+						) {
+							error!(target: "runtime", "Failed to mint asset {:?} for {:?} with reason {:?}", asset_id_associated_type, asset_handler_account, e);
+						}
+						if let Err(e) = AMM::swap(
 							&asset_handler_account,
 							(asset_id, NativeCurrencyId::get()),
 							amount,
-						);
+						) {
+							error!(target: "runtime", "Failed to swap asset {:?} for {:?} with reason {:?}", asset_id, asset_handler_account, e);
+						}
 					}
 				}
 			}

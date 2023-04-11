@@ -227,6 +227,7 @@ pub mod pallet {
 		/// - `pool`: Currency pool, in which liquidity will be added
 		/// - `liquidity_amounts`: Liquidity amounts to be added in pool
 		/// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
+		#[pallet::call_index(0)]
 		#[pallet::weight(0)]
 		#[transactional]
 		pub fn add_liquidity(
@@ -311,6 +312,7 @@ pub mod pallet {
 		///
 		/// - `pair`: Currency pool, in which liquidity will be removed
 		/// - `liquidity`: liquidity to be removed from user's liquidity
+		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		#[transactional]
 		pub fn remove_liquidity(
@@ -361,6 +363,7 @@ pub mod pallet {
 		/// - `liquidity_amounts`: Liquidity amounts to be added in pool
 		/// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
 		/// - `lp_token_id`: Liquidity pool share representative token
+		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
 		#[transactional]
 		pub fn create_pool(
@@ -435,6 +438,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(3)]
 		#[pallet::weight(0)]
 		#[transactional]
 		pub fn update_protocol_fee(
@@ -447,6 +451,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(4)]
 		#[pallet::weight(0)]
 		#[transactional]
 		pub fn update_protocol_fee_receiver(

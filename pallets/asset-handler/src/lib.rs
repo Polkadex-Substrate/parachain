@@ -16,7 +16,7 @@ pub mod pallet {
 			Currency, ExistenceRequirement, ReservableCurrency,
 		},
 	};
-	
+
 	use sp_runtime::SaturatedConversion;
 
 	#[pallet::pallet]
@@ -26,8 +26,6 @@ pub mod pallet {
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// Because this pallet emits events, it depends on the runtime's definition of an event. kri
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Balances Pallet
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// MultiCurrency Pallet
@@ -37,15 +35,6 @@ pub mod pallet {
 			+ Transfer<<Self as frame_system::Config>::AccountId>;
 		/// Native Currency Identifier
 		type NativeCurrencyId: Get<u128>;
-	}
-
-	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/main-docs/build/events-errors/
-	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	pub enum Event<T: Config> {
-		/// New Council Member Added [new_pending_member]
-		NewPendingMemberAdded(T::AccountId),
 	}
 
 	// Errors inform users that something went wrong.
@@ -122,15 +111,13 @@ pub mod pallet {
 			who: &T::AccountId,
 			amount: Self::Balance,
 		) -> WithdrawConsequence<Self::Balance> {
-			return if asset != T::NativeCurrencyId::get() {
-				let consequences = T::MultiCurrency::can_withdraw(
-					asset.saturated_into(),
-					who,
-					amount.saturated_into(),
-				);
-				return consequences.into()
+			if asset != T::NativeCurrencyId::get() {
+				T::MultiCurrency::can_withdraw(asset.saturated_into(), who, amount.saturated_into())
+			} else if T::Currency::free_balance(who) >= amount.saturated_into() {
+				WithdrawConsequence::Success
 			} else {
-				todo!()
+				// TODO: Need a better error mapping
+				WithdrawConsequence::UnknownAsset
 			}
 		}
 

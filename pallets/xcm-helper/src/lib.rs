@@ -91,7 +91,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	
+
 	use frame_support::{
 		dispatch::{DispatchResultWithPostInfo, RawOrigin},
 		pallet_prelude::*,
@@ -102,14 +102,13 @@ pub mod pallet {
 		},
 		PalletId,
 	};
-	use frame_system::{pallet_prelude::*};
+	use frame_system::pallet_prelude::*;
 	use sp_core::sp_std;
 	use sp_runtime::{
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
 	use sp_std::vec;
-	
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -119,9 +118,8 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	
 	use xcm_executor::{
-		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
+		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
 	};
 
@@ -369,6 +367,7 @@ pub mod pallet {
 		/// * `payload`: List of Assets and destination.
 		/// * `withdraw_nonce`: Current Nonce of Withdrawal.
 		/// * `signature`: Payload signed using Thea Public Key.
+		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn withdraw_asset(
 			origin: OriginFor<T>,
@@ -421,6 +420,7 @@ pub mod pallet {
 		///
 		/// * `new_thea_key`: New Key which will replace existing Key.
 		/// * `signature`: Payload Signed using Thea Key.
+		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
@@ -448,6 +448,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `thea_key`: Key which will be initialized.
+		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn set_thea_key(
 			origin: OriginFor<T>,
@@ -467,6 +468,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `asset`: New Asset Id.
+		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn create_parachain_asset(
 			origin: OriginFor<T>,
@@ -496,6 +498,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `token`: Token to be whitelisted.
+		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn whitelist_token(origin: OriginFor<T>, token: u128) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;

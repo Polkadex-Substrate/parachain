@@ -25,7 +25,7 @@ use frame_support::{
 	},
 	weights::{Weight, WeightToFee as WeightToFeeT},
 };
-use sp_core::{ByteArray, ConstU32, H256};
+use sp_core::{ConstU32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{Hash, IdentityLookup},
@@ -47,7 +47,7 @@ use frame_system::{EnsureRoot, EnsureSigned};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
-use polkadot_core_primitives::{BlockNumber as RelayBlockNumber};
+use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain::primitives::{
 	DmpMessageHandler, Id as ParaId, Sibling, XcmpMessageFormat, XcmpMessageHandler,
 };
@@ -55,10 +55,9 @@ use sp_runtime::traits::{AccountIdConversion, Convert};
 use xcm::VersionedXcm;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
-	FixedWeightBounds, LocationInverter, ParentIsPreset, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-	TakeWeightCredit, UsingComponents,
+	AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
+	ParentIsPreset, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{traits::ShouldExecute, Assets, Config, XcmExecutor};
 
@@ -204,7 +203,6 @@ impl WeightToFeePolynomial for WeightToFee {
 parameter_types! {
 	pub PdexLocation: MultiLocation = Here.into();
 }
-
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
@@ -535,7 +533,6 @@ parameter_types! {
 }
 
 impl asset_handler::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = AssetsPallet;
 	type NativeCurrencyId = NativeCurrencyId;
@@ -573,7 +570,7 @@ construct_runtime!(
 		AssetsPallet: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>},
 		Router: router::pallet::{Pallet, Call, Storage, Event<T>},
-		AssetHandler: asset_handler::pallet::{Pallet, Storage, Event<T>}
+		AssetHandler: asset_handler::pallet::{Pallet, Storage}
 	}
 );
 

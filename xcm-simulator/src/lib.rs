@@ -18,17 +18,12 @@ mod mock_amm;
 mod parachain;
 mod relay_chain;
 
-
-use frame_support::{
-	pallet_prelude::*,
-	sp_runtime::traits::AccountIdConversion,
-	PalletId,
-};
+use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
 
 use polkadot_parachain::primitives::Id as ParaId;
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
-pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
+pub const ASSET_HANDLER_PALLET_ID: PalletId = PalletId(*b"XcmHandl");
 pub const ALICE: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([
 	109, 111, 100, 108, 88, 99, 109, 72, 97, 110, 100, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0,
