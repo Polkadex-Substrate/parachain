@@ -56,6 +56,10 @@ jobs:
           components: rustfmt, clippy
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y clang
       - name: Checkout to the current branch
         uses: actions/checkout@v3
       - name: Cache cargo registry
