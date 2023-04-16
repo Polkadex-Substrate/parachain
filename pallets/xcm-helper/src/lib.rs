@@ -109,7 +109,7 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_core::{H256, sp_std};
+	use sp_core::{sp_std, H256};
 	use sp_runtime::{
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
@@ -126,14 +126,15 @@ pub mod pallet {
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
 
-	use sp_std::boxed::Box;
+	use sp_std::{boxed::Box, vec::Vec};
+	use thea_primitives::{
+		parachain::{ApprovedWithdraw, ParachainDeposit},
+		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
+	};
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
 	};
-	use thea_primitives::{TheaOutgoingExecutor, TheaIncomingExecutor, Network};
-	use thea_primitives::parachain::{ApprovedWithdraw, ParachainDeposit};
-	use sp_std::vec::Vec;
 
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -221,7 +222,7 @@ pub mod pallet {
 		pub amount: u128,
 		pub recipient: AccountId,
 		pub network_id: u8,
-		pub tx_hash: sp_core::H256
+		pub tx_hash: sp_core::H256,
 	}
 
 	impl<AccountId> ApprovedDeposit<AccountId> {
@@ -230,15 +231,9 @@ pub mod pallet {
 			amount: u128,
 			recipient: AccountId,
 			network_id: u8,
-			transaction_hash: sp_core::H256
+			transaction_hash: sp_core::H256,
 		) -> Self {
-			ApprovedDeposit {
-				asset_id,
-				amount,
-				recipient,
-				network_id,
-				tx_hash: transaction_hash
-			}
+			ApprovedDeposit { asset_id, amount, recipient, network_id, tx_hash: transaction_hash }
 		}
 	}
 
@@ -491,7 +486,7 @@ pub mod pallet {
 				.map_err(|_| XcmError::Trap(22))?; //TODO: Verify error
 			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
 			let parachain_network_id = T::ParachainNetworkId::get(); //TODO: Put ion Config
-			// Call Execute Withdraw
+														 // Call Execute Withdraw
 			T::Executor::execute_withdrawals(parachain_network_id, deposit.encode());
 			Ok(())
 		}
@@ -774,10 +769,15 @@ pub mod pallet {
 	}
 
 	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
-		fn execute_deposits(_network: Network, mut deposits: Vec<u8>) -> sp_runtime::DispatchResult {
-			let deposits: BoundedVec<ApprovedWithdraw, ConstU32<10>> = Decode::decode(&mut &deposits[..]).unwrap();
-            for mut deposit in deposits {
-				let deposit_request: ParachainDeposit = Decode::decode(&mut &deposit.payload[..]).unwrap();
+		fn execute_deposits(
+			_network: Network,
+			mut deposits: Vec<u8>,
+		) -> sp_runtime::DispatchResult {
+			let deposits: BoundedVec<ApprovedWithdraw, ConstU32<10>> =
+				Decode::decode(&mut &deposits[..]).unwrap();
+			for mut deposit in deposits {
+				let deposit_request: ParachainDeposit =
+					Decode::decode(&mut &deposit.payload[..]).unwrap();
 				let withdrawal_execution_block: T::BlockNumber =
 					<frame_system::Pallet<T>>::block_number()
 						.saturated_into::<u32>()
@@ -785,8 +785,12 @@ pub mod pallet {
 							T::WithdrawalExecutionBlockDiff::get().saturated_into::<u32>(),
 						)
 						.into();
-				let asset: Box<VersionedMultiAssets> = Box::new(VersionedMultiAssets::V1(MultiAssets::from(vec![deposit_request.asset_and_amount])));
-				let dest: Box<VersionedMultiLocation> = Box::new(VersionedMultiLocation::V1(deposit_request.recipient));
+				let asset: Box<VersionedMultiAssets> =
+					Box::new(VersionedMultiAssets::V1(MultiAssets::from(vec![
+						deposit_request.asset_and_amount,
+					])));
+				let dest: Box<VersionedMultiLocation> =
+					Box::new(VersionedMultiLocation::V1(deposit_request.recipient));
 				let pending_withdrawal =
 					PendingWithdrawal { asset, destination: dest, is_blocked: false };
 				<PendingWithdrawals<T>>::try_mutate(
