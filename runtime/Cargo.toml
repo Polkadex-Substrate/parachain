@@ -83,6 +83,7 @@ pallet-amm = { path = "../pallets/swap", default-features = false }
 support = { path = "../pallets/support", default-features = false }
 router = { path = "../pallets/router", default-features = false }
 asset-handler = { path = "../pallets/asset-handler", default-features = false }
+thea-message-handler = { workspace = true, default-features = false }
 
 [features]
 default = [
@@ -140,7 +141,8 @@ std = [
 	"support/std",
 	"router/std",
 	"asset-handler/std",
-	"orml-xcm-support/std"
+	"orml-xcm-support/std",
+	"thea-message-handler/std"
 ]
 
 runtime-benchmarks = [
