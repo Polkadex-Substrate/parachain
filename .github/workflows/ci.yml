@@ -78,9 +78,8 @@ jobs:
         run: cargo build
       - name: Check Formatting
         run: cargo fmt --all -- --check
-#        FIXME: Fix all warnings
-#      - name: Check Clippy
-#        run: cargo clippy -- -D warnings
+      - name: Check Clippy
+        run: cargo clippy -- -D warnings
       - name: Test Project
         run: cargo test
   stop-runner:
