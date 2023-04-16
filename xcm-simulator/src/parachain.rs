@@ -625,14 +625,14 @@ where
 			let expected_fee_in_foreign_currency = AMM::get_amounts_in(fee_in_native_token, path)
 				.map_err(|_| XcmError::TooExpensive)?;
 			let expected_fee_in_foreign_currency =
-				expected_fee_in_foreign_currency.iter().next().ok_or(XcmError::TooExpensive)?;
+				expected_fee_in_foreign_currency.first().ok_or(XcmError::TooExpensive)?;
 			let unused = payment
 				.checked_sub((location.clone(), *expected_fee_in_foreign_currency).into())
 				.map_err(|_| XcmError::TooExpensive)?;
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
 			{
-				if old_asset_location == location.clone() {
+				if old_asset_location == location {
 					self.consumed = self
 						.consumed
 						.saturating_add((*expected_fee_in_foreign_currency).saturated_into());
