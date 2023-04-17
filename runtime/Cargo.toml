@@ -162,7 +162,8 @@ runtime-benchmarks = [
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
 	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
 	"xcm-helper/runtime-benchmarks",
-	"thea-council/runtime-benchmarks"
+	"thea-council/runtime-benchmarks",
+	"pallet-amm/runtime-benchmarks",
 ]
 
 try-runtime = [
