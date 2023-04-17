@@ -131,6 +131,7 @@ pub mod pallet {
 		parachain::{ApprovedWithdraw, ParachainDeposit},
 		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
+	use xcm::prelude::Here;
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
@@ -453,6 +454,20 @@ pub mod pallet {
 				.map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
 			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
+			Ok(())
+		}
+
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn mock_deposit(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+			ensure_signed(origin)?;
+			let asset = MultiAsset{ id: AssetId::Concrete(MultiLocation{ parents: 1, interior: Junctions::Here }), fun: Fungibility::Fungible(1000) };
+			let MultiAsset { id, fun } = asset;
+			let amount: u128 = Self::get_amount(&fun).unwrap();
+			let asset_id = Self::generate_asset_id_for_parachain(id).unwrap(); //TODO: Verify error
+			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
+			let parachain_network_id = T::ParachainNetworkId::get(); //TODO: Put ion Config
+			// Call Execute Withdraw
+			T::Executor::execute_withdrawals(parachain_network_id, deposit.encode());
 			Ok(())
 		}
 	}
