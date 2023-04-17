@@ -53,6 +53,7 @@ use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::AsEnsureOriginWithArg;
+use thea_primitives::{AuthorityId, AuthoritySignature};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 // XCM Imports
@@ -478,6 +479,7 @@ impl xcm_helper::Config for Runtime {
 	type AccountIdConvert = LocationToAccountId;
 	type AssetManager = Assets;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
+	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
@@ -573,6 +575,18 @@ impl router::Config for Runtime {
 	type Assets = AssetHandler;
 }
 
+parameter_types! {
+	pub const TheaMaxAuthorities: u32 = 10;
+}
+
+impl thea_message_handler::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type TheaId = AuthorityId;
+	type Signature = AuthoritySignature;
+	type MaxAuthorities = TheaMaxAuthorities;
+	type Executor = XcmHelper;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -615,6 +629,9 @@ construct_runtime!(
 		AssetHandler: asset_handler::pallet::{Pallet, Storage, Event<T>} = 44,
 
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
+
+		// Thea Pallet
+		TheaMessageHandler: thea_message_handler::{Pallet, Call, Storage, Event<T>} = 46
 	}
 );
 

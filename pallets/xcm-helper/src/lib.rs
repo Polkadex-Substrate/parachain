@@ -89,30 +89,33 @@
 
 pub use pallet::*;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+#[cfg(test)]
+mod mock;
+
 #[frame_support::pallet]
 pub mod pallet {
-	use cumulus_primitives_core::ParaId;
+
 	use frame_support::{
 		dispatch::{DispatchResultWithPostInfo, RawOrigin},
 		pallet_prelude::*,
 		sp_runtime::traits::AccountIdConversion,
 		traits::{
 			fungibles::{Create, Inspect, Mutate, Transfer},
-			tokens::Balance,
 			Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
 		},
-		weights::WeightToFee,
 		PalletId,
 	};
-	use frame_system::{pallet_prelude::*, Origin};
-	use sp_core::sp_std;
+	use frame_system::pallet_prelude::*;
+	use sp_core::{sp_std, H256};
 	use sp_runtime::{
-		print,
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
 	use sp_std::vec;
-	use support::AMM;
+
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -122,14 +125,19 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm_builder::TakeRevenue;
+
+	use sp_std::{boxed::Box, vec::Vec};
+	use thea_primitives::{
+		parachain::{ApprovedWithdraw, ParachainDeposit},
+		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
+	};
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
 		Assets,
 	};
 
 	pub type BalanceOf<T> =
-		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	//TODO Replace this with TheaMessages #Issue: 38
 	#[derive(Encode, Decode, TypeInfo)]
@@ -137,9 +145,9 @@ pub mod pallet {
 		/// AssetDeposited(Recipient, Asset & Amount)
 		AssetDeposited(MultiLocation, MultiAsset),
 		/// Thea Key Set by Sudo
-		TheaKeySetBySudo([u8; 64]),
+		TheaKeySetBySudo(sp_core::ecdsa::Public),
 		/// New Thea Key Set by Current Relayer Set
-		TheaKeyChanged([u8; 64]),
+		TheaKeyChanged(sp_core::ecdsa::Public),
 	}
 
 	#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode)]
@@ -169,6 +177,21 @@ pub mod pallet {
 		pub is_blocked: bool,
 	}
 
+	impl Default for PendingWithdrawal {
+		fn default() -> Self {
+			let asset = MultiAsset {
+				id: AssetId::Concrete(Default::default()),
+				fun: Fungibility::Fungible(0u128),
+			};
+			let assets = VersionedMultiAssets::V1(MultiAssets::from(vec![asset]));
+			Self {
+				asset: Box::new(assets),
+				destination: Box::new(VersionedMultiLocation::V1(Default::default())),
+				is_blocked: false,
+			}
+		}
+	}
+
 	#[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
 	pub enum AssetType {
 		Fungible,
@@ -193,6 +216,27 @@ pub mod pallet {
 		fn check_whitelisted_token(asset_id: u128) -> bool;
 	}
 
+	#[derive(Encode, Decode, Clone, Copy, Debug, MaxEncodedLen, TypeInfo)]
+	pub struct ApprovedDeposit<AccountId> {
+		pub asset_id: u128,
+		pub amount: u128,
+		pub recipient: AccountId,
+		pub network_id: u8,
+		pub tx_hash: sp_core::H256,
+	}
+
+	impl<AccountId> ApprovedDeposit<AccountId> {
+		fn new(
+			asset_id: u128,
+			amount: u128,
+			recipient: AccountId,
+			network_id: u8,
+			transaction_hash: sp_core::H256,
+		) -> Self {
+			ApprovedDeposit { asset_id, amount, recipient, network_id, tx_hash: transaction_hash }
+		}
+	}
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + orml_xtokens::Config {
@@ -204,11 +248,13 @@ pub mod pallet {
 		type AccountIdConvert: MoreConvert<MultiLocation, Self::AccountId>;
 		/// Asset Manager
 		type AssetManager: Create<<Self as frame_system::Config>::AccountId>
-			+ Mutate<<Self as frame_system::Config>::AccountId, Balance = u128, AssetId = u128>
-			+ Inspect<<Self as frame_system::Config>::AccountId>
-			+ Transfer<<Self as frame_system::Config>::AccountId>;
+		+ Mutate<<Self as frame_system::Config>::AccountId, Balance = u128, AssetId = u128>
+		+ Inspect<<Self as frame_system::Config>::AccountId>
+		+ Transfer<<Self as frame_system::Config>::AccountId>;
 		/// Asset Create/ Update Origin
 		type AssetCreateUpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+		/// Message Executor
+		type Executor: thea_primitives::TheaOutgoingExecutor;
 		/// Pallet Id
 		#[pallet::constant]
 		type AssetHandlerPalletId: Get<PalletId>;
@@ -226,11 +272,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn ingress_messages)]
 	pub(super) type IngressMessages<T: Config> =
-		StorageValue<_, BoundedVec<TheaMessage, IngressMessageLimit>, ValueQuery>;
+	StorageValue<_, BoundedVec<TheaMessage, IngressMessageLimit>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_thea_key)]
-	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, [u8; 64], OptionQuery>;
+	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, sp_core::ecdsa::Public, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_nonce)]
@@ -263,13 +309,13 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_thea_assets)]
 	pub type TheaAssets<T: Config> =
-		StorageMap<_, Blake2_128Concat, u128, (u8, u8, BoundedVec<u8, ConstU32<1000>>), ValueQuery>;
+	StorageMap<_, Blake2_128Concat, u128, (u8, u8, BoundedVec<u8, ConstU32<1000>>), ValueQuery>;
 
 	/// Whitelist Tokens
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
 	pub type WhitelistedTokens<T: Config> =
-		StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
+	StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -335,22 +381,20 @@ pub mod pallet {
 								RawOrigin::Signed(
 									T::AssetHandlerPalletId::get().into_account_truncating(),
 								)
-								.into(),
+									.into(),
 								withdrawal.asset.clone(),
 								0,
 								withdrawal.destination.clone(),
 								WeightLimit::Unlimited,
 							)
-							.is_err()
+								.is_err()
 							{
 								failed_withdrawal
 									.try_push(withdrawal.clone())
 									.expect("Vector Overflow");
 							}
-						} else {
-							if let Err(_) = Self::handle_deposit(withdrawal.clone()) {
-								failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
-							}
+						} else if Self::handle_deposit(withdrawal.clone()).is_err() {
+							failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
 						}
 					} else {
 						failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
@@ -365,106 +409,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Transfers Assets from Polkadex Sovereign Account to Others on native/non-native parachains using XCMP.
-		///
-		/// # Parameters
-		///
-		/// * `payload`: List of Assets and destination.
-		/// * `withdraw_nonce`: Current Nonce of Withdrawal.
-		/// * `signature`: Payload signed using Thea Public Key.
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn withdraw_asset(
-			origin: OriginFor<T>,
-			payload: BoundedVec<
-				(
-					sp_std::boxed::Box<VersionedMultiAssets>,
-					sp_std::boxed::Box<VersionedMultiLocation>,
-				),
-				ConstU32<10>,
-			>,
-			withdraw_nonce: u32,
-			signature: sp_core::ecdsa::Signature,
-		) -> DispatchResultWithPostInfo {
-			ensure_signed(origin.clone())?;
-			let current_withdraw_nonce = <WithdrawNonce<T>>::get();
-			ensure!(withdraw_nonce == current_withdraw_nonce, Error::<T>::NonceIsNotValid);
-			<WithdrawNonce<T>>::put(current_withdraw_nonce.saturating_add(1));
-			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
-			let encoded_payload = Encode::encode(&payload);
-			let payload_hash = sp_io::hashing::keccak_256(&encoded_payload);
-			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
-				let withdrawal_execution_block: T::BlockNumber =
-					<frame_system::Pallet<T>>::block_number()
-						.saturated_into::<u32>()
-						.saturating_add(
-							T::WithdrawalExecutionBlockDiff::get().saturated_into::<u32>(),
-						)
-						.into();
-				for (asset, dest) in payload {
-					let pending_withdrawal =
-						PendingWithdrawal { asset, destination: dest, is_blocked: false };
-					<PendingWithdrawals<T>>::try_mutate(
-						withdrawal_execution_block,
-						|pending_withdrawals| {
-							pending_withdrawals
-								.try_push(pending_withdrawal)
-								.map_err(|_| Error::<T>::PendingWithdrawalsLimitReached)
-						},
-					)?;
-				}
-			} else {
-				return Err(Error::<T>::SignatureVerificationFailed.into())
-			}
-			Ok(().into())
-		}
-
-		/// Replaces existing Thea Key with new one.
-		///
-		/// # Parameters
-		///
-		/// * `new_thea_key`: New Key which will replace existing Key.
-		/// * `signature`: Payload Signed using Thea Key.
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn change_thea_key(
-			origin: OriginFor<T>,
-			new_thea_key: [u8; 64],
-			signature: sp_core::ecdsa::Signature,
-		) -> DispatchResultWithPostInfo {
-			ensure_signed(origin.clone())?;
-			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
-			// let encoded_payload = Encode::encode(&new_thea_key);
-			let payload_hash = sp_io::hashing::keccak_256(&new_thea_key.to_vec());
-			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
-				<ActiveTheaKey<T>>::set(Some(new_thea_key));
-				<IngressMessages<T>>::try_mutate(|ingress_messages| {
-					ingress_messages.try_push(TheaMessage::TheaKeyChanged(new_thea_key))
-				})
-				.map_err(|_| Error::<T>::IngressMessagesFull)?;
-			} else {
-				return Err(Error::<T>::SignatureVerificationFailed.into())
-			}
-			Ok(().into())
-		}
-
-		/// Initializes Thea Key.
-		///
-		/// # Parameters
-		///
-		/// * `thea_key`: Key which will be initialized.
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn set_thea_key(
-			origin: OriginFor<T>,
-			thea_key: [u8; 64],
-		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
-			<ActiveTheaKey<T>>::put(thea_key);
-			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(TheaMessage::TheaKeySetBySudo(thea_key))
-			})
-			.map_err(|_| Error::<T>::IngressMessagesFull)?;
-			Ok(().into())
-		}
-
 		/// Creates new Assets using Parachain info.
 		///
 		/// # Parameters
@@ -520,7 +464,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Convert<MultiLocation, Option<u128>> for Pallet<T> {
-		fn convert(a: MultiLocation) -> Option<u128> {
+		fn convert(_a: MultiLocation) -> Option<u128> {
 			todo!()
 		}
 	}
@@ -531,12 +475,23 @@ pub mod pallet {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
 				ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
 			})
-			.map_err(|_| XcmError::Trap(10))?;
+				.map_err(|_| XcmError::Trap(10))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
+			// Create approved deposit
+			let MultiAsset { id, fun } = what;
+			let who =
+				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
+			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
+			let asset_id = Self::generate_asset_id_for_parachain(what.id.clone())
+				.map_err(|_| XcmError::Trap(22))?; //TODO: Verify error
+			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
+			let parachain_network_id = T::ParachainNetworkId::get(); //TODO: Put ion Config
+			// Call Execute Withdraw
+			T::Executor::execute_withdrawals(parachain_network_id, deposit.encode());
 			Ok(())
 		}
 
-		/// Burns/Lock asset from procided account.
+		/// Burns/Lock asset from provided account.
 		fn withdraw_asset(
 			what: &MultiAsset,
 			who: &MultiLocation,
@@ -552,14 +507,14 @@ pub mod pallet {
 					WithdrawReasons::all(),
 					ExistenceRequirement::KeepAlive,
 				)
-				.map_err(|_| XcmError::Trap(21))?; //TODO: Check for withdraw reason and error
+					.map_err(|_| XcmError::Trap(21))?; //TODO: Check for withdraw reason and error
 			} else {
 				let asset_id = Self::generate_asset_id_for_parachain(what.id.clone())
 					.map_err(|_| XcmError::Trap(22))?; //TODO: Verify error
 				T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
 					.map_err(|_| XcmError::Trap(24))?;
 			}
-			Self::deposit_event(Event::<T>::AssetWithdrawn(who.clone(), what.clone()));
+			Self::deposit_event(Event::<T>::AssetWithdrawn(who, what.clone()));
 			Ok(what.clone().into())
 		}
 
@@ -581,7 +536,7 @@ pub mod pallet {
 					amount.saturated_into(),
 					ExistenceRequirement::KeepAlive,
 				)
-				.map_err(|_| XcmError::Trap(21))?;
+					.map_err(|_| XcmError::Trap(21))?;
 			} else {
 				let asset_id = Self::generate_asset_id_for_parachain(id.clone())
 					.map_err(|_| XcmError::Trap(22))?;
@@ -601,8 +556,7 @@ pub mod pallet {
 		/// Route deposit to destined function
 		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
 			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
-			let location =
-				(*destination.clone()).try_into().map_err(|_| Error::<T>::InternalError)?;
+			let location = (*destination).try_into().map_err(|_| Error::<T>::InternalError)?;
 			let destination_account =
 				Self::get_destination_account(location).ok_or(Error::<T>::InternalError)?;
 			let assets: Option<MultiAssets> = (*asset).try_into().ok();
@@ -735,7 +689,7 @@ pub mod pallet {
 		/// Converts XCM::Fungibility into u128
 		pub fn get_amount(fun: &Fungibility) -> Option<u128> {
 			if let Fungibility::Fungible(amount) = fun {
-				return Some(*amount)
+				Some(*amount)
 			} else {
 				None
 			}
@@ -745,24 +699,12 @@ pub mod pallet {
 		pub fn is_native_asset(asset: &AssetId) -> bool {
 			let native_asset = MultiLocation {
 				parents: 1,
-				interior: Junctions::X1(Junction::Parachain(T::ParachainId::get().into())),
+				interior: Junctions::X1(Junction::Parachain(T::ParachainId::get())),
 			};
 			match asset {
 				AssetId::Concrete(location) if location == &native_asset => true,
 				_ => false,
 			}
-		}
-
-		/// Verifies Signature
-		pub fn verify_ecdsa_prehashed(
-			signature: &sp_core::ecdsa::Signature,
-			public_key: &[u8; 64],
-			payload_hash: &[u8; 32],
-		) -> sp_std::result::Result<bool, DispatchError> {
-			let recovered_pb = sp_io::crypto::secp256k1_ecdsa_recover(&signature.0, payload_hash)
-				.map_err(|_| Error::<T>::SignatureVerificationFailed)?;
-			ensure!(recovered_pb == *public_key, Error::<T>::SignatureVerificationFailed);
-			Ok(true)
 		}
 
 		/// Block Transaction to be Executed.
@@ -823,6 +765,44 @@ pub mod pallet {
 		fn check_whitelisted_token(asset_id: u128) -> bool {
 			let whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			whitelisted_tokens.contains(&asset_id)
+		}
+	}
+
+	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
+		fn execute_deposits(
+			_network: Network,
+			mut deposits: Vec<u8>,
+		) -> sp_runtime::DispatchResult {
+			let deposits: BoundedVec<ApprovedWithdraw, ConstU32<10>> =
+				Decode::decode(&mut &deposits[..]).unwrap();
+			for mut deposit in deposits {
+				let deposit_request: ParachainDeposit =
+					Decode::decode(&mut &deposit.payload[..]).unwrap();
+				let withdrawal_execution_block: T::BlockNumber =
+					<frame_system::Pallet<T>>::block_number()
+						.saturated_into::<u32>()
+						.saturating_add(
+							T::WithdrawalExecutionBlockDiff::get().saturated_into::<u32>(),
+						)
+						.into();
+				let asset: Box<VersionedMultiAssets> =
+					Box::new(VersionedMultiAssets::V1(MultiAssets::from(vec![
+						deposit_request.asset_and_amount,
+					])));
+				let dest: Box<VersionedMultiLocation> =
+					Box::new(VersionedMultiLocation::V1(deposit_request.recipient));
+				let pending_withdrawal =
+					PendingWithdrawal { asset, destination: dest, is_blocked: false };
+				<PendingWithdrawals<T>>::try_mutate(
+					withdrawal_execution_block,
+					|pending_withdrawals| {
+						pending_withdrawals
+							.try_push(pending_withdrawal)
+							.map_err(|_| Error::<T>::PendingWithdrawalsLimitReached)
+					},
+				)?;
+			}
+			Ok(())
 		}
 	}
 }

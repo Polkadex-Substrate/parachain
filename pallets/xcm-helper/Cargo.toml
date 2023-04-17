@@ -27,17 +27,18 @@ xcm-builder = { workspace = true, default-features = false }
 orml-xtokens = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
 sp-core = { workspace = true, default-features = false }
+sp-std = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 cumulus-primitives-core = { workspace = true, default-features = false }
 support = { path = "../support", default-features = false }
+thea-primitives = { workspace = true, default-features = false }
 [dev-dependencies]
 serde = { workspace = true }
-
-# Substrate
 sp-core = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
-
+orml-traits = { workspace = true, default-features = false }
+pallet-balances = { workspace = true, default-features = false }
 [features]
 default = ["std"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
@@ -55,6 +56,10 @@ std = [
 	"cumulus-primitives-core/std",
 	"pallet-assets/std",
 	"xcm-builder/std",
-	"support/std"
+	"support/std",
+	"sp-std/std",
+	"pallet-balances/std",
+	"orml-traits/std",
+	"thea-primitives/std"
 ]
 try-runtime = [ "frame-support/try-runtime" ]
