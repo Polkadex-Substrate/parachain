@@ -108,7 +108,7 @@ pub mod pallet {
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
-	use sp_std::vec;
+	use sp_std::{vec, boxed::Box};
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -127,11 +127,10 @@ pub mod pallet {
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	//TODO Replace this with TheaMessages #Issue: 38
-	#[allow(clippy::large_enum_variant)]
 	#[derive(Encode, Decode, TypeInfo)]
 	pub enum TheaMessage {
 		/// AssetDeposited(Recipient, Asset & Amount)
-		AssetDeposited(MultiLocation, MultiAsset),
+		AssetDeposited(Box<MultiLocation>, Box<MultiAsset>),
 		/// Thea Key Set by Sudo
 		TheaKeySetBySudo([u8; 64]),
 		/// New Thea Key Set by Current Relayer Set
@@ -274,13 +273,12 @@ pub mod pallet {
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
-	#[allow(clippy::large_enum_variant)]
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, asset_id, amount]
-		AssetDeposited(MultiLocation, MultiAsset),
+		AssetDeposited(MultiLocation, Box<MultiAsset>),
 		AssetWithdrawn(T::AccountId, MultiAsset),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(u128),
@@ -529,10 +527,10 @@ pub mod pallet {
 		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
+				ingress_messages.try_push(TheaMessage::AssetDeposited(Box::new(who.clone()), Box::new(what.clone())))
 			})
 			.map_err(|_| XcmError::Trap(10))?;
-			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
+			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), Box::new(what.clone())));
 			Ok(())
 		}
 
