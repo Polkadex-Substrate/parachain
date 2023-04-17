@@ -113,9 +113,7 @@ mod tests {
 
 	use frame_support::{assert_noop, assert_ok};
 	use polkadot_core_primitives::AccountId;
-	use xcm::{
-		latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation,
-	};
+	use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
 	use xcm_helper::PendingWithdrawal;
 	use xcm_simulator::TestExt;
 
