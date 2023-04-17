@@ -741,7 +741,7 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 [[package]]
 name = "bls-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#f4c860470c10d7c36f3bf89274282a96e7957226"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#9695b2a57a0a7c341ad87ad2b2170d4eeb65f107"
 dependencies = [
  "blst",
  "hex",
@@ -6556,6 +6556,7 @@ dependencies = [
  "support",
  "thea-council",
  "thea-message-handler",
+ "thea-primitives",
  "xcm",
  "xcm-builder",
  "xcm-executor",
@@ -6879,7 +6880,7 @@ dependencies = [
 [[package]]
 name = "polkadex-primitives"
 version = "0.9.28"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#f4c860470c10d7c36f3bf89274282a96e7957226"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#9695b2a57a0a7c341ad87ad2b2170d4eeb65f107"
 dependencies = [
  "anyhow",
  "frame-support",
@@ -11598,7 +11599,7 @@ dependencies = [
 [[package]]
 name = "thea-message-handler"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#f4c860470c10d7c36f3bf89274282a96e7957226"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#9695b2a57a0a7c341ad87ad2b2170d4eeb65f107"
 dependencies = [
  "bls-primitives",
  "frame-benchmarking",
@@ -11617,7 +11618,7 @@ dependencies = [
 [[package]]
 name = "thea-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#f4c860470c10d7c36f3bf89274282a96e7957226"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-thea-client#9695b2a57a0a7c341ad87ad2b2170d4eeb65f107"
 dependencies = [
  "bls-primitives",
  "parity-scale-codec",

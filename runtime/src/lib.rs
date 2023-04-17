@@ -52,6 +52,7 @@ pub use sp_runtime::BuildStorage;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
 use frame_support::traits::AsEnsureOriginWithArg;
+use thea_primitives::{AuthorityId, AuthoritySignature};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 // XCM Imports
@@ -464,12 +465,16 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 }
 
+parameter_types! {
+	pub const TheaMaxAuthorities: u32 = 10;
+}
+
 impl thea_message_handler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type TheaId = ();
-	type Signature = ();
-	type MaxAuthorities = ();
-	type Executor = ();
+	type TheaId = AuthorityId;
+	type Signature = AuthoritySignature;
+	type MaxAuthorities = TheaMaxAuthorities;
+	type Executor = XcmHelper;
 }
 
 parameter_types! {

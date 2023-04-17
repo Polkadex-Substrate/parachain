@@ -84,6 +84,7 @@ support = { path = "../pallets/support", default-features = false }
 router = { path = "../pallets/router", default-features = false }
 asset-handler = { path = "../pallets/asset-handler", default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
+thea-primitives = { workspace = true, default-features = false }
 
 [features]
 default = [
@@ -142,7 +143,8 @@ std = [
 	"router/std",
 	"asset-handler/std",
 	"orml-xcm-support/std",
-	"thea-message-handler/std"
+	"thea-message-handler/std",
+	"thea-primitives/std"
 ]
 
 runtime-benchmarks = [
