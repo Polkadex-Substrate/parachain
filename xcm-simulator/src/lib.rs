@@ -111,17 +111,12 @@ pub type ParachainPalletXcm = pallet_xcm::Pallet<parachain::Runtime>;
 mod tests {
 	use super::*;
 
-	use codec::Encode;
-	use frame_support::{
-		assert_noop, assert_ok,
-		metadata::StorageEntryModifier::Default,
-		traits::{fungible::Mutate, Currency},
-	};
+	use frame_support::{assert_noop, assert_ok};
 	use polkadot_core_primitives::AccountId;
 	use xcm::{
-		latest::prelude::*, VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation,
+		latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm_helper::{Error, PendingWithdrawal};
+	use xcm_helper::PendingWithdrawal;
 	use xcm_simulator::TestExt;
 
 	// Helper function for forming buy execution message
@@ -427,7 +422,7 @@ mod tests {
 		});
 	}
 
-	use crate::parachain::{AssetHandlerPalletId, AssetsPallet, LocationToAccountId};
+	use crate::parachain::{AssetHandlerPalletId, AssetsPallet};
 	fn mint_dot_token(account: AccountId) {
 		use frame_support::traits::fungibles::Mutate;
 		let asset_id = 313675452054768990531043083915731189857u128;
