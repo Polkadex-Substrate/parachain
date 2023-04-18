@@ -78,9 +78,8 @@ jobs:
         run: cargo build
       - name: Check Formatting
         run: cargo fmt --all -- --check
-#        FIXME: Fix all warnings
-#      - name: Check Clippy
-#        run: cargo clippy -- -D warnings
+      - name: Check Clippy
+        run: cargo clippy -- -D warnings
       - name: Test Project
 #        TODO: Remove "--workspace --exclude xcm-simulator" args when xcm-simulator test build will be fixed by @Zktony
         run: cargo test --workspace --exclude xcm-simulator
