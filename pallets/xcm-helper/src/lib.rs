@@ -108,7 +108,7 @@ pub mod pallet {
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
-	use sp_std::{vec, boxed::Box};
+	use sp_std::{boxed::Box, vec};
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -527,7 +527,10 @@ pub mod pallet {
 		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(TheaMessage::AssetDeposited(Box::new(who.clone()), Box::new(what.clone())))
+				ingress_messages.try_push(TheaMessage::AssetDeposited(
+					Box::new(who.clone()),
+					Box::new(what.clone()),
+				))
 			})
 			.map_err(|_| XcmError::Trap(10))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), Box::new(what.clone())));
