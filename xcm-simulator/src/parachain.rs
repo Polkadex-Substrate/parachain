@@ -18,14 +18,14 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	construct_runtime, log, match_types, parameter_types,
+	construct_runtime, match_types, parameter_types,
 	traits::{
 		fungibles::{Inspect, Mutate},
 		Everything, Nothing,
 	},
-	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight, WeightToFee as WeightToFeeT},
+	weights::{Weight, WeightToFee as WeightToFeeT},
 };
-use sp_core::{ByteArray, ConstU32, H256};
+use sp_core::{ConstU32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{Hash, IdentityLookup},
@@ -47,7 +47,7 @@ use frame_system::{EnsureRoot, EnsureSigned};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
-use polkadot_core_primitives::{BlockNumber as RelayBlockNumber, BlockNumber};
+use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain::primitives::{
 	DmpMessageHandler, Id as ParaId, Sibling, XcmpMessageFormat, XcmpMessageHandler,
 };
@@ -55,10 +55,9 @@ use sp_runtime::traits::{AccountIdConversion, Convert};
 use xcm::VersionedXcm;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible,
-	FixedWeightBounds, LocationInverter, NativeAsset, ParentIsPreset, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-	TakeWeightCredit, UsingComponents,
+	AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
+	ParentIsPreset, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{traits::ShouldExecute, Assets, Config, XcmExecutor};
 
@@ -205,7 +204,6 @@ parameter_types! {
 	pub PdexLocation: MultiLocation = Here.into();
 }
 
-use polkadot_runtime_common::impls::ToAuthor;
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -536,7 +534,6 @@ parameter_types! {
 }
 
 impl asset_handler::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = AssetsPallet;
 	type NativeCurrencyId = NativeCurrencyId;
@@ -574,7 +571,7 @@ construct_runtime!(
 		AssetsPallet: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>},
 		Router: router::pallet::{Pallet, Call, Storage, Event<T>},
-		AssetHandler: asset_handler::pallet::{Pallet, Storage, Event<T>}
+		AssetHandler: asset_handler::pallet::{Pallet, Storage}
 	}
 );
 
@@ -628,14 +625,14 @@ where
 			let expected_fee_in_foreign_currency = AMM::get_amounts_in(fee_in_native_token, path)
 				.map_err(|_| XcmError::TooExpensive)?;
 			let expected_fee_in_foreign_currency =
-				expected_fee_in_foreign_currency.iter().next().ok_or(XcmError::TooExpensive)?;
+				expected_fee_in_foreign_currency.first().ok_or(XcmError::TooExpensive)?;
 			let unused = payment
 				.checked_sub((location.clone(), *expected_fee_in_foreign_currency).into())
 				.map_err(|_| XcmError::TooExpensive)?;
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
 			{
-				if old_asset_location == location.clone() {
+				if old_asset_location == location {
 					self.consumed = self
 						.consumed
 						.saturating_add((*expected_fee_in_foreign_currency).saturated_into());

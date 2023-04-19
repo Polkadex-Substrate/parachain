@@ -18,22 +18,12 @@ mod mock_amm;
 mod parachain;
 mod relay_chain;
 
-use crate::parachain::XcmHelper;
-use frame_support::{
-	dispatch::{DispatchResultWithPostInfo, RawOrigin},
-	pallet_prelude::*,
-	sp_runtime::traits::AccountIdConversion,
-	traits::{
-		fungibles::{Create, Inspect, Mutate, Transfer},
-		Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
-	},
-	PalletId,
-};
-use parachain::{RuntimeEvent, System};
+use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
+
 use polkadot_parachain::primitives::Id as ParaId;
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
-pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
+pub const ASSET_HANDLER_PALLET_ID: PalletId = PalletId(*b"XcmHandl");
 pub const ALICE: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([
 	109, 111, 100, 108, 88, 99, 109, 72, 97, 110, 100, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0,
@@ -121,17 +111,10 @@ pub type ParachainPalletXcm = pallet_xcm::Pallet<parachain::Runtime>;
 mod tests {
 	use super::*;
 
-	use codec::Encode;
-	use frame_support::{
-		assert_noop, assert_ok,
-		metadata::StorageEntryModifier::Default,
-		traits::{fungible::Mutate, Currency},
-	};
+	use frame_support::{assert_noop, assert_ok};
 	use polkadot_core_primitives::AccountId;
-	use xcm::{
-		latest::prelude::*, VersionedMultiAsset, VersionedMultiAssets, VersionedMultiLocation,
-	};
-	use xcm_helper::{Error, PendingWithdrawal};
+	use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
+	use xcm_helper::PendingWithdrawal;
 	use xcm_simulator::TestExt;
 
 	// Helper function for forming buy execution message
@@ -437,7 +420,7 @@ mod tests {
 		});
 	}
 
-	use crate::parachain::{AssetHandlerPalletId, AssetsPallet, LocationToAccountId};
+	use crate::parachain::{AssetHandlerPalletId, AssetsPallet};
 	fn mint_dot_token(account: AccountId) {
 		use frame_support::traits::fungibles::Mutate;
 		let asset_id = 313675452054768990531043083915731189857u128;

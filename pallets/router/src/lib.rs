@@ -96,6 +96,8 @@ pub mod pallet {
 			+ Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 	}
 
+	type RouteToAmountMap<T, I> = (Vec<AssetIdOf<T, I>>, BalanceOf<T, I>);
+
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(_);
 
@@ -159,7 +161,7 @@ pub mod pallet {
 			token_in: AssetIdOf<T, I>,
 			token_out: AssetIdOf<T, I>,
 			reversed: bool,
-		) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
+		) -> Result<Vec<RouteToAmountMap<T, I>>, DispatchError> {
 			// get all the pool asset pairs from the AMM
 			let pools = T::AMM::get_pools()?;
 
@@ -226,7 +228,7 @@ pub mod pallet {
 			token_in: AssetIdOf<T, I>,
 			token_out: AssetIdOf<T, I>,
 			reversed: bool,
-		) -> Result<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>), DispatchError> {
+		) -> Result<RouteToAmountMap<T, I>, DispatchError> {
 			let mut all_routes = Self::get_all_routes(amount, token_in, token_out, reversed)?;
 			ensure!(!all_routes.is_empty(), Error::<T, I>::NoPossibleRoute);
 			let best_route = if reversed {
@@ -253,7 +255,7 @@ pub mod pallet {
 			amount: BalanceOf<T, I>,
 			routes: Vec<Vec<AssetIdOf<T, I>>>,
 			reversed: bool,
-		) -> Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)> {
+		) -> Vec<RouteToAmountMap<T, I>> {
 			let mut output_routes = Vec::new();
 
 			if reversed {
@@ -284,6 +286,7 @@ pub mod pallet {
 		/// - `route`: the route user inputs
 		/// - `amount_in`: the amount of trading assets
 		/// - `min_amount_out`: the minimum a trader is willing to receive
+		#[pallet::call_index(0)]
 		#[pallet::weight(0)]
 		#[transactional]
 		pub fn swap_exact_tokens_for_tokens(
@@ -343,6 +346,7 @@ pub mod pallet {
 		/// - `route`: the route user inputs
 		/// - `amount_out`: the amount of trading assets
 		/// - `max_amount_in`: the maximum a trader is willing to input
+		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		#[transactional]
 		pub fn swap_tokens_for_exact_tokens(

@@ -1,5 +1,4 @@
 use cumulus_primitives_core::ParaId;
-use hex_literal::hex;
 use parachain_polkadex_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
@@ -226,54 +225,7 @@ fn testnet_genesis(
 		polkadot_xcm: parachain_polkadex_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
-		sudo: parachain_polkadex_runtime::SudoConfig { key: Some(root_key.clone()) },
+		sudo: parachain_polkadex_runtime::SudoConfig { key: Some(root_key) },
 		assets: Default::default(),
 	}
-}
-
-pub fn mainnet_config() -> ChainSpec {
-	// Give your base currency a unit name and decimal places
-	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("tokenSymbol".into(), "PDEX".into());
-	properties.insert("tokenDecimals".into(), 12.into());
-	properties.insert("ss58Format".into(), 89.into());
-
-	let root_key: AccountId =
-		hex!["10d063a8244f2bce1f34e973891bc3b115bbd552d4f163e731047ace72e59d5f"].into();
-	let initial_collator: AccountId =
-		hex!["f27b16d1059ea3cf4ed15a5ef18bc8c5c662e1abe82d96cf6f57c50af95e056e"].into();
-	use sp_core::crypto::UncheckedInto;
-	let initial_collator_aura_id: AuraId =
-		hex!["f27b16d1059ea3cf4ed15a5ef18bc8c5c662e1abe82d96cf6f57c50af95e056e"].unchecked_into();
-	ChainSpec::from_genesis(
-		// Name
-		"Polkadex Parachain",
-		// ID
-		"parachain_live",
-		ChainType::Live,
-		move || {
-			testnet_genesis(
-				// initial collators.
-				vec![(initial_collator.clone(), initial_collator_aura_id.clone())],
-				vec![root_key.clone(), initial_collator.clone()],
-				2040.into(),
-				root_key.clone(),
-			)
-		},
-		// Bootnodes
-		Vec::new(),
-		// Telemetry
-		None,
-		// Protocol ID
-		Some("polkadex-parachain"),
-		// Fork ID
-		None,
-		// Properties
-		Some(properties),
-		// Extensions
-		Extensions {
-			relay_chain: "polkadot".into(), // You MUST set this to the correct network!
-			para_id: 2040,
-		},
-	)
 }

@@ -19,7 +19,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature, SaturatedConversion,
+	ApplyExtrinsicResult, MultiSignature,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -51,7 +51,6 @@ pub use sp_runtime::BuildStorage;
 // Polkadot imports
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
-use cumulus_primitives_core::ParaId;
 use frame_support::traits::AsEnsureOriginWithArg;
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
@@ -553,7 +552,6 @@ parameter_types! {
 }
 
 impl asset_handler::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Assets;
 	type NativeCurrencyId = NativeCurrencyId;
@@ -612,7 +610,7 @@ construct_runtime!(
 		TheaCouncil: thea_council::{Pallet, Call, Storage, Event<T>} = 41,
 		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>} = 42,
 		Router: router::pallet::{Pallet, Call, Storage, Event<T>} = 43,
-		AssetHandler: asset_handler::pallet::{Pallet, Storage, Event<T>} = 44,
+		AssetHandler: asset_handler::pallet::{Pallet, Storage} = 44,
 
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
 	}

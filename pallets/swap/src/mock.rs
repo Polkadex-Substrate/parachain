@@ -92,7 +92,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-		AssetHandler: asset_handler::pallet::{Pallet, Storage, Event<T>},
+		AssetHandler: asset_handler::pallet::{Pallet, Storage},
 		Swap: pallet_amm::{Pallet, Call, Storage, Event<T>}
 	}
 );
@@ -131,7 +131,6 @@ parameter_types! {
 }
 
 impl asset_handler::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Assets;
 	type NativeCurrencyId = NativeCurrencyId;

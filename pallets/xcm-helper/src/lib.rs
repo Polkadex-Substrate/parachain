@@ -91,28 +91,24 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use cumulus_primitives_core::ParaId;
+
 	use frame_support::{
 		dispatch::{DispatchResultWithPostInfo, RawOrigin},
 		pallet_prelude::*,
 		sp_runtime::traits::AccountIdConversion,
 		traits::{
 			fungibles::{Create, Inspect, Mutate, Transfer},
-			tokens::Balance,
 			Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
 		},
-		weights::WeightToFee,
 		PalletId,
 	};
-	use frame_system::{pallet_prelude::*, Origin};
+	use frame_system::pallet_prelude::*;
 	use sp_core::sp_std;
 	use sp_runtime::{
-		print,
 		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
 	};
-	use sp_std::vec;
-	use support::AMM;
+	use sp_std::{boxed::Box, vec};
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -122,9 +118,8 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm_builder::TakeRevenue;
 	use xcm_executor::{
-		traits::{Convert as MoreConvert, TransactAsset, WeightTrader},
+		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
 	};
 
@@ -135,7 +130,7 @@ pub mod pallet {
 	#[derive(Encode, Decode, TypeInfo)]
 	pub enum TheaMessage {
 		/// AssetDeposited(Recipient, Asset & Amount)
-		AssetDeposited(MultiLocation, MultiAsset),
+		AssetDeposited(Box<MultiLocation>, Box<MultiAsset>),
 		/// Thea Key Set by Sudo
 		TheaKeySetBySudo([u8; 64]),
 		/// New Thea Key Set by Current Relayer Set
@@ -283,7 +278,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, asset_id, amount]
-		AssetDeposited(MultiLocation, MultiAsset),
+		AssetDeposited(MultiLocation, Box<MultiAsset>),
 		AssetWithdrawn(T::AccountId, MultiAsset),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(u128),
@@ -347,10 +342,8 @@ pub mod pallet {
 									.try_push(withdrawal.clone())
 									.expect("Vector Overflow");
 							}
-						} else {
-							if let Err(_) = Self::handle_deposit(withdrawal.clone()) {
-								failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
-							}
+						} else if Self::handle_deposit(withdrawal.clone()).is_err() {
+							failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
 						}
 					} else {
 						failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
@@ -372,6 +365,7 @@ pub mod pallet {
 		/// * `payload`: List of Assets and destination.
 		/// * `withdraw_nonce`: Current Nonce of Withdrawal.
 		/// * `signature`: Payload signed using Thea Public Key.
+		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn withdraw_asset(
 			origin: OriginFor<T>,
@@ -424,6 +418,7 @@ pub mod pallet {
 		///
 		/// * `new_thea_key`: New Key which will replace existing Key.
 		/// * `signature`: Payload Signed using Thea Key.
+		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn change_thea_key(
 			origin: OriginFor<T>,
@@ -433,7 +428,7 @@ pub mod pallet {
 			ensure_signed(origin.clone())?;
 			let pubic_key = <ActiveTheaKey<T>>::get().ok_or(Error::<T>::PublicKeyNotSet)?;
 			// let encoded_payload = Encode::encode(&new_thea_key);
-			let payload_hash = sp_io::hashing::keccak_256(&new_thea_key.to_vec());
+			let payload_hash = sp_io::hashing::keccak_256(new_thea_key.as_ref());
 			if Self::verify_ecdsa_prehashed(&signature, &pubic_key, &payload_hash)? {
 				<ActiveTheaKey<T>>::set(Some(new_thea_key));
 				<IngressMessages<T>>::try_mutate(|ingress_messages| {
@@ -451,6 +446,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `thea_key`: Key which will be initialized.
+		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn set_thea_key(
 			origin: OriginFor<T>,
@@ -470,6 +466,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `asset`: New Asset Id.
+		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn create_parachain_asset(
 			origin: OriginFor<T>,
@@ -499,6 +496,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `token`: Token to be whitelisted.
+		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn whitelist_token(origin: OriginFor<T>, token: u128) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
@@ -520,7 +518,7 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Convert<MultiLocation, Option<u128>> for Pallet<T> {
-		fn convert(a: MultiLocation) -> Option<u128> {
+		fn convert(_a: MultiLocation) -> Option<u128> {
 			todo!()
 		}
 	}
@@ -529,10 +527,13 @@ pub mod pallet {
 		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(TheaMessage::AssetDeposited(who.clone(), what.clone()))
+				ingress_messages.try_push(TheaMessage::AssetDeposited(
+					Box::new(who.clone()),
+					Box::new(what.clone()),
+				))
 			})
 			.map_err(|_| XcmError::Trap(10))?;
-			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone()));
+			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), Box::new(what.clone())));
 			Ok(())
 		}
 
@@ -559,7 +560,7 @@ pub mod pallet {
 				T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
 					.map_err(|_| XcmError::Trap(24))?;
 			}
-			Self::deposit_event(Event::<T>::AssetWithdrawn(who.clone(), what.clone()));
+			Self::deposit_event(Event::<T>::AssetWithdrawn(who, what.clone()));
 			Ok(what.clone().into())
 		}
 
@@ -601,8 +602,7 @@ pub mod pallet {
 		/// Route deposit to destined function
 		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
 			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
-			let location =
-				(*destination.clone()).try_into().map_err(|_| Error::<T>::InternalError)?;
+			let location = (*destination).try_into().map_err(|_| Error::<T>::InternalError)?;
 			let destination_account =
 				Self::get_destination_account(location).ok_or(Error::<T>::InternalError)?;
 			let assets: Option<MultiAssets> = (*asset).try_into().ok();
@@ -682,10 +682,7 @@ pub mod pallet {
 			let assets: Option<MultiAssets> = versioned_asset.clone().try_into().ok();
 			if let Some(assets) = assets {
 				if let Some(asset) = assets.get(0) {
-					match asset.id.clone() {
-						AssetId::Concrete(location) if location == native_asset => true,
-						_ => false,
-					}
+					matches!(asset.id.clone(), AssetId::Concrete(location) if location == native_asset)
 				} else {
 					false
 				}
@@ -735,7 +732,7 @@ pub mod pallet {
 		/// Converts XCM::Fungibility into u128
 		pub fn get_amount(fun: &Fungibility) -> Option<u128> {
 			if let Fungibility::Fungible(amount) = fun {
-				return Some(*amount)
+				Some(*amount)
 			} else {
 				None
 			}
@@ -745,12 +742,9 @@ pub mod pallet {
 		pub fn is_native_asset(asset: &AssetId) -> bool {
 			let native_asset = MultiLocation {
 				parents: 1,
-				interior: Junctions::X1(Junction::Parachain(T::ParachainId::get().into())),
+				interior: Junctions::X1(Junction::Parachain(T::ParachainId::get())),
 			};
-			match asset {
-				AssetId::Concrete(location) if location == &native_asset => true,
-				_ => false,
-			}
+			matches!(asset, AssetId::Concrete(location) if location == &native_asset)
 		}
 
 		/// Verifies Signature

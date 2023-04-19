@@ -4,19 +4,20 @@ use super::{
 };
 use core::marker::PhantomData;
 use frame_support::{
-	log, match_types, parameter_types,
+	match_types, parameter_types,
 	traits::{
 		fungibles::{Inspect, Mutate},
 		Everything, Nothing,
 	},
 	weights::WeightToFee as WeightToFeeT,
 };
+use log::error;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
-use sp_core::{crypto::ByteArray, Get};
+use sp_core::Get;
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Zero},
 	SaturatedConversion,
@@ -24,11 +25,10 @@ use sp_runtime::{
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-	AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
-	FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
-	TakeWeightCredit, UsingComponents,
+	AllowTopLevelPaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
+	IsConcrete, LocationInverter, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{
 	traits::{ShouldExecute, WeightTrader},
@@ -299,17 +299,15 @@ where
 						.checked_sub((location.clone(), expected_fee_in_foreign_currency).into())
 						.map_err(|_| XcmError::Trap(1003))?;
 					(unused, expected_fee_in_foreign_currency)
+				} else if WH::check_whitelisted_token(foreign_currency_asset_id) {
+					(payment, 0u128)
 				} else {
-					if WH::check_whitelisted_token(foreign_currency_asset_id) {
-						(payment, 0u128)
-					} else {
-						return Err(XcmError::Trap(1004))
-					}
+					return Err(XcmError::Trap(1004))
 				};
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
 			{
-				if old_asset_location == location.clone() {
+				if old_asset_location == location {
 					self.consumed = self
 						.consumed
 						.saturating_add((expected_fee_in_foreign_currency).saturated_into());
@@ -383,16 +381,20 @@ where
 					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
 				{
 					if !amount.is_zero() {
-						AM::mint_into(
+						if let Err(e) = AM::mint_into(
 							asset_id_associated_type,
 							&asset_handler_account,
 							amount_associated_type,
-						);
-						AMM::swap(
+						) {
+							error!(target: "runtime", "Failed to mint asset {:?} for {:?} with reason {:?}", asset_id_associated_type, asset_handler_account, e);
+						}
+						if let Err(e) = AMM::swap(
 							&asset_handler_account,
 							(asset_id, NativeCurrencyId::get()),
 							amount,
-						);
+						) {
+							error!(target: "runtime", "Failed to swap asset {:?} for {:?} with reason {:?}", asset_id, asset_handler_account, e);
+						}
 					}
 				}
 			}
