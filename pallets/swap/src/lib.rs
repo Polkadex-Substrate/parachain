@@ -235,6 +235,7 @@ pub mod pallet {
 		/// - `pool`: Currency pool, in which liquidity will be added
 		/// - `liquidity_amounts`: Liquidity amounts to be added in pool
 		/// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
+		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::add_liquidity())]
 		#[transactional]
 		pub fn add_liquidity(
@@ -319,6 +320,7 @@ pub mod pallet {
 		///
 		/// - `pair`: Currency pool, in which liquidity will be removed
 		/// - `liquidity`: liquidity to be removed from user's liquidity
+		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::remove_liquidity())]
 		#[transactional]
 		pub fn remove_liquidity(
@@ -369,6 +371,7 @@ pub mod pallet {
 		/// - `liquidity_amounts`: Liquidity amounts to be added in pool
 		/// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
 		/// - `lp_token_id`: Liquidity pool share representative token
+		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::create_pool())]
 		#[transactional]
 		pub fn create_pool(
@@ -382,7 +385,7 @@ pub mod pallet {
 
 			let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
 			ensure!(
-				!Pools::<T, I>::contains_key(&base_asset, &quote_asset),
+				!Pools::<T, I>::contains_key(base_asset, quote_asset),
 				Error::<T, I>::PoolAlreadyExists
 			);
 
@@ -415,7 +418,7 @@ pub mod pallet {
 				(base_asset, quote_asset),
 			)?;
 
-			Pools::<T, I>::insert(&base_asset, &quote_asset, pool);
+			Pools::<T, I>::insert(base_asset, quote_asset, pool);
 
 			log::trace!(
 				target: "amm::create_pool",
@@ -443,6 +446,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::update_protocol_fee())]
 		#[transactional]
 		pub fn update_protocol_fee(
@@ -455,6 +459,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(4)]
 		#[pallet::weight(T::WeightInfo::update_protocol_fee_receiver())]
 		#[transactional]
 		pub fn update_protocol_fee_receiver(
@@ -468,6 +473,9 @@ pub mod pallet {
 		}
 	}
 }
+
+type BaseAmountToQuoteAmount<T, I> = (BalanceOf<T, I>, BalanceOf<T, I>);
+type AssetSortResult<T, I> = (bool, AssetIdOf<T, I>, AssetIdOf<T, I>);
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	pub fn account_id() -> T::AccountId {
@@ -505,7 +513,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 	fn sort_assets(
 		(curr_a, curr_b): (AssetIdOf<T, I>, AssetIdOf<T, I>),
-	) -> Result<(bool, AssetIdOf<T, I>, AssetIdOf<T, I>), DispatchError> {
+	) -> Result<AssetSortResult<T, I>, DispatchError> {
 		if curr_a > curr_b {
 			return Ok((false, curr_a, curr_b))
 		}
@@ -528,7 +536,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	fn get_ideal_amounts(
 		pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
 		(base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
-	) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+	) -> Result<BaseAmountToQuoteAmount<T, I>, DispatchError> {
 		log::trace!(
 			target: "amm::get_ideal_amounts",
 			"pair: {:?}",
@@ -599,7 +607,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	fn get_reserves(
 		asset_in: AssetIdOf<T, I>,
 		asset_out: AssetIdOf<T, I>,
-	) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+	) -> Result<BaseAmountToQuoteAmount<T, I>, DispatchError> {
 		let (is_inverted, base_asset, quote_asset) = Self::sort_assets((asset_in, asset_out))?;
 
 		let pool = Pools::<T, I>::try_get(base_asset, quote_asset)
@@ -861,7 +869,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	fn calculate_reserves_to_remove(
 		pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
 		liquidity: BalanceOf<T, I>,
-	) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+	) -> Result<BaseAmountToQuoteAmount<T, I>, DispatchError> {
 		let total_supply = T::Assets::total_issuance(pool.lp_token_id);
 		let base_amount = liquidity
 			.get_big_uint()
@@ -887,7 +895,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
 		liquidity: BalanceOf<T, I>,
 		(base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
-	) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+	) -> Result<BaseAmountToQuoteAmount<T, I>, DispatchError> {
 		let (base_amount, quote_amount) = Self::calculate_reserves_to_remove(pool, liquidity)?;
 
 		pool.base_amount = pool
@@ -1023,8 +1031,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		let (is_inverted, base_asset, quote_asset) = Self::sort_assets((asset_in, asset_out))?;
 
 		Pools::<T, I>::try_mutate(
-			&base_asset,
-			&quote_asset,
+			base_asset,
+			quote_asset,
 			|pool| -> Result<BalanceOf<T, I>, DispatchError> {
 				let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
 

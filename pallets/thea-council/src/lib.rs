@@ -137,6 +137,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `new_member`: AccountId of New Member.
+		#[pallet::call_index(0)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn add_member(origin: OriginFor<T>, new_member: T::AccountId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -150,6 +151,7 @@ pub mod pallet {
 		/// # Parameters
 		///
 		/// * `member_to_be_removed`: AccountId for memebr to be removed.
+		#[pallet::call_index(1)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn remove_member(
 			origin: OriginFor<T>,
@@ -163,6 +165,7 @@ pub mod pallet {
 
 		/// Converts Pending Council Member to Active Council Member.
 		///
+		#[pallet::call_index(2)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn claim_membership(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -177,6 +180,7 @@ pub mod pallet {
 		///
 		/// * `block_no`: Block No which contains malicious transaction.
 		/// * `index`: Index of Malicious transaction in the list.
+		#[pallet::call_index(3)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn delete_transaction(
 			origin: OriginFor<T>,

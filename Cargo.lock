@@ -6454,7 +6454,6 @@ dependencies = [
  "cumulus-relay-chain-rpc-interface",
  "frame-benchmarking",
  "frame-benchmarking-cli",
- "hex-literal",
  "jsonrpsee",
  "log",
  "pallet-transaction-payment-rpc",
