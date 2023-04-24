@@ -634,7 +634,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
 
 		// Thea Pallet
-		TheaMessageHandler: thea_message_handler::{Pallet, Call, Storage, Event<T>} = 46
+		TheaMessageHandler: thea_message_handler::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 46
 	}
 );
 

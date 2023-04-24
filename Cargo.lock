@@ -750,7 +750,7 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 [[package]]
 name = "bls-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#95de84b02cf9b3ee7015bf4d9c35bd83d4aa2033"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
 dependencies = [
  "blst",
  "hex",
@@ -5440,7 +5440,7 @@ dependencies = [
 [[package]]
 name = "pallet-amm"
 version = "1.9.5"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#95de84b02cf9b3ee7015bf4d9c35bd83d4aa2033"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6448,6 +6448,7 @@ dependencies = [
 name = "parachain-polkadex-node"
 version = "0.1.0"
 dependencies = [
+ "bls-primitives",
  "clap",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
@@ -6870,7 +6871,7 @@ checksum = "e3d7ddaed09e0eb771a79ab0fd64609ba0afb0a8366421957936ad14cbd13630"
 [[package]]
 name = "polkadex-primitives"
 version = "0.9.28"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#95de84b02cf9b3ee7015bf4d9c35bd83d4aa2033"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
 dependencies = [
  "anyhow",
  "frame-support",
@@ -8756,7 +8757,7 @@ dependencies = [
 [[package]]
 name = "router"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#95de84b02cf9b3ee7015bf4d9c35bd83d4aa2033"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -11456,7 +11457,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "support"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#95de84b02cf9b3ee7015bf4d9c35bd83d4aa2033"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11594,7 +11595,7 @@ dependencies = [
 [[package]]
 name = "thea-message-handler"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#95de84b02cf9b3ee7015bf4d9c35bd83d4aa2033"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
 dependencies = [
  "bls-primitives",
  "frame-benchmarking",
@@ -11613,7 +11614,7 @@ dependencies = [
 [[package]]
 name = "thea-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#95de84b02cf9b3ee7015bf4d9c35bd83d4aa2033"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
 dependencies = [
  "bls-primitives",
  "parity-scale-codec",
