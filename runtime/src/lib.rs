@@ -485,8 +485,13 @@ impl xcm_helper::Config for Runtime {
 	type ParachainNetworkId = ParachainNetworkId;
 }
 
+parameter_types! {
+	pub const MinimumActiveCouncilSize: u8 = 2;
+}
+
 impl thea_council::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type MinimumActiveCouncilSize = MinimumActiveCouncilSize;
 }
 
 parameter_types! {

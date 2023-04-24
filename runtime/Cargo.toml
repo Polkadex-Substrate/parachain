@@ -79,9 +79,9 @@ orml-xcm-support = { workspace = true, default-features = false }
 # Local
 xcm-helper = { path = "../pallets/xcm-helper", default-features = false }
 thea-council = { path = "../pallets/thea-council", default-features = false }
-pallet-amm = { path = "../pallets/swap", default-features = false }
-support = { path = "../pallets/support", default-features = false }
-router = { path = "../pallets/router", default-features = false }
+pallet-amm = { workspace = true, default-features = false }
+support = { workspace = true, default-features = false }
+router = { workspace = true, default-features = false }
 asset-handler = { path = "../pallets/asset-handler", default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }

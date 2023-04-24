@@ -30,7 +30,7 @@ sp-core = { workspace = true, default-features = false }
 sp-std = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 cumulus-primitives-core = { workspace = true, default-features = false }
-support = { path = "../support", default-features = false }
+support = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }
 [dev-dependencies]
 serde = { workspace = true }

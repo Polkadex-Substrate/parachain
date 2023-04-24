@@ -39,13 +39,13 @@
 //!
 //! - **TheaMessage** Thea Messages will be fetched and relayed by Relayers from Parachain to Solochain.
 //!
-//! - **ParachainAsset** Type using which native Paracdhain will identify assets from foregin Parachain.
+//! - **ParachainAsset** Type using which native Parachain will identify assets from foregin Parachain.
 //!
 //! ### Implementations
 //! The XCM Helper pallet provides implementations for the following traits. If these traits provide
 //! the functionality that you need, then you can avoid coupling with the XCM Helper pallet.
 //!
-//! -[`TransactAsset`]: Used by XCM Exector to deposit, withdraw and transfer native/non-native asset on Native Chain.
+//! -[`TransactAsset`]: Used by XCM Executor to deposit, withdraw and transfer native/non-native asset on Native Chain.
 //! -[`AssetIdConverter`]: Converts Assets id from Multilocation Format to Local Asset Id and vice-versa.
 //!
 //! ## Interface
@@ -239,7 +239,7 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Integrate Balances Pallet
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-		/// Multilocation to AccountId Convetor
+		/// Multilocation to AccountId Convert
 		type AccountIdConvert: MoreConvert<MultiLocation, Self::AccountId>;
 		/// Asset Manager
 		type AssetManager: Create<<Self as frame_system::Config>::AccountId>
@@ -279,7 +279,7 @@ pub mod pallet {
 
 	/// Pending Withdrawals
 	#[pallet::storage]
-	#[pallet::getter(fn get_pending_withdrawls)]
+	#[pallet::getter(fn get_pending_withdrawals)]
 	pub(super) type PendingWithdrawals<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat,
@@ -290,7 +290,7 @@ pub mod pallet {
 
 	/// Failed Withdrawals
 	#[pallet::storage]
-	#[pallet::getter(fn get_failed_withdrawls)]
+	#[pallet::getter(fn get_failed_withdrawals)]
 	pub(super) type FailedWithdrawals<T: Config> = StorageMap<
 		_,
 		Blake2_128Concat,
@@ -335,32 +335,30 @@ pub mod pallet {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Invalid Sender
-		InvalidSender,
-		/// Ingress Messages Limit Reached
-		IngressMessagesLimitReached,
-		/// Signature verification failed
-		SignatureVerificationFailed,
-		/// Public Key not set
-		PublicKeyNotSet,
-		/// Ingress Message Vector full
-		IngressMessagesFull,
-		/// Nonce is not valid
-		NonceIsNotValid,
 		/// Index not found
 		IndexNotFound,
 		/// Identifier Length Mismatch
 		IdentifierLengthMismatch,
 		/// AssetId Abstract Not Handled
 		AssetIdAbstractNotHandled,
-		/// Internal Error
-		InternalError,
 		/// Pending withdrawal Limit Reached
 		PendingWithdrawalsLimitReached,
 		/// Token is already Whitelisted
 		TokenIsAlreadyWhitelisted,
 		/// Whitelisted Tokens limit reached
 		WhitelistedTokensLimitReached,
+		/// Unable to Decode
+		UnableToDecode,
+		/// Failed To Push Pending Withdrawal
+		FailedToPushPendingWithdrawal,
+		/// Unable to Convert to Multi location
+		UnableToConvertToMultiLocation,
+		/// Unable to Convert to Account
+		UnableToConvertToAccount,
+		/// Unable to get Assets
+		UnableToGetAssets,
+		/// Unable to get Deposit Amount
+		UnableToGetDepositAmount
 	}
 
 	#[pallet::hooks]
@@ -578,9 +576,9 @@ pub mod pallet {
 		/// Route deposit to destined function
 		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
 			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
-			let location = (*destination).try_into().map_err(|_| Error::<T>::InternalError)?;
+			let location = (*destination).try_into().map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?;
 			let destination_account =
-				Self::get_destination_account(location).ok_or(Error::<T>::InternalError)?;
+				Self::get_destination_account(location).ok_or(Error::<T>::UnableToConvertToAccount)?;
 			let assets: Option<MultiAssets> = (*asset).try_into().ok();
 			if let Some(assets) = assets {
 				if let Some(asset) = assets.get(0) {
@@ -592,7 +590,7 @@ pub mod pallet {
 					}
 				}
 			} else {
-				return Err(Error::<T>::InternalError.into())
+				return Err(Error::<T>::UnableToGetAssets.into())
 			}
 			Ok(())
 		}
@@ -624,11 +622,11 @@ pub mod pallet {
 				T::Currency::deposit_creating(destination, amount.saturated_into());
 				Ok(())
 			} else {
-				Err(Error::<T>::InternalError.into())
+				Err(Error::<T>::UnableToGetDepositAmount.into())
 			}
 		}
 
-		/// Deposits Non-Naitve Token to Destination Account
+		/// Deposits Non-Native Token to Destination Account
 		pub fn deposit_non_native_token(
 			destination: &T::AccountId,
 			asset: MultiAsset,
@@ -638,7 +636,7 @@ pub mod pallet {
 			if let Some(amount) = Self::get_amount(&fun) {
 				T::AssetManager::mint_into(asset, destination, amount)
 			} else {
-				Err(Error::<T>::InternalError.into())
+				Err(Error::<T>::UnableToGetDepositAmount.into())
 			}
 		}
 
@@ -726,9 +724,9 @@ pub mod pallet {
 		/// Block Transaction to be Executed.
 		pub fn block_by_ele(block_no: T::BlockNumber, index: u32) -> DispatchResult {
 			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
-			let pending_withdrwal: &mut PendingWithdrawal =
+			let pending_withdrawal: &mut PendingWithdrawal =
 				pending_withdrawals.get_mut(index as usize).ok_or(Error::<T>::IndexNotFound)?;
-			pending_withdrwal.is_blocked = true;
+			pending_withdrawal.is_blocked = true;
 			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
 			Ok(())
 		}
@@ -785,12 +783,16 @@ pub mod pallet {
 	}
 
 	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
-		fn execute_deposits(_network: Network, deposits: Vec<u8>) -> sp_runtime::DispatchResult {
+		fn execute_deposits(_network: Network, deposits: Vec<u8>) {
+			let return_err_fn = |err : DispatchError| {
+				log::error!(target:"thea", "Deposit execution failed because of following error: {err:?}");
+				return;
+			};
 			let deposits: BoundedVec<ApprovedWithdraw, ConstU32<10>> =
-				Decode::decode(&mut &deposits[..]).unwrap();
+				Decode::decode(&mut &deposits[..]).map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into())).unwrap();
 			for deposit in deposits {
 				let deposit_request: ParachainDeposit =
-					Decode::decode(&mut &deposit.payload[..]).unwrap();
+					Decode::decode(&mut &deposit.payload[..]).map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into())).unwrap();
 				let withdrawal_execution_block: T::BlockNumber =
 					<frame_system::Pallet<T>>::block_number()
 						.saturated_into::<u32>()
@@ -813,9 +815,8 @@ pub mod pallet {
 							.try_push(pending_withdrawal)
 							.map_err(|_| Error::<T>::PendingWithdrawalsLimitReached)
 					},
-				)?;
+				).map_err(|_| return_err_fn(Error::<T>::FailedToPushPendingWithdrawal.into())).unwrap();
 			}
-			Ok(())
 		}
 	}
 }
