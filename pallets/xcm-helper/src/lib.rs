@@ -358,7 +358,7 @@ pub mod pallet {
 		/// Unable to get Assets
 		UnableToGetAssets,
 		/// Unable to get Deposit Amount
-		UnableToGetDepositAmount
+		UnableToGetDepositAmount,
 	}
 
 	#[pallet::hooks]
@@ -576,9 +576,11 @@ pub mod pallet {
 		/// Route deposit to destined function
 		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
 			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
-			let location = (*destination).try_into().map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?;
-			let destination_account =
-				Self::get_destination_account(location).ok_or(Error::<T>::UnableToConvertToAccount)?;
+			let location = (*destination)
+				.try_into()
+				.map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?;
+			let destination_account = Self::get_destination_account(location)
+				.ok_or(Error::<T>::UnableToConvertToAccount)?;
 			let assets: Option<MultiAssets> = (*asset).try_into().ok();
 			if let Some(assets) = assets {
 				if let Some(asset) = assets.get(0) {
@@ -784,15 +786,18 @@ pub mod pallet {
 
 	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
 		fn execute_deposits(_network: Network, deposits: Vec<u8>) {
-			let return_err_fn = |err : DispatchError| {
+			// TODO: ZK fix this, remove unwanted unwraps()
+			let return_err_fn = |err: DispatchError| {
 				log::error!(target:"thea", "Deposit execution failed because of following error: {err:?}");
-				return;
 			};
 			let deposits: BoundedVec<ApprovedWithdraw, ConstU32<10>> =
-				Decode::decode(&mut &deposits[..]).map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into())).unwrap();
+				Decode::decode(&mut &deposits[..])
+					.map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into()))
+					.unwrap();
 			for deposit in deposits {
-				let deposit_request: ParachainDeposit =
-					Decode::decode(&mut &deposit.payload[..]).map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into())).unwrap();
+				let deposit_request: ParachainDeposit = Decode::decode(&mut &deposit.payload[..])
+					.map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into()))
+					.unwrap();
 				let withdrawal_execution_block: T::BlockNumber =
 					<frame_system::Pallet<T>>::block_number()
 						.saturated_into::<u32>()
@@ -815,7 +820,9 @@ pub mod pallet {
 							.try_push(pending_withdrawal)
 							.map_err(|_| Error::<T>::PendingWithdrawalsLimitReached)
 					},
-				).map_err(|_| return_err_fn(Error::<T>::FailedToPushPendingWithdrawal.into())).unwrap();
+				)
+				.map_err(|_| return_err_fn(Error::<T>::FailedToPushPendingWithdrawal.into()))
+				.unwrap();
 			}
 		}
 	}

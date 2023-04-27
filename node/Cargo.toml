@@ -15,7 +15,6 @@ log = "0.4.17"
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 serde = { version = "1.0.152", features = ["derive"] }
 jsonrpsee = { version = "0.16.2", features = ["server"] }
-bls-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
 # Local
 parachain-polkadex-runtime = { path = "../runtime" }
 

@@ -135,8 +135,7 @@ pub mod pallet {
 		/// Pending Council Storage Overflow
 		PendingCouncilStorageOverflow,
 		/// Active Council Storage Overflow
-		ActiveCouncilStorageOverflow
-
+		ActiveCouncilStorageOverflow,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -248,7 +247,9 @@ pub mod pallet {
 			let mut remove_proposal = false;
 			<Proposals<T>>::try_mutate(proposal.clone(), |votes| {
 				ensure!(!votes.contains(&Voted(sender.clone())), Error::<T>::SenderAlreadyVoted);
-				votes.try_push(Voted(sender)).map_err(|_| Error::<T>::ProposalsStorageOverflow)?;
+				votes
+					.try_push(Voted(sender))
+					.map_err(|_| Error::<T>::ProposalsStorageOverflow)?;
 				if current_votes(votes) >= expected_votes() {
 					Self::execute_proposal(proposal.clone())?;
 					remove_proposal = true;
@@ -285,7 +286,10 @@ pub mod pallet {
 
 		fn execute_remove_member(member_to_be_removed: T::AccountId) -> DispatchResult {
 			let mut active_council_member = <ActiveCouncilMembers<T>>::get();
-			ensure!(active_council_member.len() > T::MinimumActiveCouncilSize::get().into(), Error::<T>::ActiveCouncilSizeIsBelowThreshold);
+			ensure!(
+				active_council_member.len() > T::MinimumActiveCouncilSize::get().into(),
+				Error::<T>::ActiveCouncilSizeIsBelowThreshold
+			);
 			let index = active_council_member
 				.iter()
 				.position(|member| *member == member_to_be_removed)

@@ -34,10 +34,7 @@ use substrate_prometheus_endpoint::Registry;
 pub struct ParachainNativeExecutor;
 
 impl sc_executor::NativeExecutionDispatch for ParachainNativeExecutor {
-	type ExtendHostFunctions = (
-		frame_benchmarking::benchmarking::HostFunctions,
-		bls_primitives::crypto::bls_ext::HostFunctions,
-	);
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
 
 	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
 		parachain_polkadex_runtime::api::dispatch(method, data)

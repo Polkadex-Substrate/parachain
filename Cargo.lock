@@ -159,6 +159,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ahash"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
+dependencies = [
+ "cfg-if",
+ "once_cell",
+ "version_check",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -269,6 +280,124 @@ name = "arc-swap"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
+
+[[package]]
+name = "ark-bls12-381"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c775f0d12169cba7aae4caeb547bb6a50781c7449a8aa53793827c9ec4abf488"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+]
+
+[[package]]
+name = "ark-ec"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
+dependencies = [
+ "ark-ff",
+ "ark-poly",
+ "ark-serialize",
+ "ark-std",
+ "derivative",
+ "hashbrown 0.13.2",
+ "itertools",
+ "num-traits",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-ff"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec847af850f44ad29048935519032c33da8aa03340876d351dfab5660d2966ba"
+dependencies = [
+ "ark-ff-asm",
+ "ark-ff-macros",
+ "ark-serialize",
+ "ark-std",
+ "derivative",
+ "digest 0.10.6",
+ "itertools",
+ "num-bigint",
+ "num-traits",
+ "paste",
+ "rustc_version",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-ff-asm"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ed4aa4fe255d0bc6d79373f7e31d2ea147bcf486cba1be5ba7ea85abdb92348"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-ff-macros"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7abe79b0e4288889c4574159ab790824d0033b9fdcb2a112a3182fac2e514565"
+dependencies = [
+ "num-bigint",
+ "num-traits",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-poly"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d320bfc44ee185d899ccbadfa8bc31aab923ce1558716e1997a1e74057fe86bf"
+dependencies = [
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "derivative",
+ "hashbrown 0.13.2",
+]
+
+[[package]]
+name = "ark-serialize"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adb7b85a02b83d2f22f89bd5cac66c9c89474240cb6207cb1efc16d098e822a5"
+dependencies = [
+ "ark-serialize-derive",
+ "ark-std",
+ "digest 0.10.6",
+ "num-bigint",
+]
+
+[[package]]
+name = "ark-serialize-derive"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae3281bc6d0fd7e549af32b52511e1302185bd688fd3359fa36423346ff682ea"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-std"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94893f1e0c6eeab764ade8dc4c0db24caf4fe7cbbaafc0eba0a9030f447b5185"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
+]
 
 [[package]]
 name = "array-bytes"
@@ -750,14 +879,19 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 [[package]]
 name = "bls-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#60eb4fa8fc17206318e6bc69d8beebb39214ca16"
 dependencies = [
+ "ark-bls12-381",
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
  "blst",
  "hex",
  "log",
  "parity-scale-codec",
  "scale-info",
  "serde_json",
+ "sha2 0.10.6",
  "sp-application-crypto",
  "sp-core",
  "sp-runtime-interface",
@@ -2331,7 +2465,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c24f403d068ad0b359e577a77f92392118be3f3c927538f2bb544a5ecd828c6"
 dependencies = [
  "curve25519-dalek 3.2.0",
- "hashbrown",
+ "hashbrown 0.12.3",
  "hex",
  "rand_core 0.6.4",
  "sha2 0.9.9",
@@ -3281,7 +3415,16 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
- "ahash",
+ "ahash 0.7.6",
+]
+
+[[package]]
+name = "hashbrown"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
+dependencies = [
+ "ahash 0.8.3",
 ]
 
 [[package]]
@@ -3587,7 +3730,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
- "hashbrown",
+ "hashbrown 0.12.3",
  "serde",
 ]
 
@@ -4656,7 +4799,7 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6e8aaa3f231bb4bd57b84b2d5dc3ae7f350265df8aa96492e0bc394a1571909"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.12.3",
 ]
 
 [[package]]
@@ -4785,7 +4928,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e0c7cba9ce19ac7ffd2053ac9f49843bbd3f4318feedfd74e85c19d5fb0ba66"
 dependencies = [
  "hash-db",
- "hashbrown",
+ "hashbrown 0.12.3",
 ]
 
 [[package]]
@@ -5241,7 +5384,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21158b2c33aa6d4561f1c0a6ea283ca92bc54802a93b263e910746d679a7eb53"
 dependencies = [
  "crc32fast",
- "hashbrown",
+ "hashbrown 0.12.3",
  "indexmap",
  "memchr",
 ]
@@ -5440,7 +5583,7 @@ dependencies = [
 [[package]]
 name = "pallet-amm"
 version = "1.9.5"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#60eb4fa8fc17206318e6bc69d8beebb39214ca16"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6448,7 +6591,6 @@ dependencies = [
 name = "parachain-polkadex-node"
 version = "0.1.0"
 dependencies = [
- "bls-primitives",
  "clap",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
@@ -6871,7 +7013,7 @@ checksum = "e3d7ddaed09e0eb771a79ab0fd64609ba0afb0a8366421957936ad14cbd13630"
 [[package]]
 name = "polkadex-primitives"
 version = "0.9.28"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#60eb4fa8fc17206318e6bc69d8beebb39214ca16"
 dependencies = [
  "anyhow",
  "frame-support",
@@ -8757,7 +8899,7 @@ dependencies = [
 [[package]]
 name = "router"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#60eb4fa8fc17206318e6bc69d8beebb39214ca16"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9407,7 +9549,7 @@ name = "sc-finality-grandpa"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#6fa7fe1326ecaab9921c2c3888530ad679cfbb87"
 dependencies = [
- "ahash",
+ "ahash 0.7.6",
  "array-bytes 4.2.0",
  "async-trait",
  "dyn-clone",
@@ -9584,7 +9726,7 @@ name = "sc-network-gossip"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#6fa7fe1326ecaab9921c2c3888530ad679cfbb87"
 dependencies = [
- "ahash",
+ "ahash 0.7.6",
  "futures",
  "futures-timer",
  "libp2p",
@@ -11108,9 +11250,9 @@ name = "sp-trie"
 version = "7.0.0"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.37#6fa7fe1326ecaab9921c2c3888530ad679cfbb87"
 dependencies = [
- "ahash",
+ "ahash 0.7.6",
  "hash-db",
- "hashbrown",
+ "hashbrown 0.12.3",
  "lazy_static",
  "lru",
  "memory-db",
@@ -11457,7 +11599,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "support"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#60eb4fa8fc17206318e6bc69d8beebb39214ca16"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11595,7 +11737,7 @@ dependencies = [
 [[package]]
 name = "thea-message-handler"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#60eb4fa8fc17206318e6bc69d8beebb39214ca16"
 dependencies = [
  "bls-primitives",
  "frame-benchmarking",
@@ -11614,9 +11756,10 @@ dependencies = [
 [[package]]
 name = "thea-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7d921bfa8e67072bbfd64a393d89ab0468822523"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#60eb4fa8fc17206318e6bc69d8beebb39214ca16"
 dependencies = [
  "bls-primitives",
+ "hex",
  "parity-scale-codec",
  "polkadex-primitives",
  "scale-info",
@@ -12062,7 +12205,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "004e1e8f92535694b4cb1444dc5a8073ecf0815e3357f729638b9f8fc4062908"
 dependencies = [
  "hash-db",
- "hashbrown",
+ "hashbrown 0.12.3",
  "log",
  "rustc-hex",
  "smallvec",
