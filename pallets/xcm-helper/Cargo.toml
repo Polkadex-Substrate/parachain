@@ -39,6 +39,7 @@ sp-io = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
 orml-traits = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
+
 [features]
 default = ["std"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

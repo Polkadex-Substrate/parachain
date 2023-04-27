@@ -31,10 +31,14 @@ pallet-xcm = { workspace = true, default-features = false }
 xcm-builder = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
 pallet-assets = { workspace = true, default-features = false }
+thea-message-handler = {workspace = true, default-features = false}
+thea-primitives =  {workspace = true, default-features = false}
 
 [features]
 default = ["std"]
 std = [
+    "thea-message-handler/std",
+    "thea-primitives/std",
     "codec/std",
     "frame-benchmarking?/std",
     "frame-support/std",

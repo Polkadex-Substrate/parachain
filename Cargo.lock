@@ -11728,6 +11728,8 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "thea-message-handler",
+ "thea-primitives",
  "xcm",
  "xcm-builder",
  "xcm-executor",

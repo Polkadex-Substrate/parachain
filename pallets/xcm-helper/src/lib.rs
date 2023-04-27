@@ -73,7 +73,6 @@
 //! - `get_asset_info` - Get Asset Info.
 //!
 //! ### Storage Items
-//! - `IngressMessages` - Stores TheaMessages which will fetch and relayed to Solo-chain by Relayers.
 //! - `ActiveTheaKey` - Stores Latest Thea Key.
 //! - `WithdrawNonce` - Stores Latest withdrawal nonce.
 //! - `PendingWithdrawals` - Stores all pending withdrawal.
@@ -263,12 +262,6 @@ pub mod pallet {
 		type ParachainNetworkId: Get<u8>;
 	}
 
-	// Queue for enclave ingress messages
-	#[pallet::storage]
-	#[pallet::getter(fn ingress_messages)]
-	pub(super) type IngressMessages<T: Config> =
-		StorageValue<_, BoundedVec<TheaMessage, IngressMessageLimit>, ValueQuery>;
-
 	#[pallet::storage]
 	#[pallet::getter(fn get_thea_key)]
 	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, sp_core::ecdsa::Public, OptionQuery>;
@@ -280,24 +273,14 @@ pub mod pallet {
 	/// Pending Withdrawals
 	#[pallet::storage]
 	#[pallet::getter(fn get_pending_withdrawals)]
-	pub(super) type PendingWithdrawals<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		T::BlockNumber,
-		BoundedVec<PendingWithdrawal, ConstU32<100>>,
-		ValueQuery,
-	>;
+	pub(super) type PendingWithdrawals<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<PendingWithdrawal>, ValueQuery>;
 
 	/// Failed Withdrawals
 	#[pallet::storage]
 	#[pallet::getter(fn get_failed_withdrawals)]
-	pub(super) type FailedWithdrawals<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		T::BlockNumber,
-		BoundedVec<PendingWithdrawal, ConstU32<100>>,
-		ValueQuery,
-	>;
+	pub(super) type FailedWithdrawals<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<PendingWithdrawal>, ValueQuery>;
 
 	/// Thea Assets, asset_id(u128) -> (network_id(u8), identifier_length(u8),
 	/// identifier(BoundedVec<>))
@@ -395,7 +378,6 @@ pub mod pallet {
 				}
 			});
 			<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
-			<IngressMessages<T>>::kill();
 			Weight::default()
 		}
 	}
@@ -450,7 +432,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
 		}
-
+		// TODO: This should be removed after testing before creating a release
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn mock_deposit(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
@@ -478,22 +460,9 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Convert<MultiLocation, Option<u128>> for Pallet<T> {
-		fn convert(_a: MultiLocation) -> Option<u128> {
-			todo!()
-		}
-	}
-
 	impl<T: Config> TransactAsset for Pallet<T> {
 		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
-			<IngressMessages<T>>::try_mutate(|ingress_messages| {
-				ingress_messages.try_push(TheaMessage::AssetDeposited(
-					Box::new(who.clone()),
-					Box::new(what.clone()),
-				))
-			})
-			.map_err(|_| XcmError::Trap(10))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), Box::new(what.clone())));
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
@@ -733,21 +702,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Converts Multilocation to AccountId
-		pub fn multi_location_to_account_converter(location: MultiLocation) -> T::AccountId {
-			T::AccountIdConvert::convert_ref(location).unwrap()
-		}
-
-		/// Inserts new pending withdrawals
-		pub fn insert_pending_withdrawal(
-			block_no: T::BlockNumber,
-			pending_withdrawal: PendingWithdrawal,
-		) {
-			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
-			pending_withdrawals.try_push(pending_withdrawal).unwrap();
-			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
-		}
-
 		/// Converts asset_id to XCM::MultiLocation
 		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
 			let (_, _, asset_identifier) = <TheaAssets<T>>::get(asset_id);
@@ -786,18 +740,15 @@ pub mod pallet {
 
 	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
 		fn execute_deposits(_network: Network, deposits: Vec<u8>) {
-			// TODO: ZK fix this, remove unwanted unwraps()
-			let return_err_fn = |err: DispatchError| {
-				log::error!(target:"thea", "Deposit execution failed because of following error: {err:?}");
-			};
-			let deposits: BoundedVec<ApprovedWithdraw, ConstU32<10>> =
-				Decode::decode(&mut &deposits[..])
-					.map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into()))
-					.unwrap();
+			let deposits = BoundedVec::<ApprovedWithdraw, ConstU32<10>>::decode(&mut &deposits[..])
+				.unwrap_or_default();
+
 			for deposit in deposits {
-				let deposit_request: ParachainDeposit = Decode::decode(&mut &deposit.payload[..])
-					.map_err(|_| return_err_fn(Error::<T>::UnableToDecode.into()))
-					.unwrap();
+				let deposit_request = match ParachainDeposit::decode(&mut &deposit.payload[..]) {
+					Ok(deposit_) => deposit_,
+					Err(_) => continue,
+				};
+
 				let withdrawal_execution_block: T::BlockNumber =
 					<frame_system::Pallet<T>>::block_number()
 						.saturated_into::<u32>()
@@ -813,16 +764,13 @@ pub mod pallet {
 					Box::new(VersionedMultiLocation::V1(deposit_request.recipient));
 				let pending_withdrawal =
 					PendingWithdrawal { asset, destination: dest, is_blocked: false };
-				<PendingWithdrawals<T>>::try_mutate(
+
+				<PendingWithdrawals<T>>::mutate(
 					withdrawal_execution_block,
 					|pending_withdrawals| {
-						pending_withdrawals
-							.try_push(pending_withdrawal)
-							.map_err(|_| Error::<T>::PendingWithdrawalsLimitReached)
+						pending_withdrawals.push(pending_withdrawal);
 					},
-				)
-				.map_err(|_| return_err_fn(Error::<T>::FailedToPushPendingWithdrawal.into()))
-				.unwrap();
+				);
 			}
 		}
 	}

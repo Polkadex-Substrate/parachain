@@ -26,10 +26,22 @@ frame_support::construct_runtime!(
 		Assets: pallet_assets,
 		XcmHnadler: xcm_helper,
 		TheaCouncil: thea_council,
-		XToken: orml_xtokens
+		XToken: orml_xtokens,
+		TheaMessageHandler: thea_message_handler
 	}
 );
 
+parameter_types! {
+	pub const TheaMaxAuthorities: u32 = 10;
+}
+use thea_primitives::{AuthorityId, AuthoritySignature};
+impl thea_message_handler::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type TheaId = AuthorityId;
+	type Signature = AuthoritySignature;
+	type MaxAuthorities = TheaMaxAuthorities;
+	type Executor = XcmHnadler;
+}
 impl system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
@@ -59,6 +71,7 @@ impl system::Config for Test {
 
 impl thea_council::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
+	type MinimumActiveCouncilSize = frame_support::traits::ConstU8<2>;
 }
 
 use frame_support::{traits::AsEnsureOriginWithArg, PalletId};
@@ -87,6 +100,7 @@ impl pallet_balances::Config for Test {
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
+	pub ParachainId: u32 = 2040;
 }
 
 impl xcm_helper::Config for Test {
@@ -95,10 +109,11 @@ impl xcm_helper::Config for Test {
 	type AccountIdConvert = ();
 	type AssetManager = Assets;
 	type AssetCreateUpdateOrigin = EnsureSigned<Self::AccountId>;
+	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
-	type ParachainId = ();
-	type ParachainNetworkId = ();
+	type ParachainId = ParachainId;
+	type ParachainNetworkId = frame_support::traits::ConstU8<0>;
 }
 
 parameter_types! {
