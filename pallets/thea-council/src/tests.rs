@@ -1,7 +1,7 @@
 use crate::{
 	mock::*, ActiveCouncilMembers, Error, PendingCouncilMembers, Proposal, Proposals, Voted,
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::Hooks};
 use sp_core::{bounded::BoundedVec, ConstU32};
 
 #[test]
@@ -37,6 +37,7 @@ fn pending_council_member_cleaned_up_ok_test() {
 		setup_council_members();
 		let (first_council_member, second_council_member, _) = get_council_members();
 		let new_member = 4;
+		Timestamp::set_timestamp(200_000_000);
 		assert_ok!(TheaCouncil::add_member(
 			RuntimeOrigin::signed(first_council_member),
 			new_member
@@ -53,12 +54,14 @@ fn pending_council_member_cleaned_up_ok_test() {
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
 		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
-		Timestamp::set_timestamp(
-			<TheaCouncil<Test>>::RetainPeriod::get() +
-				<TheaCouncil<Test>>::TimeProvider::now().as_secs(),
-		);
-		Timestamp::on_initialize();
-		assert!(<PendingCouncilMembers<Test>>::get().is_empty());
+		let now = Timestamp::now();
+		Timestamp::set_timestamp(86_400 + now + 1);
+		let now = Timestamp::now();
+		println!("now: {now}");
+		Timestamp::on_initialize(Default::default());
+		let pending = <PendingCouncilMembers<Test>>::get();
+		println!("{pending:?}");
+		assert!(pending.is_empty());
 	})
 }
 
