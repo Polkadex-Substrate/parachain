@@ -240,9 +240,8 @@ pub mod pallet {
 			if total_active_council_size == 2 {
 				2
 			} else {
-				let p = Percent::from_percent(51);
+				let p = Percent::from_percent(65);
 				p * total_active_council_size
-				//total_active_council_size.saturating_mul(2).saturating_div(3)
 			}
 		}
 

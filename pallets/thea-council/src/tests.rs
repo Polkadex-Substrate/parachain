@@ -120,11 +120,10 @@ fn get_expected_votes_test() {
 			let members_vec: Vec<u64> =
 				(1u64..=i).into_iter().enumerate().map(|(n, _)| n as u64 + 1).collect();
 			let members = BoundedVec::try_from(members_vec).unwrap();
-			<ActiveCouncilMembers<Test>>::set(members.clone());
+			<ActiveCouncilMembers<Test>>::put(members.clone());
 			// we check if we have more than half of actual council members always
 			let expected: u64 =
 				TheaCouncil::get_expected_votes().saturated_into::<u64>().saturating_mul(2);
-			println!("members {members:?}\ni: {i}\nexpected {expected}");
 			assert!(expected > i);
 		}
 	})
