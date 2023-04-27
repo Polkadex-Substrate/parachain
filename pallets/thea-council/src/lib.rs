@@ -49,6 +49,7 @@ mod tests;
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::Percent;
 
 	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen, Copy, Clone)]
 	pub enum Proposal<AccountId> {
@@ -234,23 +235,31 @@ pub mod pallet {
 			Ok(())
 		}
 
+		pub(crate) fn get_expected_votes() -> usize {
+			let total_active_council_size = <ActiveCouncilMembers<T>>::get().len();
+			if total_active_council_size == 2 {
+				2
+			} else {
+				let p = Percent::from_percent(51);
+				p * total_active_council_size
+				//total_active_council_size.saturating_mul(2).saturating_div(3)
+			}
+		}
+
 		fn evaluate_proposal(
 			proposal: Proposal<T::AccountId>,
 			sender: T::AccountId,
 		) -> DispatchResult {
 			let current_votes =
 				|votes: &BoundedVec<Voted<T::AccountId>, ConstU32<10>>| -> usize { votes.len() };
-			let expected_votes = || -> usize {
-				let total_active_council_size = <ActiveCouncilMembers<T>>::get().len();
-				total_active_council_size.saturating_mul(2).saturating_div(3)
-			};
+			let expected_votes = Self::get_expected_votes();
 			let mut remove_proposal = false;
 			<Proposals<T>>::try_mutate(proposal.clone(), |votes| {
 				ensure!(!votes.contains(&Voted(sender.clone())), Error::<T>::SenderAlreadyVoted);
 				votes
 					.try_push(Voted(sender))
 					.map_err(|_| Error::<T>::ProposalsStorageOverflow)?;
-				if current_votes(votes) >= expected_votes() {
+				if current_votes(votes) >= expected_votes {
 					Self::execute_proposal(proposal.clone())?;
 					remove_proposal = true;
 				}
