@@ -25,9 +25,40 @@ fn test_add_member_returns_ok() {
 			new_member
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
-		assert!(pending_set.contains(&new_member));
+		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
 		<Proposals<Test>>::remove(proposal.clone());
 		assert!(!<Proposals<Test>>::contains_key(proposal));
+	})
+}
+
+#[test]
+fn pending_council_member_cleaned_up_ok_test() {
+	new_test_ext().execute_with(|| {
+		setup_council_members();
+		let (first_council_member, second_council_member, _) = get_council_members();
+		let new_member = 4;
+		assert_ok!(TheaCouncil::add_member(
+			RuntimeOrigin::signed(first_council_member),
+			new_member
+		));
+		// Check total Votes
+		let proposal = Proposal::AddNewMember(new_member);
+		let expected_votes: BoundedVec<Voted<u64>, ConstU32<100>> =
+			BoundedVec::try_from(vec![Voted(first_council_member)]).unwrap();
+		assert_eq!(<Proposals<Test>>::get(proposal), expected_votes);
+		//Second vote
+		assert_ok!(TheaCouncil::add_member(
+			RuntimeOrigin::signed(second_council_member),
+			new_member
+		));
+		let pending_set = <PendingCouncilMembers<Test>>::get();
+		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
+		Timestamp::set_timestamp(
+			<TheaCouncil<Test>>::RetainPeriod::get() +
+				<TheaCouncil<Test>>::TimeProvider::now().as_secs(),
+		);
+		Timestamp::on_initialize();
+		assert!(<PendingCouncilMembers<Test>>::get().is_empty());
 	})
 }
 

@@ -14,7 +14,7 @@ use crate::constants::currency::{CENTS, DOLLARS};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, ConstU32, Get, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU32, ConstU64, Get, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
@@ -492,6 +492,8 @@ parameter_types! {
 impl thea_council::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type MinimumActiveCouncilSize = MinimumActiveCouncilSize;
+	type TimeProvider = Timestamp;
+	type RetainPeriod = ConstU64<86_400>; // 24h
 }
 
 parameter_types! {
