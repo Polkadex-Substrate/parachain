@@ -23,7 +23,6 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system,
 		Balances: pallet_balances,
-		Timestamp: pallet_timestamp,
 		Assets: pallet_assets,
 		XcmHnadler: xcm_helper,
 		TheaCouncil: thea_council,
@@ -32,24 +31,10 @@ frame_support::construct_runtime!(
 	}
 );
 
-pub const MILLISECS_PER_BLOCK: u64 = 12000;
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-parameter_types! {
-	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
-}
-
-impl pallet_timestamp::Config for Test {
-	/// A timestamp: milliseconds since the unix epoch.
-	type Moment = u64;
-	type OnTimestampSet = ();
-	type MinimumPeriod = MinimumPeriod;
-	type WeightInfo = ();
-}
-
 parameter_types! {
 	pub const TheaMaxAuthorities: u32 = 10;
 }
+
 use thea_primitives::{AuthorityId, AuthoritySignature};
 impl thea_message_handler::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
