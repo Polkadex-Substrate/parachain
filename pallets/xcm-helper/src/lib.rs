@@ -88,6 +88,12 @@
 
 pub use pallet::*;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+#[cfg(test)]
+mod mock;
+
 #[frame_support::pallet]
 pub mod pallet {
 
@@ -313,6 +319,8 @@ pub mod pallet {
 		TheaAssetCreated(u128),
 		/// Token Whitelisted For Xcm [token]
 		TokenWhitelistedForXcm(u128),
+		/// Xcm Fee Transferred [recipient, amount]
+		XcmFeeTransferred(T::AccountId, BalanceOf<T>)
 	}
 
 	// Errors inform users that something went wrong.
@@ -432,8 +440,24 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
 		}
-		// TODO: This should be removed after testing before creating a release
+
 		#[pallet::call_index(3)]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn transfer_fee(origin: OriginFor<T>, to: T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
+			let from = T::AssetHandlerPalletId::get().into_account_truncating();
+			T::Currency::transfer(
+				&from,
+				&to,
+				amount.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount));
+			Ok(())
+		}
+
+		// TODO: This should be removed after testing before creating a release
+		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn mock_deposit(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			ensure_signed(origin)?;
@@ -446,7 +470,7 @@ pub mod pallet {
 			let asset_id = Self::generate_asset_id_for_parachain(id).unwrap(); //TODO: Verify error
 			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
 			let parachain_network_id = T::ParachainNetworkId::get(); //TODO: Put ion Config
-														 // Call Execute Withdraw
+			// Call Execute Withdraw
 			if T::Executor::execute_withdrawals(parachain_network_id, deposit.encode()).is_err() {
 				log::error!(target:"thea", "Failed to execute withdrawals");
 			};

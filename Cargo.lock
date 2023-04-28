@@ -13687,6 +13687,7 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "support",
+ "thea-message-handler",
  "thea-primitives",
  "xcm",
  "xcm-builder",
