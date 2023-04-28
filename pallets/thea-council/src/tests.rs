@@ -3,6 +3,7 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok};
 use sp_core::{bounded::BoundedVec, ConstU32};
+use sp_runtime::SaturatedConversion;
 
 #[test]
 fn test_add_member_returns_ok() {
@@ -107,6 +108,24 @@ fn test_claim_membership_with_unregistered_pending_member_returns_not_pending_me
 			TheaCouncil::claim_membership(RuntimeOrigin::signed(not_a_pending_member)),
 			Error::<Test>::NotPendingMember
 		);
+	})
+}
+
+#[test]
+fn get_expected_votes_test() {
+	new_test_ext().execute_with(|| {
+		// at most 10 council members allowed
+		for i in 2..11 {
+			// we start with 1 and it can go up to 10
+			let members_vec: Vec<u64> =
+				(1u64..=i).into_iter().enumerate().map(|(n, _)| n as u64 + 1).collect();
+			let members = BoundedVec::try_from(members_vec).unwrap();
+			<ActiveCouncilMembers<Test>>::put(members.clone());
+			// we check if we have more than half of actual council members always
+			let expected: u64 =
+				TheaCouncil::get_expected_votes().saturated_into::<u64>().saturating_mul(2);
+			assert!(expected > i);
+		}
 	})
 }
 
