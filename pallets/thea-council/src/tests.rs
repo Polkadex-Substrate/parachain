@@ -37,7 +37,6 @@ fn pending_council_member_cleaned_up_ok_test() {
 		setup_council_members();
 		let (first_council_member, second_council_member, _) = get_council_members();
 		let new_member = 4;
-		Timestamp::set_timestamp(200_000_000_000);
 		System::set_block_number(1);
 		assert_ok!(TheaCouncil::add_member(
 			RuntimeOrigin::signed(first_council_member),
@@ -55,26 +54,19 @@ fn pending_council_member_cleaned_up_ok_test() {
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
 		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
-		let now = Timestamp::now();
 		// less than 24h
-		Timestamp::set_timestamp(86_399 + now);
 		// we still have entry
 		let pending = <PendingCouncilMembers<Test>>::get();
 		assert!(!pending.is_empty());
 		// re-initialize
-		Timestamp::on_initialize(1);
-		TheaCouncil::on_initialize(1);
-		// we still have entry
+		System::set_block_number(7201);
+		TheaCouncil::on_initialize(7201);
+		// we still have entry 23h59m48s into
 		let pending = <PendingCouncilMembers<Test>>::get();
-		// 1 second before 24H (23h59m59s pass) should still be there
 		assert!(!pending.is_empty());
-		// now 24h pass...
-		let now = Timestamp::now();
-		Timestamp::set_timestamp(now + 2);
 		// re-initialize
-		System::set_block_number(2);
-		Timestamp::on_initialize(2);
-		TheaCouncil::on_initialize(2);
+		System::set_block_number(7202);
+		TheaCouncil::on_initialize(7202);
 		// it was cleaned up
 		let pending = <PendingCouncilMembers<Test>>::get();
 		assert!(pending.is_empty());

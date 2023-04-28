@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{pallet_prelude::*, traits::Time};
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::SaturatedConversion;
 
@@ -69,8 +69,6 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + xcm_helper::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		/// Unix timestamp provider
-		type TimeProvider: Time;
 		/// Minimum Active Council Size below witch Removal is not possible
 		#[pallet::constant]
 		type MinimumActiveCouncilSize: Get<u8>;
@@ -216,13 +214,14 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(_n: T::BlockNumber) -> Weight {
+		fn on_initialize(n: T::BlockNumber) -> Weight {
 			let mut removed = 0;
-			let now: u64 = T::TimeProvider::now().saturated_into();
 			<PendingCouncilMembers<T>>::mutate(|m| {
 				let was = m.len();
-				m.retain(|i| now.saturating_sub(i.0) < T::RetainPeriod::get());
-				removed = was - m.len();
+				m.retain(|i| {
+					T::RetainPeriod::get().saturating_add(i.0) >= n.saturated_into::<u64>()
+				});
+				removed = was.saturating_sub(m.len());
 			});
 			Self::deposit_event(Event::<T>::RetainPeriodExpiredForCouncilProposal(
 				removed.saturated_into(),
@@ -302,7 +301,10 @@ pub mod pallet {
 		fn execute_add_member(new_member: T::AccountId) -> DispatchResult {
 			let mut pending_council_member = <PendingCouncilMembers<T>>::get();
 			pending_council_member
-				.try_push((T::TimeProvider::now().saturated_into(), new_member.clone()))
+				.try_push((
+					<frame_system::Pallet<T>>::block_number().saturated_into(),
+					new_member.clone(),
+				))
 				.map_err(|_| Error::<T>::PendingCouncilStorageOverflow)?;
 			<PendingCouncilMembers<T>>::put(pending_council_member);
 			Self::deposit_event(Event::<T>::NewPendingMemberAdded(new_member));

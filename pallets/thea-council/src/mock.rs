@@ -88,8 +88,7 @@ impl system::Config for Test {
 impl thea_council::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MinimumActiveCouncilSize = frame_support::traits::ConstU8<2>;
-	type TimeProvider = Timestamp;
-	type RetainPeriod = ConstU64<86_400>; // 24h
+	type RetainPeriod = ConstU64<7200>; // 24h
 }
 
 use frame_support::{traits::AsEnsureOriginWithArg, PalletId};

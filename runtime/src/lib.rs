@@ -492,8 +492,7 @@ parameter_types! {
 impl thea_council::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type MinimumActiveCouncilSize = MinimumActiveCouncilSize;
-	type TimeProvider = Timestamp;
-	type RetainPeriod = ConstU64<86_400>; // 24h
+	type RetainPeriod = ConstU64<7200>; // 24h
 }
 
 parameter_types! {
