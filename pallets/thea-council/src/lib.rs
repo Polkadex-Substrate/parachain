@@ -47,7 +47,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{pallet_prelude::*, traits::UnixTime};
+	use frame_support::{pallet_prelude::*, traits::Time};
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::SaturatedConversion;
 
@@ -70,7 +70,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Unix timestamp provider
-		type TimeProvider: UnixTime;
+		type TimeProvider: Time;
 		/// Minimum Active Council Size below witch Removal is not possible
 		#[pallet::constant]
 		type MinimumActiveCouncilSize: Get<u8>;
@@ -218,10 +218,10 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: T::BlockNumber) -> Weight {
 			let mut removed = 0;
-			let now = T::TimeProvider::now().as_secs();
+			let now: u64 = T::TimeProvider::now().saturated_into();
 			<PendingCouncilMembers<T>>::mutate(|m| {
 				let was = m.len();
-				m.retain(|i| now - i.0 > T::RetainPeriod::get());
+				m.retain(|i| now.saturating_sub(i.0) < T::RetainPeriod::get());
 				removed = was - m.len();
 			});
 			Self::deposit_event(Event::<T>::RetainPeriodExpiredForCouncilProposal(
@@ -239,7 +239,7 @@ pub mod pallet {
 
 		fn is_pending_council_member(sender: &T::AccountId) -> bool {
 			let pending_members = <PendingCouncilMembers<T>>::get();
-			pending_members.iter().find(|m| m.1 == *sender).is_some()
+			pending_members.iter().any(|m| m.1 == *sender)
 		}
 
 		fn do_add_member(sender: T::AccountId, new_member: T::AccountId) -> DispatchResult {
@@ -302,7 +302,7 @@ pub mod pallet {
 		fn execute_add_member(new_member: T::AccountId) -> DispatchResult {
 			let mut pending_council_member = <PendingCouncilMembers<T>>::get();
 			pending_council_member
-				.try_push((T::TimeProvider::now().as_secs(), new_member.clone()))
+				.try_push((T::TimeProvider::now().saturated_into(), new_member.clone()))
 				.map_err(|_| Error::<T>::PendingCouncilStorageOverflow)?;
 			<PendingCouncilMembers<T>>::put(pending_council_member);
 			Self::deposit_event(Event::<T>::NewPendingMemberAdded(new_member));
