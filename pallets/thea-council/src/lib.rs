@@ -50,7 +50,7 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::Percent;
-  use sp_runtime::SaturatedConversion;
+  	use sp_runtime::SaturatedConversion;
 
 	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen, Copy, Clone)]
 	pub enum Proposal<AccountId> {
