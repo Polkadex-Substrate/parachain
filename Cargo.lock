@@ -879,7 +879,7 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 [[package]]
 name = "bls-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#3a4940f4522b6305224a4367ba09e55e98fa952a"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
 dependencies = [
  "ark-bls12-381",
  "ark-ec",
@@ -5583,7 +5583,7 @@ dependencies = [
 [[package]]
 name = "pallet-amm"
 version = "1.9.5"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#3a4940f4522b6305224a4367ba09e55e98fa952a"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7013,7 +7013,7 @@ checksum = "e3d7ddaed09e0eb771a79ab0fd64609ba0afb0a8366421957936ad14cbd13630"
 [[package]]
 name = "polkadex-primitives"
 version = "0.9.28"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#3a4940f4522b6305224a4367ba09e55e98fa952a"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
 dependencies = [
  "anyhow",
  "frame-support",
@@ -8899,7 +8899,7 @@ dependencies = [
 [[package]]
 name = "router"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#3a4940f4522b6305224a4367ba09e55e98fa952a"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -11599,7 +11599,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "support"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#3a4940f4522b6305224a4367ba09e55e98fa952a"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11739,7 +11739,7 @@ dependencies = [
 [[package]]
 name = "thea-message-handler"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#3a4940f4522b6305224a4367ba09e55e98fa952a"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
 dependencies = [
  "bls-primitives",
  "frame-benchmarking",
@@ -11758,7 +11758,7 @@ dependencies = [
 [[package]]
 name = "thea-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#3a4940f4522b6305224a4367ba09e55e98fa952a"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
 dependencies = [
  "bls-primitives",
  "frame-support",
