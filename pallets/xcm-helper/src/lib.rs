@@ -445,8 +445,9 @@ pub mod pallet {
 			let amount: u128 = Self::get_amount(&fun).unwrap();
 			let asset_id = Self::generate_asset_id_for_parachain(id).unwrap(); //TODO: Verify error
 			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
+			let network = T::ParachainNetworkId::get();
 			// Call Execute Withdraw
-			T::Executor::execute_withdrawals(NATIVE_NETWORK, deposit.encode()).unwrap();
+			T::Executor::execute_withdrawals(network, deposit.encode()).unwrap();
 			Ok(())
 		}
 	}
