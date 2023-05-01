@@ -651,6 +651,7 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[xcm_helper, XcmHelper]
 	);
 }
 
@@ -843,6 +844,7 @@ impl_runtime_apis! {
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
+			add_benchmark!(params, batches, xcm_helper, XcmHelper);
 			add_benchmark!(params, batches, pallet_amm, Swap);
 			add_benchmarks!(params, batches);
 
