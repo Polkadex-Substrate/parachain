@@ -744,6 +744,16 @@ pub mod pallet {
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location)).ok()
 		}
+
+		/// Inserts new pending withdrawals
+		pub fn insert_pending_withdrawal(
+			block_no: T::BlockNumber,
+			pending_withdrawal: PendingWithdrawal,
+		) {
+			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
+			pending_withdrawals.push(pending_withdrawal);
+			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
+		}
 	}
 
 	impl<T: Config> AssetIdConverter for Pallet<T> {
