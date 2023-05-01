@@ -1,7 +1,7 @@
 use crate::{
 	mock::*, ActiveCouncilMembers, Error, PendingCouncilMembers, Proposal, Proposals, Voted,
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::Hooks};
 use sp_core::{bounded::BoundedVec, ConstU32};
 use sp_runtime::SaturatedConversion;
 
@@ -26,9 +26,51 @@ fn test_add_member_returns_ok() {
 			new_member
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
-		assert!(pending_set.contains(&new_member));
+		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
 		<Proposals<Test>>::remove(proposal.clone());
 		assert!(!<Proposals<Test>>::contains_key(proposal));
+	})
+}
+
+#[test]
+fn pending_council_member_cleaned_up_ok_test() {
+	new_test_ext().execute_with(|| {
+		setup_council_members();
+		let (first_council_member, second_council_member, _) = get_council_members();
+		let new_member = 4;
+		System::set_block_number(1);
+		assert_ok!(TheaCouncil::add_member(
+			RuntimeOrigin::signed(first_council_member),
+			new_member
+		));
+		// Check total Votes
+		let proposal = Proposal::AddNewMember(new_member);
+		let expected_votes: BoundedVec<Voted<u64>, ConstU32<100>> =
+			BoundedVec::try_from(vec![Voted(first_council_member)]).unwrap();
+		assert_eq!(<Proposals<Test>>::get(proposal), expected_votes);
+		//Second vote
+		assert_ok!(TheaCouncil::add_member(
+			RuntimeOrigin::signed(second_council_member),
+			new_member
+		));
+		let pending_set = <PendingCouncilMembers<Test>>::get();
+		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
+		// less than 24h
+		// we still have entry
+		let pending = <PendingCouncilMembers<Test>>::get();
+		assert!(!pending.is_empty());
+		// re-initialize
+		System::set_block_number(7201);
+		TheaCouncil::on_initialize(7201);
+		// we still have entry 23h59m48s into
+		let pending = <PendingCouncilMembers<Test>>::get();
+		assert!(!pending.is_empty());
+		// re-initialize
+		System::set_block_number(7202);
+		TheaCouncil::on_initialize(7202);
+		// it was cleaned up
+		let pending = <PendingCouncilMembers<Test>>::get();
+		assert!(pending.is_empty());
 	})
 }
 
