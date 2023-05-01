@@ -1,8 +1,9 @@
 use crate::{
 	mock::*, ActiveCouncilMembers, Error, PendingCouncilMembers, Proposal, Proposals, Voted,
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::Hooks};
 use sp_core::{bounded::BoundedVec, ConstU32};
+use sp_runtime::SaturatedConversion;
 
 #[test]
 fn test_add_member_returns_ok() {
@@ -25,9 +26,51 @@ fn test_add_member_returns_ok() {
 			new_member
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
-		assert!(pending_set.contains(&new_member));
+		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
 		<Proposals<Test>>::remove(proposal.clone());
 		assert!(!<Proposals<Test>>::contains_key(proposal));
+	})
+}
+
+#[test]
+fn pending_council_member_cleaned_up_ok_test() {
+	new_test_ext().execute_with(|| {
+		setup_council_members();
+		let (first_council_member, second_council_member, _) = get_council_members();
+		let new_member = 4;
+		System::set_block_number(1);
+		assert_ok!(TheaCouncil::add_member(
+			RuntimeOrigin::signed(first_council_member),
+			new_member
+		));
+		// Check total Votes
+		let proposal = Proposal::AddNewMember(new_member);
+		let expected_votes: BoundedVec<Voted<u64>, ConstU32<100>> =
+			BoundedVec::try_from(vec![Voted(first_council_member)]).unwrap();
+		assert_eq!(<Proposals<Test>>::get(proposal), expected_votes);
+		//Second vote
+		assert_ok!(TheaCouncil::add_member(
+			RuntimeOrigin::signed(second_council_member),
+			new_member
+		));
+		let pending_set = <PendingCouncilMembers<Test>>::get();
+		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
+		// less than 24h
+		// we still have entry
+		let pending = <PendingCouncilMembers<Test>>::get();
+		assert!(!pending.is_empty());
+		// re-initialize
+		System::set_block_number(7201);
+		TheaCouncil::on_initialize(7201);
+		// we still have entry 23h59m48s into
+		let pending = <PendingCouncilMembers<Test>>::get();
+		assert!(!pending.is_empty());
+		// re-initialize
+		System::set_block_number(7202);
+		TheaCouncil::on_initialize(7202);
+		// it was cleaned up
+		let pending = <PendingCouncilMembers<Test>>::get();
+		assert!(pending.is_empty());
 	})
 }
 
@@ -107,6 +150,24 @@ fn test_claim_membership_with_unregistered_pending_member_returns_not_pending_me
 			TheaCouncil::claim_membership(RuntimeOrigin::signed(not_a_pending_member)),
 			Error::<Test>::NotPendingMember
 		);
+	})
+}
+
+#[test]
+fn get_expected_votes_test() {
+	new_test_ext().execute_with(|| {
+		// at most 10 council members allowed
+		for i in 2..11 {
+			// we start with 1 and it can go up to 10
+			let members_vec: Vec<u64> =
+				(1u64..=i).into_iter().enumerate().map(|(n, _)| n as u64 + 1).collect();
+			let members = BoundedVec::try_from(members_vec).unwrap();
+			<ActiveCouncilMembers<Test>>::put(members.clone());
+			// we check if we have more than half of actual council members always
+			let expected: u64 =
+				TheaCouncil::get_expected_votes().saturated_into::<u64>().saturating_mul(2);
+			assert!(expected > i);
+		}
 	})
 }
 

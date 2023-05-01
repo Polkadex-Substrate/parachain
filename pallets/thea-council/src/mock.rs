@@ -34,6 +34,7 @@ frame_support::construct_runtime!(
 parameter_types! {
 	pub const TheaMaxAuthorities: u32 = 10;
 }
+
 use thea_primitives::{AuthorityId, AuthoritySignature};
 impl thea_message_handler::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -72,6 +73,7 @@ impl system::Config for Test {
 impl thea_council::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MinimumActiveCouncilSize = frame_support::traits::ConstU8<2>;
+	type RetainPeriod = ConstU64<7200>; // 24h
 }
 
 use frame_support::{traits::AsEnsureOriginWithArg, PalletId};

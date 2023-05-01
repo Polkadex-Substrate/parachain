@@ -14,7 +14,7 @@ use crate::constants::currency::{CENTS, DOLLARS};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, ConstU32, Get, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU32, ConstU64, Get, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
@@ -469,7 +469,7 @@ parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
 	pub ParachainId: u32 = ParachainInfo::get().into();
-	pub const ParachainNetworkId: u8 = 0;
+	pub const ParachainNetworkId: u8 = 1; // Our parachain's thea id is one.
 }
 
 impl xcm_helper::Config for Runtime {
@@ -492,6 +492,7 @@ parameter_types! {
 impl thea_council::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type MinimumActiveCouncilSize = MinimumActiveCouncilSize;
+	type RetainPeriod = ConstU64<7200>; // 24h
 }
 
 parameter_types! {
