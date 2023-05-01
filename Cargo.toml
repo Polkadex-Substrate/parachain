@@ -79,9 +79,9 @@ parachain-info = { git = "https://github.com/paritytech/cumulus.git", branch = "
 
 #Polkadex Dependecies
 polkadex-primitives = { tag = "polkadot-v0.9.37v0.1.0", git = "https://github.com/Polkadex-Substrate/polkadex-primitives.git", default-features = false }
-thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
-pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
-support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
-router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
-thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
+thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-fix-thea", default-features = false }
+pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-fix-thea", default-features = false }
+support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-fix-thea", default-features = false }
+router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-fix-thea", default-features = false }
+thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-fix-thea", default-features = false }
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
