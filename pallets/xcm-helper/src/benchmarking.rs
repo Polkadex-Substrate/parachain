@@ -15,6 +15,8 @@ use sp_core::{
     ConstU32,
 };
 use sp_std::vec;
+use sp_core::Get;
+use sp_runtime::traits::AccountIdConversion;
 use xcm::{
     latest::{
         Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -40,8 +42,11 @@ benchmarks! {
 	}: _(RawOrigin::Root, token)
 
     transfer_fee {
-
-    }
+        let b in 1 .. 1000;
+        let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
+        T::Currency::deposit_creating(&pallet_account, 2_000_000_000_000_000u128.saturated_into());
+		let recipeint: T::AccountId = account("mem1", b, SEED);
+    }: _(RawOrigin::Root, recipeint, 1_000_000_000_000_000u128.saturated_into())
 
 }
 
