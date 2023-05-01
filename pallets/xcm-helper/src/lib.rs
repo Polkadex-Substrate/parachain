@@ -121,7 +121,10 @@ pub mod pallet {
 	};
 
 	use sp_std::{boxed::Box, vec::Vec};
-	use thea_primitives::{parachain::{ApprovedWithdraw, ParachainDeposit}, Network, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK};
+	use thea_primitives::{
+		parachain::{ApprovedWithdraw, ParachainDeposit},
+		Network, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
+	};
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,

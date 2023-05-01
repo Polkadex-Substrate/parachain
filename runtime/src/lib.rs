@@ -469,7 +469,7 @@ parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
 	pub ParachainId: u32 = ParachainInfo::get().into();
-	pub const ParachainNetworkId: u8 = 0;
+	pub const ParachainNetworkId: u8 = 1; // Our parachain's thea id is one.
 }
 
 impl xcm_helper::Config for Runtime {
