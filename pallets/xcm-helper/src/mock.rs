@@ -1,14 +1,14 @@
 use crate as xcm_helper;
 use frame_support::{
-    parameter_types,
-    traits::{ConstU16, ConstU64},
+	parameter_types,
+	traits::{ConstU16, ConstU64},
 };
 use frame_system as system;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use sp_core::{ConstU32, H256};
 use sp_runtime::{
-    testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
+	testing::Header,
+	traits::{BlakeTwo256, IdentityLookup},
 };
 use thea_primitives::{AuthorityId, AuthoritySignature};
 
@@ -26,36 +26,36 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances,
 		Assets: pallet_assets,
 		XcmHelper: xcm_helper,
-        TheaMessageHandler: thea_message_handler,
+		TheaMessageHandler: thea_message_handler,
 		XToken: orml_xtokens
 	}
 );
 
 impl system::Config for Test {
-    type BaseCallFilter = frame_support::traits::Everything;
-    type BlockWeights = ();
-    type BlockLength = ();
-    type DbWeight = ();
-    type RuntimeOrigin = RuntimeOrigin;
-    type RuntimeCall = RuntimeCall;
-    type Index = u64;
-    type BlockNumber = u64;
-    type Hash = H256;
-    type Hashing = BlakeTwo256;
-    type AccountId = u64;
-    type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
-    type RuntimeEvent = RuntimeEvent;
-    type BlockHashCount = ConstU64<250>;
-    type Version = ();
-    type PalletInfo = PalletInfo;
-    type AccountData = pallet_balances::AccountData<u128>;
-    type OnNewAccount = ();
-    type OnKilledAccount = ();
-    type SystemWeightInfo = ();
-    type SS58Prefix = ConstU16<42>;
-    type OnSetCode = ();
-    type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type BaseCallFilter = frame_support::traits::Everything;
+	type BlockWeights = ();
+	type BlockLength = ();
+	type DbWeight = ();
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
+	type Index = u64;
+	type BlockNumber = u64;
+	type Hash = H256;
+	type Hashing = BlakeTwo256;
+	type AccountId = u64;
+	type Lookup = IdentityLookup<Self::AccountId>;
+	type Header = Header;
+	type RuntimeEvent = RuntimeEvent;
+	type BlockHashCount = ConstU64<250>;
+	type Version = ();
+	type PalletInfo = PalletInfo;
+	type AccountData = pallet_balances::AccountData<u128>;
+	type OnNewAccount = ();
+	type OnKilledAccount = ();
+	type SystemWeightInfo = ();
+	type SS58Prefix = ConstU16<42>;
+	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 use frame_support::{traits::AsEnsureOriginWithArg, PalletId};
@@ -70,15 +70,15 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-    type Balance = u128;
-    type DustRemoval = ();
-    type ExistentialDeposit = ExistentialDeposit;
-    type AccountStore = frame_system::Pallet<Test>;
-    type MaxLocks = MaxLocks;
-    type MaxReserves = MaxReserves;
-    type ReserveIdentifier = [u8; 8];
-    type WeightInfo = ();
-    type RuntimeEvent = RuntimeEvent;
+	type Balance = u128;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = frame_system::Pallet<Test>;
+	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
+	type WeightInfo = ();
+	type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -86,11 +86,11 @@ parameter_types! {
 }
 
 impl thea_message_handler::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type TheaId = AuthorityId;
-    type Signature = AuthoritySignature;
-    type MaxAuthorities = TheaMaxAuthorities;
-    type Executor = XcmHelper;
+	type RuntimeEvent = RuntimeEvent;
+	type TheaId = AuthorityId;
+	type Signature = AuthoritySignature;
+	type MaxAuthorities = TheaMaxAuthorities;
+	type Executor = XcmHelper;
 }
 
 parameter_types! {
@@ -99,16 +99,16 @@ parameter_types! {
 }
 
 impl xcm_helper::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type Currency = Balances;
-    type AccountIdConvert = ();
-    type AssetManager = Assets;
-    type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
-    type Executor = TheaMessageHandler;
-    type AssetHandlerPalletId = AssetHandlerPalletId;
-    type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
-    type ParachainId = ();
-    type ParachainNetworkId = ();
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type AccountIdConvert = ();
+	type AssetManager = Assets;
+	type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
+	type Executor = TheaMessageHandler;
+	type AssetHandlerPalletId = AssetHandlerPalletId;
+	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
+	type ParachainId = ();
+	type ParachainNetworkId = ();
 }
 
 parameter_types! {
@@ -120,24 +120,24 @@ parameter_types! {
 }
 
 impl pallet_assets::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type Balance = u128;
-    type RemoveItemsLimit = ConstU32<1000>;
-    type AssetId = u128;
-    type AssetIdParameter = parity_scale_codec::Compact<u128>;
-    type Currency = Balances;
-    type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
-    type ForceOrigin = EnsureSigned<Self::AccountId>;
-    type AssetDeposit = AssetDeposit;
-    type AssetAccountDeposit = AssetDeposit;
-    type MetadataDepositBase = MetadataDepositBase;
-    type MetadataDepositPerByte = MetadataDepositPerByte;
-    type ApprovalDeposit = ApprovalDeposit;
-    type StringLimit = StringLimit;
-    type Freezer = ();
-    type Extra = ();
-    type CallbackHandle = ();
-    type WeightInfo = ();
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = u128;
+	type RemoveItemsLimit = ConstU32<1000>;
+	type AssetId = u128;
+	type AssetIdParameter = parity_scale_codec::Compact<u128>;
+	type Currency = Balances;
+	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
+	type ForceOrigin = EnsureSigned<Self::AccountId>;
+	type AssetDeposit = AssetDeposit;
+	type AssetAccountDeposit = AssetDeposit;
+	type MetadataDepositBase = MetadataDepositBase;
+	type MetadataDepositPerByte = MetadataDepositPerByte;
+	type ApprovalDeposit = ApprovalDeposit;
+	type StringLimit = StringLimit;
+	type Freezer = ();
+	type Extra = ();
+	type CallbackHandle = ();
+	type WeightInfo = ();
 }
 
 parameter_type_with_key! {
@@ -158,23 +158,23 @@ parameter_types! {
 }
 
 impl orml_xtokens::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
-    type Balance = u128;
-    type CurrencyId = u128;
-    type CurrencyIdConvert = ();
-    type AccountIdToMultiLocation = ();
-    type SelfLocation = ();
-    type MinXcmFee = ParachainMinFee;
-    type XcmExecutor = ();
-    type MultiLocationsFilter = ();
-    type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-    type BaseXcmWeight = ();
-    type LocationInverter = LocationInverter<Ancestry>;
-    type MaxAssetsForTransfer = ();
-    type ReserveProvider = AbsoluteReserveProvider;
+	type RuntimeEvent = RuntimeEvent;
+	type Balance = u128;
+	type CurrencyId = u128;
+	type CurrencyIdConvert = ();
+	type AccountIdToMultiLocation = ();
+	type SelfLocation = ();
+	type MinXcmFee = ParachainMinFee;
+	type XcmExecutor = ();
+	type MultiLocationsFilter = ();
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
+	type BaseXcmWeight = ();
+	type LocationInverter = LocationInverter<Ancestry>;
+	type MaxAssetsForTransfer = ();
+	type ReserveProvider = AbsoluteReserveProvider;
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }

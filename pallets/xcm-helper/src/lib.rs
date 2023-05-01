@@ -129,7 +129,7 @@ pub mod pallet {
 	use sp_std::{boxed::Box, vec::Vec};
 	use thea_primitives::{
 		parachain::{ApprovedWithdraw, ParachainDeposit},
-		Network, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
+		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset},
@@ -320,7 +320,7 @@ pub mod pallet {
 		/// Token Whitelisted For Xcm [token]
 		TokenWhitelistedForXcm(u128),
 		/// Xcm Fee Transferred [recipient, amount]
-		XcmFeeTransferred(T::AccountId, BalanceOf<T>)
+		XcmFeeTransferred(T::AccountId, BalanceOf<T>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -443,7 +443,11 @@ pub mod pallet {
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn transfer_fee(origin: OriginFor<T>, to: T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+		pub fn transfer_fee(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let from = T::AssetHandlerPalletId::get().into_account_truncating();
 			T::Currency::transfer(
