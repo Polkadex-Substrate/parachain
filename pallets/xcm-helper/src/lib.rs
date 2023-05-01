@@ -121,10 +121,7 @@ pub mod pallet {
 	};
 
 	use sp_std::{boxed::Box, vec::Vec};
-	use thea_primitives::{
-		parachain::{ApprovedWithdraw, ParachainDeposit},
-		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
-	};
+	use thea_primitives::{parachain::{ApprovedWithdraw, ParachainDeposit}, Network, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK};
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
@@ -447,8 +444,8 @@ pub mod pallet {
 			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
 			let parachain_network_id = T::ParachainNetworkId::get(); //TODO: Put ion Config
 														 // Call Execute Withdraw
-			if T::Executor::execute_withdrawals(parachain_network_id, deposit.encode()).is_err() {
-				log::error!(target:"thea", "Failed to execute withdrawals");
+			if T::Executor::execute_withdrawals(NATIVE_NETWORK, deposit.encode()).is_err() {
+				return Err(Error::ErrorWhile)
 			};
 			Ok(())
 		}
