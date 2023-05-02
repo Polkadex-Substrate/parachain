@@ -88,6 +88,14 @@
 
 pub use pallet::*;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
 #[frame_support::pallet]
 pub mod pallet {
 
@@ -123,7 +131,7 @@ pub mod pallet {
 	use sp_std::{boxed::Box, vec::Vec};
 	use thea_primitives::{
 		parachain::{ApprovedWithdraw, ParachainDeposit},
-		Network, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
+		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset},
@@ -313,6 +321,8 @@ pub mod pallet {
 		TheaAssetCreated(u128),
 		/// Token Whitelisted For Xcm [token]
 		TokenWhitelistedForXcm(u128),
+		/// Xcm Fee Transferred [recipient, amount]
+		XcmFeeTransferred(T::AccountId, BalanceOf<T>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -432,8 +442,28 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
 		}
-		// TODO: This should be removed after testing before creating a release
+
 		#[pallet::call_index(3)]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn transfer_fee(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
+			let from = T::AssetHandlerPalletId::get().into_account_truncating();
+			T::Currency::transfer(
+				&from,
+				&to,
+				amount.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount));
+			Ok(())
+		}
+
+		// TODO: This should be removed after testing before creating a release
+		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
 		pub fn mock_deposit(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			ensure_signed(origin)?;
@@ -446,7 +476,6 @@ pub mod pallet {
 			let asset_id = Self::generate_asset_id_for_parachain(id).unwrap(); //TODO: Verify error
 			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
 			let network = T::ParachainNetworkId::get();
-			// Call Execute Withdraw
 			T::Executor::execute_withdrawals(network, deposit.encode()).unwrap();
 			Ok(())
 		}
@@ -538,6 +567,11 @@ pub mod pallet {
 		/// Get Pallet Id
 		pub fn get_pallet_account() -> T::AccountId {
 			T::AssetHandlerPalletId::get().into_account_truncating()
+		}
+
+		/// Converts Multilocation to AccountId
+		pub fn multi_location_to_account_converter(location: MultiLocation) -> T::AccountId {
+			T::AccountIdConvert::convert_ref(location).unwrap()
 		}
 
 		/// Route deposit to destined function
@@ -716,6 +750,16 @@ pub mod pallet {
 		/// Converts Multilocation to u128
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location)).ok()
+		}
+
+		/// Inserts new pending withdrawals
+		pub fn insert_pending_withdrawal(
+			block_no: T::BlockNumber,
+			pending_withdrawal: PendingWithdrawal,
+		) {
+			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
+			pending_withdrawals.push(pending_withdrawal);
+			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
 		}
 	}
 

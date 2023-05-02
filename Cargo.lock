@@ -879,7 +879,7 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 [[package]]
 name = "bls-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#545fdaec5b4aa396942dec930db2dd9d486f12cc"
 dependencies = [
  "ark-bls12-381",
  "ark-ec",
@@ -5583,7 +5583,7 @@ dependencies = [
 [[package]]
 name = "pallet-amm"
 version = "1.9.5"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#545fdaec5b4aa396942dec930db2dd9d486f12cc"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -7013,7 +7013,7 @@ checksum = "e3d7ddaed09e0eb771a79ab0fd64609ba0afb0a8366421957936ad14cbd13630"
 [[package]]
 name = "polkadex-primitives"
 version = "0.9.28"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#545fdaec5b4aa396942dec930db2dd9d486f12cc"
 dependencies = [
  "anyhow",
  "frame-support",
@@ -8899,7 +8899,7 @@ dependencies = [
 [[package]]
 name = "router"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#545fdaec5b4aa396942dec930db2dd9d486f12cc"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -11599,7 +11599,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "support"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#545fdaec5b4aa396942dec930db2dd9d486f12cc"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11739,7 +11739,7 @@ dependencies = [
 [[package]]
 name = "thea-message-handler"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#545fdaec5b4aa396942dec930db2dd9d486f12cc"
 dependencies = [
  "bls-primitives",
  "frame-benchmarking",
@@ -11758,7 +11758,7 @@ dependencies = [
 [[package]]
 name = "thea-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=gj-fix-thea#4d849d97744cd497e20a6e5aa09497de63bf30bb"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#545fdaec5b4aa396942dec930db2dd9d486f12cc"
 dependencies = [
  "bls-primitives",
  "frame-support",
@@ -13687,6 +13687,7 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "support",
+ "thea-message-handler",
  "thea-primitives",
  "xcm",
  "xcm-builder",
@@ -13702,6 +13703,59 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "xcm-simulator"
+version = "0.1.0"
+dependencies = [
+ "asset-handler",
+ "frame-support",
+ "frame-system",
+ "orml-traits",
+ "orml-xcm-support",
+ "orml-xtokens",
+ "pallet-amm",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-xcm",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-parachain",
+ "polkadot-runtime-common",
+ "polkadot-runtime-parachains",
+ "router",
+ "scale-info",
+ "smallvec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "support",
+ "thea-message-handler",
+ "thea-primitives",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+ "xcm-helper",
+ "xcm-simulator 0.9.37",
+]
+
+[[package]]
+name = "xcm-simulator"
+version = "0.9.37"
+source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.37#645723987cf9662244be8faf4e9b63e8b9a1b3a3"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "paste",
+ "polkadot-core-primitives",
+ "polkadot-parachain",
+ "polkadot-runtime-parachains",
+ "sp-io",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
 ]
 
 [[package]]

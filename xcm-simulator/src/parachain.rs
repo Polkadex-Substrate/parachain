@@ -406,6 +406,20 @@ impl pallet_xcm::Config for Runtime {
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
+use thea_primitives::{AuthorityId, AuthoritySignature};
+
+parameter_types! {
+	pub const TheaMaxAuthorities: u32 = 10;
+}
+
+impl thea_message_handler::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type TheaId = AuthorityId;
+	type Signature = AuthoritySignature;
+	type MaxAuthorities = TheaMaxAuthorities;
+	type Executor = XcmHelper;
+}
+
 parameter_types! {
 	pub const WithdrawalExecutionBlockDiff: u32 = 7000;
 	pub const XcmHandlerId: PalletId = PalletId(*b"XcmHandl");
@@ -419,6 +433,7 @@ impl xcm_helper::Config for Runtime {
 	type AccountIdConvert = LocationToAccountId;
 	type AssetManager = AssetsPallet;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
+	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
@@ -571,7 +586,8 @@ construct_runtime!(
 		AssetsPallet: pallet_assets::{Pallet, Call, Storage, Event<T>},
 		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>},
 		Router: router::pallet::{Pallet, Call, Storage, Event<T>},
-		AssetHandler: asset_handler::pallet::{Pallet, Storage}
+		AssetHandler: asset_handler::pallet::{Pallet, Storage},
+		TheaMessageHandler: thea_message_handler::pallet::{Pallet, Call, Storage, Event<T>}
 	}
 );
 
