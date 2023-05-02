@@ -1,4 +1,3 @@
-# examples/0001-small-network.toml
 [relaychain]
 default_image = "docker.io/parity/polkadot:latest"
 default_command = "./polkadot"
@@ -13,10 +12,6 @@ validator = true
 [[relaychain.nodes]]
 name = "bob"
 validator = true
-
-
-
-# ./zombienet-macos spawn small-network.toml -p native
 
 [[parachains]]
 id = 2040

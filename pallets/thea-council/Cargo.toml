@@ -32,7 +32,7 @@ xcm-builder = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
 pallet-assets = { workspace = true, default-features = false }
 thea-message-handler = {workspace = true, default-features = false}
-thea-primitives =  {workspace = true, default-features = false}
+thea-primitives = {workspace = true, default-features = false}
 
 [features]
 default = ["std"]

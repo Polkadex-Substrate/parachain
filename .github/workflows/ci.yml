@@ -75,7 +75,7 @@ jobs:
           cargo fmt -- --version
           cargo clippy -V
       - name: Build
-        run: cargo +nightly build
+        run: cargo build
       - name: Check Formatting
         run: cargo fmt --all -- --check
       - name: Check Clippy

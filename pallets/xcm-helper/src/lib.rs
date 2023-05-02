@@ -218,6 +218,7 @@ pub mod pallet {
 		fn check_whitelisted_token(asset_id: u128) -> bool;
 	}
 
+	///
 	#[derive(Encode, Decode, Clone, Copy, Debug, MaxEncodedLen, TypeInfo)]
 	pub struct ApprovedDeposit<AccountId> {
 		pub asset_id: u128,
@@ -497,10 +498,9 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone())
-				.map_err(|_| XcmError::Trap(22))?; //TODO: Verify error
+				.map_err(|_| XcmError::Trap(22))?;
 			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
-			let parachain_network_id = T::ParachainNetworkId::get(); //TODO: Put ion Config
-														 // Call Execute Withdraw
+			let parachain_network_id = T::ParachainNetworkId::get();
 			if T::Executor::execute_withdrawals(parachain_network_id, deposit.encode()).is_err() {
 				log::error!(target:"thea", "Failed to execute withdrawals");
 			}
@@ -523,10 +523,10 @@ pub mod pallet {
 					WithdrawReasons::all(),
 					ExistenceRequirement::KeepAlive,
 				)
-				.map_err(|_| XcmError::Trap(21))?; //TODO: Check for withdraw reason and error
+				.map_err(|_| XcmError::Trap(21))?;
 			} else {
 				let asset_id = Self::generate_asset_id_for_parachain(what.id.clone())
-					.map_err(|_| XcmError::Trap(22))?; //TODO: Verify error
+					.map_err(|_| XcmError::Trap(22))?;
 				T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
 					.map_err(|_| XcmError::Trap(24))?;
 			}

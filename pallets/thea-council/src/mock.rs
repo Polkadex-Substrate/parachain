@@ -10,6 +10,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+use thea_primitives::{AuthorityId, AuthoritySignature};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -35,7 +36,6 @@ parameter_types! {
 	pub const TheaMaxAuthorities: u32 = 10;
 }
 
-use thea_primitives::{AuthorityId, AuthoritySignature};
 impl thea_message_handler::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type TheaId = AuthorityId;
@@ -43,6 +43,7 @@ impl thea_message_handler::Config for Test {
 	type MaxAuthorities = TheaMaxAuthorities;
 	type Executor = XcmHnadler;
 }
+
 impl system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
