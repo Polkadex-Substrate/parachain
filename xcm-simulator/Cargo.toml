@@ -29,16 +29,18 @@ polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = 
 pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 
 # ORML Pallets
-orml-xtokens = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false, branch = "polkadot-v0.9.37"}
-orml-traits = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false, branch = "polkadot-v0.9.37"}
-orml-xcm-support = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false, branch = "polkadot-v0.9.37"}
+orml-xtokens = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", branch = "polkadot-v0.9.37"}
+orml-traits = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37"}
+orml-xcm-support = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37"}
 
 # Custom pallets
 xcm-helper = {path = "../pallets/xcm-helper" }
 asset-handler = {path = "../pallets/asset-handler"}
-router = {path = "../pallets/router"}
-pallet-amm = {path = "../pallets/swap"}
-support = {path = "../pallets/support"}
+pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
+support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
+router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
+thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
+thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
 
 [lib]
 doctest = false

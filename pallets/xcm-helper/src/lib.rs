@@ -93,6 +93,8 @@ mod benchmarking;
 
 #[cfg(test)]
 mod mock;
+#[cfg(test)]
+mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -565,6 +567,11 @@ pub mod pallet {
 		/// Get Pallet Id
 		pub fn get_pallet_account() -> T::AccountId {
 			T::AssetHandlerPalletId::get().into_account_truncating()
+		}
+
+		/// Converts Multilocation to AccountId
+		pub fn multi_location_to_account_converter(location: MultiLocation) -> T::AccountId {
+			T::AccountIdConvert::convert_ref(location).unwrap()
 		}
 
 		/// Route deposit to destined function
