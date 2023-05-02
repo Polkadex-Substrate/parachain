@@ -36,11 +36,11 @@ orml-xcm-support = {git = "https://github.com/open-web3-stack/open-runtime-modul
 # Custom pallets
 xcm-helper = {path = "../pallets/xcm-helper" }
 asset-handler = {path = "../pallets/asset-handler"}
-pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
-support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
-router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
-thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
-thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-updated-depn" }
+pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
+support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
+router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
+thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
+thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
 
 [lib]
 doctest = false
