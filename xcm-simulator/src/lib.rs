@@ -19,7 +19,6 @@ mod parachain;
 mod relay_chain;
 
 use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
-
 use polkadot_parachain::primitives::Id as ParaId;
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
@@ -487,6 +486,7 @@ mod tests {
 			1
 		));
 	}
+	use frame_support::traits::{OnFinalize, OnInitialize};
 
 	pub fn run_to_block(n: u64) {
 		while System::block_number() < n {
