@@ -2,29 +2,12 @@ use super::*;
 
 #[allow(unused)]
 use crate::Pallet as XcmHelper;
-use frame_benchmarking::{account, benchmarks, whitelisted_caller, Box};
-use frame_support::{
-	sp_runtime::{traits::Hash, SaturatedConversion},
-	traits::{fungibles::Mutate, Currency, EnsureOrigin},
-	BoundedVec,
-};
+use frame_benchmarking::{account, benchmarks, Box};
+use frame_support::{sp_runtime::SaturatedConversion, traits::Currency};
 use frame_system::RawOrigin;
-use parity_scale_codec::Encode;
-use sp_core::{
-	ecdsa::{self, Signature},
-	ConstU32, Get,
-};
+use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
-use sp_std::vec;
-use xcm::{
-	latest::{
-		Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
-		MultiLocation, NetworkId,
-	},
-	v1::AssetId,
-	v2::WeightLimit,
-	VersionedMultiAssets, VersionedMultiLocation,
-};
+use xcm::{latest::{Junction, Junctions, MultiLocation}, v1::AssetId};
 
 const SEED: u32 = 0;
 

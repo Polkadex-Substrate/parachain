@@ -2,14 +2,11 @@ use super::*;
 
 #[allow(unused)]
 use crate::Pallet as TheaCouncil;
-use frame_benchmarking::{account, benchmarks, whitelisted_caller};
-use frame_support::{
-	sp_runtime::{traits::Hash, SaturatedConversion},
-	traits::{fungibles::Mutate, Currency},
-	BoundedVec,
-};
+use frame_benchmarking::{account, benchmarks};
+use frame_support::BoundedVec;
+use frame_support::{sp_runtime::SaturatedConversion};
 use frame_system::RawOrigin;
-use sp_std::{time::Duration, vec};
+use sp_std::vec;
 use xcm_helper::PendingWithdrawal;
 const SEED: u32 = 0;
 
