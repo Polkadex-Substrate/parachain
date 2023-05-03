@@ -652,6 +652,7 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[thea_council, TheaCouncil]
 		[xcm_helper, XcmHelper]
 	);
 }
@@ -812,6 +813,8 @@ impl_runtime_apis! {
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
+			list_benchmark!(list, extra, xcm_helper, XcmHelper);
+			list_benchmark!(list, extra, thea_council, TheaCouncil);
 			list_benchmark!(list, extra, pallet_amm, Swap);
 			list_benchmarks!(list, extra);
 
