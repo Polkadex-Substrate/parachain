@@ -7,7 +7,10 @@ use frame_support::{sp_runtime::SaturatedConversion, traits::Currency};
 use frame_system::RawOrigin;
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
-use xcm::{latest::{Junction, Junctions, MultiLocation}, v1::AssetId};
+use xcm::{
+	latest::{Junction, Junctions, MultiLocation},
+	v1::AssetId,
+};
 
 const SEED: u32 = 0;
 

@@ -3,8 +3,7 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as TheaCouncil;
 use frame_benchmarking::{account, benchmarks};
-use frame_support::BoundedVec;
-use frame_support::{sp_runtime::SaturatedConversion};
+use frame_support::{sp_runtime::SaturatedConversion, BoundedVec};
 use frame_system::RawOrigin;
 use sp_std::vec;
 use xcm_helper::PendingWithdrawal;
