@@ -218,7 +218,7 @@ pub mod pallet {
 		fn check_whitelisted_token(asset_id: u128) -> bool;
 	}
 
-	///
+	/// Deposit approved for Solochain
 	#[derive(Encode, Decode, Clone, Copy, Debug, MaxEncodedLen, TypeInfo)]
 	pub struct ApprovedDeposit<AccountId> {
 		pub asset_id: u128,
@@ -353,6 +353,8 @@ pub mod pallet {
 		UnableToGetAssets,
 		/// Unable to get Deposit Amount
 		UnableToGetDepositAmount,
+		/// Withdrawal Execution Failed
+		WithdrawalExecutionFailed,
 	}
 
 	#[pallet::hooks]
@@ -503,6 +505,7 @@ pub mod pallet {
 			let parachain_network_id = T::ParachainNetworkId::get();
 			if T::Executor::execute_withdrawals(parachain_network_id, deposit.encode()).is_err() {
 				log::error!(target:"thea", "Failed to execute withdrawals");
+				return Err(XcmError::Trap(102))
 			}
 			Ok(())
 		}
