@@ -359,8 +359,9 @@ pub mod pallet {
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone());
 			let deposit: Deposit<T::AccountId> = Deposit { recipient, asset_id, amount };
+
 			let parachain_network_id = T::ParachainNetworkId::get();
-			T::Executor::execute_withdrawals(parachain_network_id, deposit.encode())
+			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
 				.map_err(|_| XcmError::Trap(102))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone(), asset_id));
 			Ok(())
