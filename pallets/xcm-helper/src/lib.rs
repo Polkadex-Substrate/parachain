@@ -114,7 +114,7 @@ pub mod pallet {
 
 	use sp_std::{boxed::Box, vec, vec::Vec};
 	use thea_primitives::{
-		parachain::{Deposit, Withdraw},
+		types::{Deposit, Withdraw},
 		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
 	use xcm::{
@@ -263,7 +263,14 @@ pub mod pallet {
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
 					if !withdrawal.is_blocked {
-						if !Self::is_polkadex_parachain_destination(&withdrawal.destination) {
+						let destination = match VersionedMultiLocation::decode(&mut &withdrawal.destination[..]) {
+							Ok(dest) => dest,
+							Err(_) => {
+								failed_withdrawal.push(withdrawal);
+								continue
+							}
+						};
+						if !Self::is_polkadex_parachain_destination(&destination) {
 							if let Some(asset) = Self::assets_mapping(withdrawal.asset_id) {
 								let multi_asset = MultiAsset {
 									id: asset,
@@ -276,7 +283,7 @@ pub mod pallet {
 									.into(),
 									Box::new(multi_asset.into()),
 									0,
-									Box::new(withdrawal.destination.clone()),
+									Box::new(destination.clone()),
 									WeightLimit::Unlimited,
 								)
 								.is_err()
@@ -286,7 +293,7 @@ pub mod pallet {
 							} else {
 								failed_withdrawal.push(withdrawal)
 							}
-						} else if Self::handle_deposit(withdrawal.clone()).is_err() {
+						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
 							failed_withdrawal.push(withdrawal)
 						}
 					} else {
@@ -336,7 +343,7 @@ pub mod pallet {
 			ensure_signed(origin)?;
 			let asset = AssetId::Concrete(MultiLocation { parents: 1, interior: Junctions::Here });
 			let asset_id = Self::generate_asset_id_for_parachain(asset);
-			let deposit = Deposit { recipient, asset_id, amount: 1_000_000_000_000_000u128 };
+			let deposit = Deposit { recipient, asset_id, amount: 1_000_000_000_000_000u128, extra: Vec::new() };
 			let network = T::ParachainNetworkId::get();
 			T::Executor::execute_withdrawals(network, deposit.encode()).unwrap();
 			Ok(())
@@ -358,7 +365,7 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone());
-			let deposit: Deposit<T::AccountId> = Deposit { recipient, asset_id, amount };
+			let deposit: Deposit<T::AccountId> = Deposit { recipient, asset_id, amount, extra: Vec::new() };
 
 			let parachain_network_id = T::ParachainNetworkId::get();
 			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
@@ -407,11 +414,9 @@ pub mod pallet {
 		}
 
 		/// Route deposit to destined function
-		pub fn handle_deposit(withdrawal: Withdraw) -> DispatchResult {
-			let location = (withdrawal.destination)
-				.try_into()
-				.map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?;
-			let destination_account = Self::get_destination_account(location)
+		pub fn handle_deposit(withdrawal: Withdraw, location: VersionedMultiLocation) -> DispatchResult {
+			let destination_account = Self::get_destination_account(location.try_into()
+				.map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?)
 				.ok_or(Error::<T>::UnableToConvertToAccount)?;
 			T::AssetManager::mint_into(
 				withdrawal.asset_id,
