@@ -69,8 +69,6 @@
 //! - `get_destination_account` - Converts Multilocation to AccountId.
 //! - `is_polkadex_parachain_destination` - Checks if destination address belongs to native parachain or not.
 //! - `is_parachain_asset` - Checks if given asset is native asset or not.
-//! - `get_asset_id` - Get Asset Id.
-//! - `get_asset_info` - Get Asset Info.
 //!
 //! ### Storage Items
 //! - `ActiveTheaKey` - Stores Latest Thea Key.
@@ -98,26 +96,32 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-
 	use frame_support::{
 		dispatch::RawOrigin,
 		log,
 		pallet_prelude::*,
+		PalletId,
 		sp_runtime::traits::AccountIdConversion,
 		traits::{
-			fungibles::{Create, Inspect, Mutate, Transfer},
-			Currency, ExistenceRequirement, ReservableCurrency, WithdrawReasons,
+			Currency,
+			ExistenceRequirement, fungibles::{Create, Inspect, Mutate, Transfer}, ReservableCurrency, WithdrawReasons,
 		},
-		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_core::{sp_std, H256};
+	use pallet_xcm::ensure_response;
+	use sp_core::{H160, H256, sp_std};
 	use sp_runtime::{
-		traits::{Convert, One, UniqueSaturatedInto},
 		SaturatedConversion,
+		traits::{Convert, One, UniqueSaturatedInto},
 	};
+	use polkadex_primitives::Balance;
+	use sp_runtime::traits::ensure_pow;
+	use sp_std::{boxed::Box, vec::Vec};
 	use sp_std::vec;
-
+	use thea_primitives::{
+		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
+	};
+	use thea_primitives::parachain::{Deposit, Withdraw};
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
@@ -127,84 +131,10 @@ pub mod pallet {
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-
-	use sp_std::{boxed::Box, vec::Vec};
-	use thea_primitives::{
-		parachain::{ApprovedWithdraw, ParachainDeposit},
-		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
-	};
 	use xcm_executor::{
-		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
+		traits::{Convert as MoreConvert, TransactAsset},
 	};
-
-	pub type BalanceOf<T> =
-		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-	//TODO Replace this with TheaMessages #Issue: 38
-	#[derive(Encode, Decode, TypeInfo)]
-	pub enum TheaMessage {
-		/// AssetDeposited(Recipient, Asset & Amount)
-		AssetDeposited(Box<MultiLocation>, Box<MultiAsset>),
-		/// Thea Key Set by Sudo
-		TheaKeySetBySudo(sp_core::ecdsa::Public),
-		/// New Thea Key Set by Current Relayer Set
-		TheaKeyChanged(sp_core::ecdsa::Public),
-	}
-
-	#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode)]
-	pub struct IngressMessageLimit;
-
-	impl Get<u32> for IngressMessageLimit {
-		fn get() -> u32 {
-			20 // TODO: Arbitrary value
-		}
-	}
-
-	pub struct AssetAndAmount {
-		pub asset: u128,
-		pub amount: u128,
-	}
-
-	impl AssetAndAmount {
-		pub fn new(asset: u128, amount: u128) -> Self {
-			AssetAndAmount { asset, amount }
-		}
-	}
-
-	#[derive(Clone, PartialEq, Eq, Encode, Decode, TypeInfo, Debug)]
-	pub struct PendingWithdrawal {
-		pub asset: sp_std::boxed::Box<VersionedMultiAssets>,
-		pub destination: sp_std::boxed::Box<VersionedMultiLocation>,
-		pub is_blocked: bool,
-	}
-
-	impl Default for PendingWithdrawal {
-		fn default() -> Self {
-			let asset = MultiAsset {
-				id: AssetId::Concrete(Default::default()),
-				fun: Fungibility::Fungible(0u128),
-			};
-			let assets = VersionedMultiAssets::V1(MultiAssets::from(vec![asset]));
-			Self {
-				asset: Box::new(assets),
-				destination: Box::new(VersionedMultiLocation::V1(Default::default())),
-				is_blocked: false,
-			}
-		}
-	}
-
-	#[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
-	pub enum AssetType {
-		Fungible,
-		NonFungible,
-	}
-
-	#[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
-	pub struct ParachainAsset {
-		pub location: MultiLocation,
-		pub asset_type: AssetType,
-	}
 
 	pub trait AssetIdConverter {
 		/// Converts AssetId to MultiLocation
@@ -218,42 +148,17 @@ pub mod pallet {
 		fn check_whitelisted_token(asset_id: u128) -> bool;
 	}
 
-	/// Deposit approved for Solochain
-	#[derive(Encode, Decode, Clone, Copy, Debug, MaxEncodedLen, TypeInfo)]
-	pub struct ApprovedDeposit<AccountId> {
-		pub asset_id: u128,
-		pub amount: u128,
-		pub recipient: AccountId,
-		pub network_id: u8,
-		pub tx_hash: sp_core::H256,
-	}
-
-	impl<AccountId> ApprovedDeposit<AccountId> {
-		fn new(
-			asset_id: u128,
-			amount: u128,
-			recipient: AccountId,
-			network_id: u8,
-			transaction_hash: sp_core::H256,
-		) -> Self {
-			ApprovedDeposit { asset_id, amount, recipient, network_id, tx_hash: transaction_hash }
-		}
-	}
-
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + orml_xtokens::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		/// Integrate Balances Pallet
-		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// Multilocation to AccountId Convert
 		type AccountIdConvert: MoreConvert<MultiLocation, Self::AccountId>;
 		/// Asset Manager
-		type AssetManager: Create<<Self as frame_system::Config>::AccountId>
-			+ Mutate<<Self as frame_system::Config>::AccountId, Balance = u128, AssetId = u128>
-			+ Inspect<<Self as frame_system::Config>::AccountId>
-			+ Transfer<<Self as frame_system::Config>::AccountId>;
+		type AssetManager: Transfer<Self::AccountId, AssetId = u128, Balance = Balance>
+		+ Inspect<Self::AccountId, AssetId = u128, Balance = Balance>
+		+ Mutate<Self::AccountId, AssetId = u128, Balance = Balance> + Create<Self::AccountId>;
 		/// Asset Create/ Update Origin
 		type AssetCreateUpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Message Executor
@@ -269,43 +174,40 @@ pub mod pallet {
 		type ParachainId: Get<u32>;
 		#[pallet::constant]
 		type ParachainNetworkId: Get<u8>;
+		/// Native Asset Id
+		#[pallet::constant]
+		type NativeAssetId: Get<u128>;
 	}
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_thea_key)]
-	pub(super) type ActiveTheaKey<T: Config> = StorageValue<_, sp_core::ecdsa::Public, OptionQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn withdraw_nonce)]
-	pub(super) type WithdrawNonce<T: Config> = StorageValue<_, u32, ValueQuery>;
 
 	/// Pending Withdrawals
 	#[pallet::storage]
 	#[pallet::getter(fn get_pending_withdrawals)]
 	pub(super) type PendingWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<PendingWithdrawal>, ValueQuery>;
+	StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Withdraw>, ValueQuery>;
 
 	/// Failed Withdrawals
 	#[pallet::storage]
 	#[pallet::getter(fn get_failed_withdrawals)]
 	pub(super) type FailedWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<PendingWithdrawal>, ValueQuery>;
+	StorageMap<_, Blake2_128Concat, T::BlockNumber, Vec<Withdraw>, ValueQuery>;
 
-	/// Thea Assets, asset_id(u128) -> (network_id(u8), identifier_length(u8),
-	/// identifier(BoundedVec<>))
+	/// Asset mapping from u128 asset to multi asset.
 	#[pallet::storage]
-	#[pallet::getter(fn get_thea_assets)]
-	pub type TheaAssets<T: Config> =
-		StorageMap<_, Blake2_128Concat, u128, (u8, u8, BoundedVec<u8, ConstU32<1000>>), ValueQuery>;
+	#[pallet::getter(fn assets_mapping)]
+	pub type ParachainAssets<T: Config> = StorageMap<_, Identity, u128, AssetId, OptionQuery>;
+
+	/// Asset mapping from multi-asset to u128
+	#[pallet::storage]
+	#[pallet::getter(fn inverse_assets_mapping)]
+	pub type InverseParachainAssets<T: Config> = StorageMap<_, Identity, AssetId, u128, OptionQuery>;
 
 	/// Whitelist Tokens
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
-	pub type WhitelistedTokens<T: Config> =
-		StorageValue<_, BoundedVec<u128, ConstU32<50>>, ValueQuery>;
+	pub type WhitelistedTokens<T: Config> = StorageValue<_, Vec<u128>, ValueQuery>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::generate_store(pub (super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -315,20 +217,24 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
-		/// parameters. [recipient, asset_id, amount]
-		AssetDeposited(MultiLocation, Box<MultiAsset>),
+		/// parameters. [recipient, multiasset, asset_id]
+		AssetDeposited(MultiLocation, MultiAsset, u128),
 		AssetWithdrawn(T::AccountId, MultiAsset),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(u128),
 		/// Token Whitelisted For Xcm [token]
 		TokenWhitelistedForXcm(u128),
 		/// Xcm Fee Transferred [recipient, amount]
-		XcmFeeTransferred(T::AccountId, BalanceOf<T>),
+		XcmFeeTransferred(T::AccountId, u128),
+		/// Native asset id mapping is registered
+		NativeAssetIdMappingRegistered(u128, AssetId)
 	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
+		/// Unable to generate asset
+		AssetGenerationFailed,
 		/// Index not found
 		IndexNotFound,
 		/// Identifier Length Mismatch
@@ -360,33 +266,37 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
-			let mut failed_withdrawal: BoundedVec<PendingWithdrawal, ConstU32<100>> =
-				BoundedVec::default();
+			// TODO: Benchmark this is with a predefined bound but don't use bounded vec
+			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
 					if !withdrawal.is_blocked {
 						if !Self::is_polkadex_parachain_destination(&withdrawal.destination) {
-							if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
-								RawOrigin::Signed(
-									T::AssetHandlerPalletId::get().into_account_truncating(),
+							if let Some(asset) = Self::assets_mapping(withdrawal.asset_id) {
+								let multi_asset = MultiAsset{ id: asset, fun: Fungibility::Fungible(withdrawal.amount) };
+								if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
+									RawOrigin::Signed(
+										T::AssetHandlerPalletId::get().into_account_truncating(),
+									)
+										.into(),
+									Box::new(multi_asset.into()),
+									0,
+									Box::new(withdrawal.destination.clone()),
+									WeightLimit::Unlimited,
 								)
-								.into(),
-								withdrawal.asset.clone(),
-								0,
-								withdrawal.destination.clone(),
-								WeightLimit::Unlimited,
-							)
-							.is_err()
-							{
-								failed_withdrawal
-									.try_push(withdrawal.clone())
-									.expect("Vector Overflow");
+									.is_err()
+								{
+									failed_withdrawal.push(withdrawal.clone())
+								}
+							}else{
+								failed_withdrawal.push(withdrawal)
 							}
+
 						} else if Self::handle_deposit(withdrawal.clone()).is_err() {
-							failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
+							failed_withdrawal.push(withdrawal)
 						}
 					} else {
-						failed_withdrawal.try_push(withdrawal).expect("Vector Overflow");
+						failed_withdrawal.push(withdrawal)
 					}
 				}
 			});
@@ -397,35 +307,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Creates new Assets using Parachain info.
-		///
-		/// # Parameters
-		///
-		/// * `asset`: New Asset Id.
-		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn create_parachain_asset(
-			origin: OriginFor<T>,
-			asset: sp_std::boxed::Box<AssetId>,
-		) -> DispatchResult {
-			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
-			let (network_id, asset_identifier, identifier_length) =
-				Self::get_asset_info(*asset.clone())?;
-			let asset_id = Self::generate_asset_id_for_parachain(*asset)?;
-			// Call Assets Pallet
-			T::AssetManager::create(
-				asset_id,
-				T::AssetHandlerPalletId::get().into_account_truncating(),
-				false,
-				BalanceOf::<T>::one().unique_saturated_into(),
-			)?;
-			<TheaAssets<T>>::insert(
-				asset_id,
-				(network_id, identifier_length as u8, asset_identifier),
-			);
-			Self::deposit_event(Event::<T>::TheaAssetCreated(asset_id));
-			Ok(())
-		}
 
 		/// Whitelists Token .
 		///
@@ -438,9 +319,7 @@ pub mod pallet {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			ensure!(!whitelisted_tokens.contains(&token), Error::<T>::TokenIsAlreadyWhitelisted);
-			whitelisted_tokens
-				.try_push(token)
-				.map_err(|_| Error::<T>::WhitelistedTokensLimitReached)?;
+			whitelisted_tokens.push(token);
 			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
 			Ok(())
@@ -451,15 +330,20 @@ pub mod pallet {
 		pub fn transfer_fee(
 			origin: OriginFor<T>,
 			to: T::AccountId,
-			amount: BalanceOf<T>,
 		) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let from = T::AssetHandlerPalletId::get().into_account_truncating();
-			T::Currency::transfer(
+			let amount = T::AssetManager::reducible_balance(
+				T::NativeAssetId::get(),
+				&from,
+				true
+			);
+			T::AssetManager::transfer(
+				T::NativeAssetId::get(),
 				&from,
 				&to,
-				amount.saturated_into(),
-				ExistenceRequirement::KeepAlive,
+				amount,
+				true,
 			)?;
 			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount));
 			Ok(())
@@ -468,20 +352,32 @@ pub mod pallet {
 		// TODO: This should be removed after testing before creating a release
 		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
-		pub fn mock_deposit(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+		pub fn mock_deposit(origin: OriginFor<T>, recipient: T::AccountId) -> DispatchResult {
 			ensure_signed(origin)?;
-			let asset = MultiAsset {
-				id: AssetId::Concrete(MultiLocation { parents: 1, interior: Junctions::Here }),
-				fun: Fungibility::Fungible(1000),
+			let asset = AssetId::Concrete(MultiLocation { parents: 1, interior: Junctions::Here });
+			let asset_id = Self::generate_asset_id_for_parachain(asset)?;
+			let deposit = Deposit{
+				recipient,
+				asset_id,
+				amount: 1_000_000_000_000_000u128,
 			};
-			let MultiAsset { id, fun } = asset;
-			let amount: u128 = Self::get_amount(&fun).unwrap();
-			let asset_id = Self::generate_asset_id_for_parachain(id).unwrap(); //TODO: Verify error
-			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
 			let network = T::ParachainNetworkId::get();
 			T::Executor::execute_withdrawals(network, deposit.encode()).unwrap();
 			Ok(())
 		}
+
+
+		// Registers an AssetID (xcm type) to u128 type.
+		#[pallet::call_index(5)]
+		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		pub fn set_native_assetid_mapping(origin: OriginFor<T>, asset: AssetId) -> DispatchResult {
+			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
+			let asset_id = Self::generate_asset_id_for_parachain(asset.clone())?;
+			Self::deposit_event(Event::<T>::NativeAssetIdMappingRegistered(asset_id, asset));
+			Ok(())
+		}
+
+
 	}
 
 	impl<T: Config> Convert<u128, Option<MultiLocation>> for Pallet<T> {
@@ -493,20 +389,26 @@ pub mod pallet {
 	impl<T: Config> TransactAsset for Pallet<T> {
 		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
-			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), Box::new(what.clone())));
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
-			let who =
+			let recipient =
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
+			// TODO: Can this id be a native currency?
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone())
 				.map_err(|_| XcmError::Trap(22))?;
-			let deposit = ApprovedDeposit::new(asset_id, amount, who, 1, H256::default());
+			let deposit: Deposit<T::AccountId> = Deposit{
+				recipient,
+				asset_id,
+				amount,
+			};
 			let parachain_network_id = T::ParachainNetworkId::get();
-			if T::Executor::execute_withdrawals(parachain_network_id, deposit.encode()).is_err() {
-				log::error!(target:"thea", "Failed to execute withdrawals");
-				return Err(XcmError::Trap(102))
-			}
+			T::Executor::execute_withdrawals(parachain_network_id,
+											 deposit.encode())
+				.map_err(|_| XcmError::Trap(102))?;
+			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(),
+														   what.clone(),
+														   asset_id));
 			Ok(())
 		}
 
@@ -519,21 +421,10 @@ pub mod pallet {
 			let who =
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
-			if Self::is_native_asset(id) {
-				T::Currency::withdraw(
-					&who,
-					amount.saturated_into(),
-					WithdrawReasons::all(),
-					ExistenceRequirement::KeepAlive,
-				)
-				.map_err(|_| XcmError::Trap(21))?;
-			} else {
-				let asset_id = Self::generate_asset_id_for_parachain(what.id.clone())
-					.map_err(|_| XcmError::Trap(22))?;
-				T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
-					.map_err(|_| XcmError::Trap(24))?;
-			}
-			Self::deposit_event(Event::<T>::AssetWithdrawn(who, what.clone()));
+			let asset_id = Self::generate_asset_id_for_parachain(what.id.clone())
+				.map_err(|_| XcmError::Trap(22))?;
+			T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
+				.map_err(|_| XcmError::Trap(24))?;
 			Ok(what.clone().into())
 		}
 
@@ -548,20 +439,10 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(from).map_err(|_| XcmError::FailedToDecode)?;
 			let to = T::AccountIdConvert::convert_ref(to).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
-			if Self::is_native_asset(id) {
-				T::Currency::transfer(
-					&from,
-					&to,
-					amount.saturated_into(),
-					ExistenceRequirement::KeepAlive,
-				)
-				.map_err(|_| XcmError::Trap(21))?;
-			} else {
-				let asset_id = Self::generate_asset_id_for_parachain(id.clone())
-					.map_err(|_| XcmError::Trap(22))?;
-				T::AssetManager::transfer(asset_id, &from, &to, amount, true)
-					.map_err(|_| XcmError::Trap(23))?;
-			}
+			let asset_id = Self::generate_asset_id_for_parachain(id.clone())
+				.map_err(|_| XcmError::Trap(22))?;
+			T::AssetManager::transfer(asset_id, &from, &to, amount, true)
+				.map_err(|_| XcmError::Trap(23))?;
 			Ok(asset.clone().into())
 		}
 	}
@@ -572,32 +453,16 @@ pub mod pallet {
 			T::AssetHandlerPalletId::get().into_account_truncating()
 		}
 
-		/// Converts Multilocation to AccountId
-		pub fn multi_location_to_account_converter(location: MultiLocation) -> T::AccountId {
-			T::AccountIdConvert::convert_ref(location).unwrap()
-		}
-
 		/// Route deposit to destined function
-		pub fn handle_deposit(withdrawal: PendingWithdrawal) -> DispatchResult {
-			let PendingWithdrawal { asset, destination, is_blocked: _ } = withdrawal;
-			let location = (*destination)
+		pub fn handle_deposit(withdrawal: Withdraw) -> DispatchResult {
+			let location = (withdrawal.destination)
 				.try_into()
 				.map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?;
 			let destination_account = Self::get_destination_account(location)
 				.ok_or(Error::<T>::UnableToConvertToAccount)?;
-			let assets: Option<MultiAssets> = (*asset).try_into().ok();
-			if let Some(assets) = assets {
-				if let Some(asset) = assets.get(0) {
-					if Self::is_native_asset(&asset.id) {
-						// Transfer native Token
-						Self::deposit_native_token(&destination_account, &asset.fun)?;
-					} else {
-						Self::deposit_non_native_token(&destination_account, asset.clone())?;
-					}
-				}
-			} else {
-				return Err(Error::<T>::UnableToGetAssets.into())
-			}
+			T::AssetManager::mint_into(withdrawal.asset_id,
+									   &destination_account,
+									   withdrawal.amount)?;
 			Ok(())
 		}
 
@@ -616,33 +481,6 @@ pub mod pallet {
 					}
 				},
 				_ => None,
-			}
-		}
-
-		/// Deposits Native Token to Destination Account
-		pub fn deposit_native_token(
-			destination: &T::AccountId,
-			amount: &Fungibility,
-		) -> DispatchResult {
-			if let Some(amount) = Self::get_amount(amount) {
-				T::Currency::deposit_creating(destination, amount.saturated_into());
-				Ok(())
-			} else {
-				Err(Error::<T>::UnableToGetDepositAmount.into())
-			}
-		}
-
-		/// Deposits Non-Native Token to Destination Account
-		pub fn deposit_non_native_token(
-			destination: &T::AccountId,
-			asset: MultiAsset,
-		) -> DispatchResult {
-			let MultiAsset { id, fun } = asset;
-			let asset = Self::generate_asset_id_for_parachain(id)?;
-			if let Some(amount) = Self::get_amount(&fun) {
-				T::AssetManager::mint_into(asset, destination, amount)
-			} else {
-				Err(Error::<T>::UnableToGetDepositAmount.into())
 			}
 		}
 
@@ -671,41 +509,33 @@ pub mod pallet {
 			}
 		}
 
-		/// Generates AssetId(u128) from XCM::AssetId
+		/// Retrieves the existing assetid for given assetid or generates and stores a new assetid
 		pub fn generate_asset_id_for_parachain(
 			asset: AssetId,
 		) -> sp_std::result::Result<u128, DispatchError> {
-			let (network_id, asset_identifier, identifier_length) = Self::get_asset_info(asset)?;
-			let mut derived_asset_id: sp_std::vec::Vec<u8> = vec![];
-			derived_asset_id.push(network_id);
-			derived_asset_id.push(identifier_length as u8);
-			derived_asset_id.extend(&asset_identifier);
-			let asset_id = Self::get_asset_id(derived_asset_id);
-			Ok(asset_id)
-		}
-
-		pub fn get_asset_id(derived_asset_id: sp_std::vec::Vec<u8>) -> u128 {
-			let derived_asset_id_hash =
-				&sp_io::hashing::keccak_256(derived_asset_id.as_ref())[0..16];
-			let mut temp = [0u8; 16];
-			temp.copy_from_slice(derived_asset_id_hash);
-			u128::from_le_bytes(temp)
-		}
-
-		/// Get Asset Info for given AssetId
-		pub fn get_asset_info(
-			asset: AssetId,
-		) -> sp_std::result::Result<(u8, BoundedVec<u8, ConstU32<1000>>, usize), DispatchError> {
-			let network_id = T::ParachainNetworkId::get();
-			if let AssetId::Concrete(asset_location) = asset {
-				let asset_identifier =
-					ParachainAsset { location: asset_location, asset_type: AssetType::Fungible };
-				let asset_identifier = BoundedVec::try_from(asset_identifier.encode())
-					.map_err(|_| Error::<T>::IdentifierLengthMismatch)?;
-				let identifier_length = asset_identifier.len();
-				Ok((network_id, asset_identifier, identifier_length))
-			} else {
-				Err(Error::<T>::AssetIdAbstractNotHandled.into())
+			match Self::inverse_assets_mapping(&asset) {
+				Some(asset_id) => Ok(asset_id),
+				None => {
+					// Generate a random u128
+					let asset_id = u128::from_be_bytes(H160::random()
+						.0[0..16].try_into()
+						.map_err(|_| {
+							Error::<T>::AssetGenerationFailed
+					})?);
+					if Self::assets_mapping(asset_id).is_some() {
+						return Err(Error::<T>::AssetGenerationFailed.into())
+					}
+					T::AssetManager::create(
+						asset_id,
+						T::AssetHandlerPalletId::get().into_account_truncating(),
+						false,
+						1u128.unique_saturated_into(),
+					)?;
+					// Store the mapping and its inverse
+					<ParachainAssets<T>>::insert(asset_id, asset.clone());
+					<InverseParachainAssets<T>>::insert(asset, asset_id);
+					Ok(asset_id)
+				}
 			}
 		}
 
@@ -718,19 +548,10 @@ pub mod pallet {
 			}
 		}
 
-		/// Checks if asset is native or not
-		pub fn is_native_asset(asset: &AssetId) -> bool {
-			let native_asset = MultiLocation {
-				parents: 1,
-				interior: Junctions::X1(Junction::Parachain(T::ParachainId::get())),
-			};
-			matches!(asset, AssetId::Concrete(location) if location == &native_asset)
-		}
-
 		/// Block Transaction to be Executed.
 		pub fn block_by_ele(block_no: T::BlockNumber, index: u32) -> DispatchResult {
 			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
-			let pending_withdrawal: &mut PendingWithdrawal =
+			let pending_withdrawal: &mut Withdraw =
 				pending_withdrawals.get_mut(index as usize).ok_or(Error::<T>::IndexNotFound)?;
 			pending_withdrawal.is_blocked = true;
 			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
@@ -739,30 +560,18 @@ pub mod pallet {
 
 		/// Converts asset_id to XCM::MultiLocation
 		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
-			let (_, _, asset_identifier) = <TheaAssets<T>>::get(asset_id);
-			let asset_identifier = asset_identifier.to_vec();
-			let parachain_asset: Option<ParachainAsset> =
-				Decode::decode(&mut &asset_identifier[..]).ok();
-			if let Some(asset) = parachain_asset {
-				Some(asset.location)
-			} else {
-				None
-			}
+			Self::assets_mapping(asset_id).and_then(| asset | {
+				match asset {
+					AssetId::Concrete(location) => Some(location),
+					AssetId::Abstract(_) => None,
+				}
+			})
+
 		}
 
 		/// Converts Multilocation to u128
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location)).ok()
-		}
-
-		/// Inserts new pending withdrawals
-		pub fn insert_pending_withdrawal(
-			block_no: T::BlockNumber,
-			pending_withdrawal: PendingWithdrawal,
-		) {
-			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
-			pending_withdrawals.push(pending_withdrawal);
-			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
 		}
 	}
 
@@ -784,16 +593,12 @@ pub mod pallet {
 	}
 
 	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
-		fn execute_deposits(_network: Network, deposits: Vec<u8>) {
-			let deposits = BoundedVec::<ApprovedWithdraw, ConstU32<10>>::decode(&mut &deposits[..])
+		fn execute_deposits(_: Network, deposits: Vec<u8>) {
+			let deposits = Vec::<Withdraw>::decode(&mut &deposits[..])
 				.unwrap_or_default();
 
 			for deposit in deposits {
-				let deposit_request = match ParachainDeposit::decode(&mut &deposit.payload[..]) {
-					Ok(deposit_) => deposit_,
-					Err(_) => continue,
-				};
-
+				// Calculate the withdrawal execution delay
 				let withdrawal_execution_block: T::BlockNumber =
 					<frame_system::Pallet<T>>::block_number()
 						.saturated_into::<u32>()
@@ -801,19 +606,11 @@ pub mod pallet {
 							T::WithdrawalExecutionBlockDiff::get().saturated_into::<u32>(),
 						)
 						.into();
-				let asset: Box<VersionedMultiAssets> =
-					Box::new(VersionedMultiAssets::V1(MultiAssets::from(vec![
-						deposit_request.asset_and_amount,
-					])));
-				let dest: Box<VersionedMultiLocation> =
-					Box::new(VersionedMultiLocation::V1(deposit_request.recipient));
-				let pending_withdrawal =
-					PendingWithdrawal { asset, destination: dest, is_blocked: false };
-
+				// Queue the withdrawal for execution
 				<PendingWithdrawals<T>>::mutate(
 					withdrawal_execution_block,
 					|pending_withdrawals| {
-						pending_withdrawals.push(pending_withdrawal);
+						pending_withdrawals.push(deposit);
 					},
 				);
 			}

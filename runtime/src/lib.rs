@@ -548,11 +548,11 @@ impl pallet_amm::Config for Runtime {
 	type LockAccountId = OneAccount;
 	type CreatePoolOrigin = EnsureRoot<Self::AccountId>;
 	type ProtocolFeeUpdateOrigin = EnsureRoot<Self::AccountId>;
+	type WeightInfo = pallet_amm::weights::WeightInfo<Runtime>;
 	type LpFee = DefaultLpFee;
 	type MinimumLiquidity = MinimumLiquidity;
 	type MaxLengthRoute = MaxLengthRoute;
 	type GetNativeCurrencyId = NativeCurrencyId;
-	type WeightInfo = pallet_amm::weights::WeightInfo<Runtime>;
 }
 
 parameter_types! {
