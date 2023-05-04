@@ -464,17 +464,17 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 }
-
+use polkadex_primitives::POLKADEX_NATIVE_ASSET_ID;
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
 	pub ParachainId: u32 = ParachainInfo::get().into();
 	pub const ParachainNetworkId: u8 = 1; // Our parachain's thea id is one.
+	pub const PolkadexAssetid: u128 = POLKADEX_NATIVE_ASSET_ID;
 }
 
 impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type AccountIdConvert = LocationToAccountId;
 	type AssetManager = Assets;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
@@ -483,6 +483,7 @@ impl xcm_helper::Config for Runtime {
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
 	type ParachainNetworkId = ParachainNetworkId;
+	type NativeAssetId = PolkadexAssetid;
 }
 
 parameter_types! {
