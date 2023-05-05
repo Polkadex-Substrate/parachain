@@ -50,6 +50,13 @@ pub mod pallet {
 		CannotBurnNativeAsset,
 	}
 
+	impl <T: Config> Create<T::AccountId> for Pallet<T> {
+		fn create(id: Self::AssetId, admin: T::AccountId, is_sufficient: bool, min_balance: Self::Balance) -> DispatchResult {
+			// TODO: Handle Native Currency
+			T::MultiCurrency::create(id, admin, is_sufficient, min_balance)
+		}
+	}
+
 	impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
 		type AssetId = u128;
 		type Balance = u128;
@@ -168,7 +175,8 @@ pub mod pallet {
 				T::MultiCurrency::mint_into(asset, who, amount.saturated_into())
 					.map(|x| x.saturated_into())
 			} else {
-				fail!(Error::<T>::CannotMintNativeAsset)
+				T::Currency::deposit_creating(who, amount.saturated_into());
+				Ok(())
 			}
 		}
 

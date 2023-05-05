@@ -562,7 +562,7 @@ parameter_types! {
 
 impl asset_handler::Config for Runtime {
 	type Currency = Balances;
-	type MultiCurrency = Assets;
+	type MultiCurrency = AssetHandler;
 	type NativeCurrencyId = NativeCurrencyId;
 }
 

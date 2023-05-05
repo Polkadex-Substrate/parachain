@@ -210,8 +210,8 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, multiasset, asset_id]
-		AssetDeposited(MultiLocation, MultiAsset, u128),
-		AssetWithdrawn(T::AccountId, MultiAsset),
+		AssetDeposited(Box<MultiLocation>, Box<MultiAsset>, u128),
+		AssetWithdrawn(T::AccountId, Box<MultiAsset>),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(u128),
 		/// Token Whitelisted For Xcm [token]
@@ -219,7 +219,7 @@ pub mod pallet {
 		/// Xcm Fee Transferred [recipient, amount]
 		XcmFeeTransferred(T::AccountId, u128),
 		/// Native asset id mapping is registered
-		NativeAssetIdMappingRegistered(u128, AssetId),
+		NativeAssetIdMappingRegistered(u128, Box<AssetId>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -287,6 +287,7 @@ pub mod pallet {
 								failed_withdrawal.push(withdrawal)
 							}
 						} else if Self::handle_deposit(withdrawal.clone()).is_err() {
+
 							failed_withdrawal.push(withdrawal)
 						}
 					} else {
@@ -362,7 +363,7 @@ pub mod pallet {
 			let parachain_network_id = T::ParachainNetworkId::get();
 			T::Executor::execute_withdrawals(parachain_network_id, deposit.encode())
 				.map_err(|_| XcmError::Trap(102))?;
-			Self::deposit_event(Event::<T>::AssetDeposited(who.clone(), what.clone(), asset_id));
+			Self::deposit_event(Event::<T>::AssetDeposited(Box::new(who.clone()), Box::new(what.clone()), asset_id));
 			Ok(())
 		}
 
@@ -476,9 +477,9 @@ pub mod pallet {
 			}
 			// If it's not native, then hash and generate the asset id
 			let asset_id = u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]));
-			if !<ParachainAssets<T>>::contains_key(&asset_id) {
+			if !<ParachainAssets<T>>::contains_key(asset_id) {
 				// Store the mapping
-				<ParachainAssets<T>>::insert(asset_id, asset.clone());
+				<ParachainAssets<T>>::insert(asset_id, asset);
 			}
 			asset_id
 		}
@@ -513,6 +514,15 @@ pub mod pallet {
 		/// Converts Multilocation to u128
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> u128 {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location))
+		}
+
+		pub fn insert_pending_withdrawal(block_no: T::BlockNumber, withdrawal: Withdraw) {
+			<PendingWithdrawals<T>>::insert(block_no, vec![withdrawal]);
+		}
+
+		/// Converts Multilocation to AccountId
+		pub fn multi_location_to_account_converter(location: MultiLocation) -> T::AccountId {
+			T::AccountIdConvert::convert_ref(location).unwrap()
 		}
 	}
 
