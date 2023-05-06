@@ -96,11 +96,11 @@ impl thea_message_handler::Config for Test {
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
+	pub const NativeAssetId:u128 = 100;
 }
 
 impl xcm_helper::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type AccountIdConvert = ();
 	type AssetManager = Assets;
 	type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
@@ -109,6 +109,7 @@ impl xcm_helper::Config for Test {
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ();
 	type ParachainNetworkId = ();
+	type NativeAssetId = NativeAssetId;
 }
 
 parameter_types! {

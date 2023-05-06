@@ -29,13 +29,14 @@ use sp_core::{ConstU32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{Hash, IdentityLookup},
-	AccountId32, Perbill, Permill, SaturatedConversion,
+	AccountId32, DispatchResult, Perbill, Permill, SaturatedConversion,
 };
 use sp_std::prelude::*;
 use std::marker::PhantomData;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 
 use frame_support::{
+	log::error,
 	traits::AsEnsureOriginWithArg,
 	weights::{
 		constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
@@ -228,6 +229,7 @@ impl Config for XcmConfig {
 			>,
 			MockedAMM<AccountId, u128, u128, u64>,
 			XcmHelper,
+			XcmHelper,
 		>,
 	);
 	type ResponseHandler = ();
@@ -406,10 +408,18 @@ impl pallet_xcm::Config for Runtime {
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
-use thea_primitives::{AuthorityId, AuthoritySignature};
+use thea_primitives::{AuthorityId, AuthoritySignature, Network};
 
 parameter_types! {
 	pub const TheaMaxAuthorities: u32 = 10;
+}
+
+pub struct Executor;
+
+impl thea_primitives::TheaOutgoingExecutor for Executor {
+	fn execute_withdrawals(_network: Network, _withdrawals: Vec<u8>) -> DispatchResult {
+		Ok(())
+	}
 }
 
 impl thea_message_handler::Config for Runtime {
@@ -425,19 +435,20 @@ parameter_types! {
 	pub const XcmHandlerId: PalletId = PalletId(*b"XcmHandl");
 	pub ParachainId: u32 = MsgQueue::parachain_id().into();
 	pub const ParachainNetworkId: u8 = 1;
+	pub NativeAssetId: u128 = 100;
 }
 
 impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type AccountIdConvert = LocationToAccountId;
-	type AssetManager = AssetsPallet;
+	type AssetManager = AssetHandler;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
-	type Executor = TheaMessageHandler;
+	type Executor = Executor;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
 	type ParachainNetworkId = ParachainNetworkId;
+	type NativeAssetId = NativeAssetId;
 }
 
 parameter_types! {
@@ -545,7 +556,7 @@ impl pallet_amm::Config for Runtime {
 }
 
 parameter_types! {
-	pub const NativeCurrencyId: u128 = 0;
+	pub const NativeCurrencyId: u128 = 100;
 }
 
 impl asset_handler::Config for Runtime {
@@ -591,12 +602,13 @@ construct_runtime!(
 	}
 );
 
-pub struct ForeignAssetFeeHandler<T, R, AMM, AC>
+pub struct ForeignAssetFeeHandler<T, R, AMM, AC, WH>
 where
 	T: WeightToFeeT<Balance = u128>,
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, u64>,
 	AC: AssetIdConverter,
+	WH: WhitelistedTokenHandler,
 {
 	/// Total used weight
 	weight: u64,
@@ -604,20 +616,21 @@ where
 	consumed: u128,
 	/// Asset Id (as MultiLocation) and units per second for payment
 	asset_location_and_units_per_second: Option<(MultiLocation, u128)>,
-	_pd: PhantomData<(T, R, AMM, AC)>,
+	_pd: PhantomData<(T, R, AMM, AC, WH)>,
 }
 
 use crate::mock_amm::MockedAMM;
 use sp_std::vec;
 use xcm_executor::traits::WeightTrader;
-use xcm_helper::AssetIdConverter;
+use xcm_helper::{AssetIdConverter, WhitelistedTokenHandler};
 
-impl<T, R, AMM, AC> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC>
+impl<T, R, AMM, AC, WH> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC, WH>
 where
 	T: WeightToFeeT<Balance = u128>,
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, u64>,
 	AC: AssetIdConverter,
+	WH: WhitelistedTokenHandler,
 {
 	fn new() -> Self {
 		Self { weight: 0, consumed: 0, asset_location_and_units_per_second: None, _pd: PhantomData }
@@ -631,51 +644,61 @@ where
 		// Calculate weight to fee
 		let fee_in_native_token =
 			T::weight_to_fee(&frame_support::weights::Weight::from_ref_time(weight));
-		// Check if
-		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::TooExpensive)?;
+		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
-				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::TooExpensive)?;
+				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::Trap(1001))?;
 			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
-
-			let expected_fee_in_foreign_currency = AMM::get_amounts_in(fee_in_native_token, path)
-				.map_err(|_| XcmError::TooExpensive)?;
-			let expected_fee_in_foreign_currency =
-				expected_fee_in_foreign_currency.first().ok_or(XcmError::TooExpensive)?;
-			let unused = payment
-				.checked_sub((location.clone(), *expected_fee_in_foreign_currency).into())
-				.map_err(|_| XcmError::TooExpensive)?;
+			let (unused, expected_fee_in_foreign_currency) =
+				if let Ok(expected_fee_in_foreign_currencies) =
+					AMM::get_amounts_in(fee_in_native_token, path)
+				{
+					let expected_fee_in_foreign_currency = expected_fee_in_foreign_currencies
+						.into_iter()
+						.next()
+						.ok_or(XcmError::Trap(1002))?;
+					let unused = payment
+						.checked_sub((location.clone(), expected_fee_in_foreign_currency).into())
+						.map_err(|_| XcmError::Trap(1003))?;
+					(unused, expected_fee_in_foreign_currency)
+				} else if WH::check_whitelisted_token(foreign_currency_asset_id) {
+					(payment, 0u128)
+				} else {
+					return Err(XcmError::Trap(1004))
+				};
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
 			{
 				if old_asset_location == location {
 					self.consumed = self
 						.consumed
-						.saturating_add((*expected_fee_in_foreign_currency).saturated_into());
+						.saturating_add((expected_fee_in_foreign_currency).saturated_into());
 				}
 			} else {
 				self.consumed = self
 					.consumed
-					.saturating_add((*expected_fee_in_foreign_currency).saturated_into());
+					.saturating_add((expected_fee_in_foreign_currency).saturated_into());
 				self.asset_location_and_units_per_second = Some((location, 0));
 			}
 			Ok(unused)
 		} else {
-			Err(XcmError::TooExpensive)
+			Err(XcmError::Trap(1005))
 		}
 	}
 }
 
-impl<T, R, AMM, AC> Drop for ForeignAssetFeeHandler<T, R, AMM, AC>
+impl<T, R, AMM, AC, WH> Drop for ForeignAssetFeeHandler<T, R, AMM, AC, WH>
 where
 	T: WeightToFeeT<Balance = u128>,
 	R: TakeRevenue,
 	AMM: support::AMM<AccountId, u128, Balance, u64>,
 	AC: AssetIdConverter,
+	WH: WhitelistedTokenHandler,
 {
 	fn drop(&mut self) {
 		if let Some((asset_location, _)) = self.asset_location_and_units_per_second.clone() {
 			if self.consumed > 0 {
+				//panic!("star {:?}", self.consumed);
 				R::take_revenue((asset_location, self.consumed).into());
 			}
 		}
@@ -702,6 +725,8 @@ where
 	_pd: sp_std::marker::PhantomData<(AM, AC, AMM, AssetConv, BalanceConv)>,
 }
 
+use sp_runtime::traits::Zero;
+
 impl<AM, AC, AMM, AssetConv, BalanceConv> TakeRevenue
 	for RevenueCollector<AM, AC, AMM, AssetConv, BalanceConv>
 where
@@ -713,19 +738,30 @@ where
 {
 	fn take_revenue(revenue: MultiAsset) {
 		if let AssetId::Concrete(location) = revenue.id {
-			if let (Some(asset_id_u128), Fungibility::Fungible(amount)) =
+			if let (Some(asset_id), Fungibility::Fungible(amount)) =
 				(AC::convert_location_to_asset_id(location), revenue.fun)
 			{
 				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
-				let asset_id = AssetConv::convert_ref(asset_id_u128).unwrap();
-				AM::mint_into(
-					asset_id,
-					&asset_handler_account,
-					BalanceConv::convert_ref(1_000_000_000_000_000).unwrap(),
-				)
-				.expect("TODO: panic message"); //TODO: Print Error log
-				AMM::swap(&asset_handler_account, (asset_id_u128, NativeCurrencyId::get()), amount)
-					.expect("TODO: panic message"); // TODO Print Error log
+				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) =
+					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
+				{
+					if !amount.is_zero() {
+						if let Err(e) = AM::mint_into(
+							asset_id_associated_type,
+							&asset_handler_account,
+							amount_associated_type,
+						) {
+							error!(target: "runtime", "Failed to mint asset {:?} for {:?} with reason {:?}", asset_id_associated_type, asset_handler_account, e);
+						}
+						if let Err(e) = AMM::swap(
+							&asset_handler_account,
+							(asset_id, NativeCurrencyId::get()),
+							amount,
+						) {
+							error!(target: "runtime", "Failed to swap asset {:?} for {:?} with reason {:?}", asset_id, asset_handler_account, e);
+						}
+					}
+				}
 			}
 		}
 	}
