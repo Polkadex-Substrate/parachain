@@ -18,9 +18,10 @@ mod mock_amm;
 mod parachain;
 mod relay_chain;
 
-use crate::parachain::System;
+use crate::parachain::{RuntimeEvent, System, XcmHelper};
 use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
 use polkadot_parachain::primitives::Id as ParaId;
+use thea_primitives::types::{Deposit, Withdraw};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub const ASSET_HANDLER_PALLET_ID: PalletId = PalletId(*b"XcmHandl");
@@ -110,6 +111,7 @@ pub type ParachainPalletXcm = pallet_xcm::Pallet<parachain::Runtime>;
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use codec::Encode;
 
 	use frame_support::{assert_noop, assert_ok};
 	use polkadot_core_primitives::AccountId;
@@ -327,11 +329,15 @@ mod tests {
 					id: [1; 32],
 				}),
 			};
-			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
+			let destination: VersionedMultiLocation = destination.into();
 			let asset_id = 100;
-
-			let pending_withdrawal =
-				Withdraw { asset_id, amount, destination: destination.into(), is_blocked: false };
+			let pending_withdrawal = Withdraw {
+				asset_id,
+				amount,
+				destination: destination.encode(),
+				is_blocked: false,
+				extra: vec![],
+			};
 			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
 			System::set_block_number(99);
 			run_to_block(100);
@@ -341,11 +347,6 @@ mod tests {
 			);
 		});
 	}
-
-	use thea_primitives::{
-		parachain::{Deposit, Withdraw},
-		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
-	};
 
 	#[test]
 	fn test_on_initialize_with_non_native_asset_deposit_to_polkadex_parachain() {
@@ -365,8 +366,13 @@ mod tests {
 			};
 			// Register Asset Id
 			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
-			let pending_withdrawal =
-				Withdraw { asset_id, amount, destination: destination.into(), is_blocked: false };
+			let pending_withdrawal = Withdraw {
+				asset_id,
+				amount,
+				destination: destination.encode(),
+				is_blocked: false,
+				extra: vec![],
+			};
 			create_dot_asset();
 			mint_native_token(sp_core::crypto::AccountId32::new([1; 32]));
 			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
