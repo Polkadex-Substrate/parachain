@@ -85,6 +85,7 @@ router = { workspace = true, default-features = false }
 asset-handler = { path = "../pallets/asset-handler", default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }
+polkadex-primitives = { workspace = true, default-features = false }
 
 [features]
 default = [

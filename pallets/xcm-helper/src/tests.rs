@@ -9,16 +9,6 @@ use sp_runtime::SaturatedConversion;
 use xcm::latest::{AssetId, MultiLocation};
 
 #[test]
-fn test_create_parachain_asset_returns_ok() {
-	new_test_ext().execute_with(|| {
-		let asset_location = MultiLocation::parent();
-		let asset_id = AssetId::Concrete(asset_location);
-		let asset_id = sp_std::boxed::Box::new(asset_id);
-		assert_ok!(XcmHelper::create_parachain_asset(RuntimeOrigin::root(), asset_id));
-	});
-}
-
-#[test]
 fn test_whitelist_token_returns_ok() {
 	new_test_ext().execute_with(|| {
 		let token = 100;
