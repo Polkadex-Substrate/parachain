@@ -26,12 +26,17 @@ use frame_support::{
 	weights::{Weight, WeightToFee as WeightToFeeT},
 };
 use sp_core::{ConstU32, H256};
-use sp_runtime::{testing::Header, traits::{Hash, IdentityLookup}, AccountId32, Perbill, Permill, SaturatedConversion, DispatchResult};
+use sp_runtime::{
+	testing::Header,
+	traits::{Hash, IdentityLookup},
+	AccountId32, DispatchResult, Perbill, Permill, SaturatedConversion,
+};
 use sp_std::prelude::*;
 use std::marker::PhantomData;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 
 use frame_support::{
+	log::error,
 	traits::AsEnsureOriginWithArg,
 	weights::{
 		constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
@@ -39,7 +44,6 @@ use frame_support::{
 	},
 	PalletId,
 };
-use frame_support::log::error;
 use frame_system::{EnsureRoot, EnsureSigned};
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
@@ -50,7 +54,12 @@ use polkadot_parachain::primitives::{
 };
 use sp_runtime::traits::{AccountIdConversion, Convert};
 use xcm::VersionedXcm;
-use xcm_builder::{AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter, ParentIsPreset, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents};
+use xcm_builder::{
+	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+	AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
+	ParentIsPreset, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
+};
 use xcm_executor::{traits::ShouldExecute, Assets, Config, XcmExecutor};
 
 pub type AccountId = AccountId32;
@@ -642,7 +651,7 @@ where
 			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
 			let (unused, expected_fee_in_foreign_currency) =
 				if let Ok(expected_fee_in_foreign_currencies) =
-				AMM::get_amounts_in(fee_in_native_token, path)
+					AMM::get_amounts_in(fee_in_native_token, path)
 				{
 					let expected_fee_in_foreign_currency = expected_fee_in_foreign_currencies
 						.into_iter()
@@ -730,11 +739,11 @@ where
 	fn take_revenue(revenue: MultiAsset) {
 		if let AssetId::Concrete(location) = revenue.id {
 			if let (Some(asset_id), Fungibility::Fungible(amount)) =
-			(AC::convert_location_to_asset_id(location), revenue.fun)
+				(AC::convert_location_to_asset_id(location), revenue.fun)
 			{
 				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
 				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) =
-				(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
+					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
 				{
 					if !amount.is_zero() {
 						if let Err(e) = AM::mint_into(

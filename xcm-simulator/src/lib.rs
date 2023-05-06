@@ -18,10 +18,10 @@ mod mock_amm;
 mod parachain;
 mod relay_chain;
 
+use crate::parachain::System;
 use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
 use polkadot_parachain::primitives::Id as ParaId;
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
-use crate::parachain::System;
 
 pub const ASSET_HANDLER_PALLET_ID: PalletId = PalletId(*b"XcmHandl");
 pub const ALICE: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([
@@ -330,12 +330,8 @@ mod tests {
 			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
 			let asset_id = 100;
 
-			let pending_withdrawal = Withdraw {
-				asset_id: asset_id,
-				amount: amount,
-				destination: destination.into(),
-				is_blocked: false
-			};
+			let pending_withdrawal =
+				Withdraw { asset_id, amount, destination: destination.into(), is_blocked: false };
 			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
 			System::set_block_number(99);
 			run_to_block(100);
@@ -369,12 +365,8 @@ mod tests {
 			};
 			// Register Asset Id
 			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
-			let pending_withdrawal = Withdraw {
-				asset_id: asset_id,
-				amount: amount,
-				destination: destination.into(),
-				is_blocked: false
-			};
+			let pending_withdrawal =
+				Withdraw { asset_id, amount, destination: destination.into(), is_blocked: false };
 			create_dot_asset();
 			mint_native_token(sp_core::crypto::AccountId32::new([1; 32]));
 			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);

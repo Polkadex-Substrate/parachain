@@ -106,11 +106,8 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	use polkadex_primitives::Balance;
-	use sp_core::{sp_std};
-	use sp_runtime::{
-		traits::{Convert},
-		SaturatedConversion,
-	};
+	use sp_core::sp_std;
+	use sp_runtime::{traits::Convert, SaturatedConversion};
 
 	use sp_std::{boxed::Box, vec, vec::Vec};
 	use thea_primitives::{
@@ -122,11 +119,11 @@ pub mod pallet {
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
 			MultiLocation, Result,
 		},
+		prelude::Parachain,
 		v1::AssetId,
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
-	use xcm::prelude::Parachain;
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
@@ -263,12 +260,14 @@ pub mod pallet {
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
 					if !withdrawal.is_blocked {
-						let destination = match VersionedMultiLocation::decode(&mut &withdrawal.destination[..]) {
+						let destination = match VersionedMultiLocation::decode(
+							&mut &withdrawal.destination[..],
+						) {
 							Ok(dest) => dest,
 							Err(_) => {
 								failed_withdrawal.push(withdrawal);
 								continue
-							}
+							},
 						};
 						if !Self::is_polkadex_parachain_destination(&destination) {
 							if let Some(asset) = Self::assets_mapping(withdrawal.asset_id) {
@@ -343,7 +342,12 @@ pub mod pallet {
 			ensure_signed(origin)?;
 			let asset = AssetId::Concrete(MultiLocation { parents: 1, interior: Junctions::Here });
 			let asset_id = Self::generate_asset_id_for_parachain(asset);
-			let deposit = Deposit { recipient, asset_id, amount: 1_000_000_000_000_000u128, extra: Vec::new() };
+			let deposit = Deposit {
+				recipient,
+				asset_id,
+				amount: 1_000_000_000_000_000u128,
+				extra: Vec::new(),
+			};
 			let network = T::ParachainNetworkId::get();
 			T::Executor::execute_withdrawals(network, deposit.encode()).unwrap();
 			Ok(())
@@ -365,12 +369,17 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone());
-			let deposit: Deposit<T::AccountId> = Deposit { recipient, asset_id, amount, extra: Vec::new() };
+			let deposit: Deposit<T::AccountId> =
+				Deposit { recipient, asset_id, amount, extra: Vec::new() };
 
 			let parachain_network_id = T::ParachainNetworkId::get();
 			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
 				.map_err(|_| XcmError::Trap(102))?;
-			Self::deposit_event(Event::<T>::AssetDeposited(Box::new(who.clone()), Box::new(what.clone()), asset_id));
+			Self::deposit_event(Event::<T>::AssetDeposited(
+				Box::new(who.clone()),
+				Box::new(what.clone()),
+				asset_id,
+			));
 			Ok(())
 		}
 
@@ -414,10 +423,14 @@ pub mod pallet {
 		}
 
 		/// Route deposit to destined function
-		pub fn handle_deposit(withdrawal: Withdraw, location: VersionedMultiLocation) -> DispatchResult {
-			let destination_account = Self::get_destination_account(location.try_into()
-				.map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?)
-				.ok_or(Error::<T>::UnableToConvertToAccount)?;
+		pub fn handle_deposit(
+			withdrawal: Withdraw,
+			location: VersionedMultiLocation,
+		) -> DispatchResult {
+			let destination_account = Self::get_destination_account(
+				location.try_into().map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?,
+			)
+			.ok_or(Error::<T>::UnableToConvertToAccount)?;
 			T::AssetManager::mint_into(
 				withdrawal.asset_id,
 				&destination_account,
@@ -470,14 +483,13 @@ pub mod pallet {
 		}
 
 		/// Retrieves the existing assetid for given assetid or generates and stores a new assetid
-		pub fn generate_asset_id_for_parachain(
-			asset: AssetId,
-		) -> u128 {
+		pub fn generate_asset_id_for_parachain(asset: AssetId) -> u128 {
 			// Check if its native or not.
-			if asset == AssetId::Concrete(MultiLocation{
-				parents: 1,
-				interior: Junctions::X1(Parachain(T::ParachainId::get()))
-			}){
+			if asset ==
+				AssetId::Concrete(MultiLocation {
+					parents: 1,
+					interior: Junctions::X1(Parachain(T::ParachainId::get())),
+				}) {
 				return T::NativeAssetId::get()
 			}
 			// If it's not native, then hash and generate the asset id

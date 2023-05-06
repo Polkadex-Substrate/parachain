@@ -50,8 +50,13 @@ pub mod pallet {
 		CannotBurnNativeAsset,
 	}
 
-	impl <T: Config> Create<T::AccountId> for Pallet<T> {
-		fn create(id: Self::AssetId, admin: T::AccountId, is_sufficient: bool, min_balance: Self::Balance) -> DispatchResult {
+	impl<T: Config> Create<T::AccountId> for Pallet<T> {
+		fn create(
+			id: Self::AssetId,
+			admin: T::AccountId,
+			is_sufficient: bool,
+			min_balance: Self::Balance,
+		) -> DispatchResult {
 			// TODO: Handle Native Currency
 			T::MultiCurrency::create(id, admin, is_sufficient, min_balance)
 		}
