@@ -119,11 +119,6 @@ mod tests {
 	use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
 	use xcm_simulator::TestExt;
 
-	// Helper function for forming buy execution message
-	fn buy_execution<C>(fees: impl Into<MultiAsset>) -> Instruction<C> {
-		BuyExecution { fees: fees.into(), weight_limit: Unlimited }
-	}
-
 	#[test]
 	fn test_withdraw_from_parachain_to_relay_chain() {
 		MockNet::reset();
@@ -318,11 +313,7 @@ mod tests {
 		MockNet::reset();
 		ParaA::execute_with(|| {
 			//Add to pending withdrawal
-			let location =
-				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
-			let asset_id = AssetId::Concrete(location);
 			let amount = 1_000_000_000_000u128;
-			let asset = MultiAsset { id: asset_id.clone(), fun: Fungibility::Fungible(amount) };
 			let destination = MultiLocation {
 				parents: 0,
 				interior: Junctions::X1(Junction::AccountId32 {
@@ -357,7 +348,6 @@ mod tests {
 				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
 			let asset_id = AssetId::Concrete(location);
 			let amount = 1_000_000_000_000u128;
-			let asset = MultiAsset { id: asset_id.clone(), fun: Fungibility::Fungible(amount) };
 			let destination = MultiLocation {
 				parents: 0,
 				interior: Junctions::X1(Junction::AccountId32 {
@@ -481,7 +471,6 @@ mod tests {
 	}
 
 	fn create_asset() {
-		let asset_id = 313675452054768990531043083915731189857u128;
 		let asset = AssetId::Concrete(Parent.into());
 		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
 		assert_ok!(AssetsPallet::create(

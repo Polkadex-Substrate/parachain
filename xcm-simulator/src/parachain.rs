@@ -698,7 +698,6 @@ where
 	fn drop(&mut self) {
 		if let Some((asset_location, _)) = self.asset_location_and_units_per_second.clone() {
 			if self.consumed > 0 {
-				//panic!("star {:?}", self.consumed);
 				R::take_revenue((asset_location, self.consumed).into());
 			}
 		}
