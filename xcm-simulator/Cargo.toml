@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 scale-info = { version = "2.1.2", features = ["derive"] }
-smallvec = {workspace = true}
+smallvec = { workspace = true }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
@@ -29,13 +29,13 @@ polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = 
 pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 
 # ORML Pallets
-orml-xtokens = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git", branch = "polkadot-v0.9.37"}
-orml-traits = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37"}
-orml-xcm-support = {git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37"}
+orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", branch = "polkadot-v0.9.37" }
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37" }
+orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37" }
 
 # Custom pallets
-xcm-helper = {path = "../pallets/xcm-helper" }
-asset-handler = {path = "../pallets/asset-handler"}
+xcm-helper = { path = "../pallets/xcm-helper" }
+asset-handler = { path = "../pallets/asset-handler" }
 pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }
 support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }
 router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }

@@ -26,7 +26,11 @@ benchmarks! {
 	transfer_fee {
 		let b in 1 .. 1000;
 		let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
-		T::AssetManager::mint_into(100,&pallet_account, 2_000_000_000_000_000u128.saturated_into());
+		T::AssetManager::mint_into(
+			100,
+			&pallet_account,
+			2_000_000_000_000_000u128.saturated_into()
+		).unwrap();
 		let recipeint: T::AccountId = account("mem1", b, SEED);
 	}: _(RawOrigin::Root, recipeint)
 
