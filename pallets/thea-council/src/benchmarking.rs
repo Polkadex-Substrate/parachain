@@ -6,7 +6,7 @@ use frame_benchmarking::{account, benchmarks};
 use frame_support::{sp_runtime::SaturatedConversion, BoundedVec};
 use frame_system::RawOrigin;
 use sp_std::vec;
-use xcm_helper::PendingWithdrawal;
+use thea_primitives::types::Withdraw;
 const SEED: u32 = 0;
 
 benchmarks! {
@@ -54,7 +54,13 @@ benchmarks! {
 		<ActiveCouncilMembers<T>>::put(active_council_member);
 		// Add Pending Withdrawal
 		let block_no: T::BlockNumber = 100u64.saturated_into();
-		let pending_withdrawal = PendingWithdrawal::default();
+		let pending_withdrawal = Withdraw {
+			asset_id: 0,
+			amount: 0,
+			destination: vec![],
+			is_blocked: false,
+			extra: vec![]
+		};
 		xcm_helper::Pallet::<T>::insert_pending_withdrawal(block_no, pending_withdrawal);
 	}: _(RawOrigin::Signed(council_member), block_no, 0u32)
 }
