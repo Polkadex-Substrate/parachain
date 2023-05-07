@@ -104,11 +104,11 @@ parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
 	pub ParachainId: u32 = 2040;
+	pub NativeAssetId: u128 = 100;
 }
 
 impl xcm_helper::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type AccountIdConvert = ();
 	type AssetManager = Assets;
 	type AssetCreateUpdateOrigin = EnsureSigned<Self::AccountId>;
@@ -117,6 +117,7 @@ impl xcm_helper::Config for Test {
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
 	type ParachainNetworkId = frame_support::traits::ConstU8<0>;
+	type NativeAssetId = NativeAssetId;
 }
 
 parameter_types! {
