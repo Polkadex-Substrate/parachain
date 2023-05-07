@@ -17,10 +17,11 @@
 mod mock_amm;
 mod parachain;
 mod relay_chain;
-
+#[allow(unused_imports)]
 use crate::parachain::{RuntimeEvent, System, XcmHelper};
 use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
 use polkadot_parachain::primitives::Id as ParaId;
+#[allow(unused_imports)]
 use thea_primitives::types::{Deposit, Withdraw};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
