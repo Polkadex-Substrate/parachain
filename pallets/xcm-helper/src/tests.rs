@@ -1,12 +1,5 @@
-use crate as xcm_helper;
 use crate::{mock::*, Error};
-use frame_support::{
-	assert_noop, assert_ok,
-	traits::{Currency, Hooks},
-};
-use sp_core::{bounded::BoundedVec, ConstU32};
-use sp_runtime::SaturatedConversion;
-use xcm::latest::{AssetId, MultiLocation};
+use frame_support::{assert_noop, assert_ok};
 
 #[test]
 fn test_whitelist_token_returns_ok() {
