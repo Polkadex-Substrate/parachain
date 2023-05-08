@@ -36,15 +36,15 @@ orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-modu
 # Custom pallets
 xcm-helper = { path = "../pallets/xcm-helper" }
 asset-handler = { path = "../pallets/asset-handler" }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain" }
 
 [lib]

@@ -78,16 +78,16 @@ pallet-collator-selection = { git = "https://github.com/paritytech/cumulus.git",
 parachain-info = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.37", default-features = false }
 
 #Polkadex Dependecies
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 polkadex-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain", default-features = false }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain", default-features = false }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 pallet-amm = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain", default-features = false }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 support = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain", default-features = false }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 router = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain", default-features = false }
-# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or tew tag should be created.
+# FIXME: After fixing and merging PR #741 branch name here should be changed to `Develop` or new tag should be created and used.
 thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj-parachain", default-features = false }
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
