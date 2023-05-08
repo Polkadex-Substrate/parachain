@@ -118,6 +118,7 @@ impl xcm_helper::Config for Test {
 	type ParachainId = ParachainId;
 	type ParachainNetworkId = frame_support::traits::ConstU8<0>;
 	type NativeAssetId = NativeAssetId;
+	type WeightInfo = crate::weights::WeightInfo<Test>;
 }
 
 parameter_types! {

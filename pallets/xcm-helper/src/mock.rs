@@ -111,6 +111,7 @@ impl xcm_helper::Config for Test {
 	type ParachainId = ();
 	type ParachainNetworkId = ();
 	type NativeAssetId = NativeAssetId;
+	type WeightInfo = crate::weights::WeightInfo<Test>;
 }
 
 parameter_types! {
