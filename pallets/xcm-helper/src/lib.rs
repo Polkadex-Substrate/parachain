@@ -94,6 +94,9 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+pub use weights::*;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::{
@@ -128,6 +131,11 @@ pub mod pallet {
 		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
 	};
+
+	pub trait XcmHelperWeightInfo {
+		fn whitelist_token(_b: u32) -> Weight;
+		fn transfer_fee(b: u32) -> Weight;
+	}
 
 	pub trait AssetIdConverter {
 		/// Converts AssetId to MultiLocation
@@ -171,6 +179,8 @@ pub mod pallet {
 		/// Native Asset Id
 		#[pallet::constant]
 		type NativeAssetId: Get<u128>;
+		/// Weight Info
+		type WeightInfo: XcmHelperWeightInfo;
 	}
 
 	/// Pending Withdrawals
@@ -313,7 +323,7 @@ pub mod pallet {
 		///
 		/// * `token`: Token to be whitelisted.
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::whitelist_token(1))]
 		pub fn whitelist_token(origin: OriginFor<T>, token: u128) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
@@ -325,7 +335,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::from_ref_time(10_000) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::transfer_fee(1))]
 		pub fn transfer_fee(origin: OriginFor<T>, to: T::AccountId) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let from = T::AssetHandlerPalletId::get().into_account_truncating();

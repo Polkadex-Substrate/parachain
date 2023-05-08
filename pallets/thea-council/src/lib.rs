@@ -48,6 +48,9 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+pub mod weights;
+pub use weights::*;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
@@ -62,6 +65,13 @@ pub mod pallet {
 
 	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen, Copy, Clone, Eq, PartialEq, Debug)]
 	pub struct Voted<AccountId>(pub AccountId);
+
+	pub trait TheaCouncilWeightInfo {
+		fn add_member(b: u32) -> Weight;
+		fn remove_member(_b: u32) -> Weight;
+		fn claim_membership(b: u32) -> Weight;
+		fn delete_transaction(_b: u32) -> Weight;
+	}
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -78,6 +88,8 @@ pub mod pallet {
 		/// How long pending council member have to claim membership
 		#[pallet::constant]
 		type RetainPeriod: Get<u64>;
+		/// Wight Info
+		type TheaCouncilWeightInfo: TheaCouncilWeightInfo;
 	}
 
 	/// Active Council Members
@@ -158,7 +170,7 @@ pub mod pallet {
 		///
 		/// * `new_member`: AccountId of New Member.
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::add_member(1))]
 		pub fn add_member(origin: OriginFor<T>, new_member: T::AccountId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(Self::is_council_member(&sender), Error::<T>::SenderNotCouncilMember);
@@ -172,7 +184,7 @@ pub mod pallet {
 		///
 		/// * `member_to_be_removed`: AccountId for memebr to be removed.
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::remove_member(1))]
 		pub fn remove_member(
 			origin: OriginFor<T>,
 			member_to_be_removed: T::AccountId,
@@ -186,7 +198,7 @@ pub mod pallet {
 		/// Converts Pending Council Member to Active Council Member.
 		///
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::claim_membership(1))]
 		pub fn claim_membership(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::do_claim_membership(&sender)?;
@@ -201,7 +213,7 @@ pub mod pallet {
 		/// * `block_no`: Block No which contains malicious transaction.
 		/// * `index`: Index of Malicious transaction in the list.
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::delete_transaction(1))]
 		pub fn delete_transaction(
 			origin: OriginFor<T>,
 			block_no: T::BlockNumber,

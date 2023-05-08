@@ -449,6 +449,7 @@ impl xcm_helper::Config for Runtime {
 	type ParachainId = ParachainId;
 	type ParachainNetworkId = ParachainNetworkId;
 	type NativeAssetId = NativeAssetId;
+	type WeightInfo = xcm_helper::weights::WeightInfo<Runtime>;
 }
 
 parameter_types! {

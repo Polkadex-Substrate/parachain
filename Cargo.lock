@@ -13676,6 +13676,7 @@ dependencies = [
 name = "xcm-helper"
 version = "0.1.0"
 dependencies = [
+ "asset-handler",
  "cumulus-primitives-core",
  "frame-benchmarking",
  "frame-support",

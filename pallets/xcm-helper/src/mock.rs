@@ -27,7 +27,8 @@ frame_support::construct_runtime!(
 		Assets: pallet_assets,
 		XcmHelper: xcm_helper,
 		TheaMessageHandler: thea_message_handler,
-		XToken: orml_xtokens
+		XToken: orml_xtokens,
+		AssetHandler: asset_handler
 	}
 );
 
@@ -102,7 +103,7 @@ parameter_types! {
 impl xcm_helper::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = ();
-	type AssetManager = Assets;
+	type AssetManager = AssetHandler;
 	type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
 	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
@@ -173,6 +174,16 @@ impl orml_xtokens::Config for Test {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = ();
 	type ReserveProvider = AbsoluteReserveProvider;
+}
+
+parameter_types! {
+	pub const NativeCurrencyId: u128 = 100;
+}
+
+impl asset_handler::Config for Test {
+	type Currency = Balances;
+	type MultiCurrency = Assets;
+	type NativeCurrencyId = NativeCurrencyId;
 }
 
 // Build genesis storage according to the mock runtime.

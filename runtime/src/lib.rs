@@ -484,6 +484,7 @@ impl xcm_helper::Config for Runtime {
 	type ParachainId = ParachainId;
 	type ParachainNetworkId = ParachainNetworkId;
 	type NativeAssetId = PolkadexAssetid;
+	type WeightInfo = xcm_helper::weights::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -493,7 +494,8 @@ parameter_types! {
 impl thea_council::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type MinimumActiveCouncilSize = MinimumActiveCouncilSize;
-	type RetainPeriod = ConstU64<7200>; // 24h
+	type RetainPeriod = ConstU64<7200>;
+	type TheaCouncilWeightInfo = thea_council::weights::WeightInfo<Runtime>;
 }
 
 parameter_types! {

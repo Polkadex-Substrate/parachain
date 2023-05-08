@@ -12,7 +12,9 @@ pub mod pallet {
 		pallet_prelude::*,
 		traits::{
 			fungibles::{Create, Inspect, Mutate, Transfer},
-			tokens::{DepositConsequence, WithdrawConsequence},
+			tokens::{
+				fungible::Inspect as CurrencyInspect, DepositConsequence, WithdrawConsequence,
+			},
 			Currency, ExistenceRequirement, ReservableCurrency,
 		},
 	};
@@ -27,7 +29,9 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Balances Pallet
-		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		type Currency: Currency<Self::AccountId>
+			+ ReservableCurrency<Self::AccountId>
+			+ CurrencyInspect<Self::AccountId>;
 		/// MultiCurrency Pallet
 		type MultiCurrency: Create<<Self as frame_system::Config>::AccountId>
 			+ Mutate<<Self as frame_system::Config>::AccountId, Balance = u128, AssetId = u128>
@@ -48,6 +52,8 @@ pub mod pallet {
 		CannotMintNativeAsset,
 		/// Cannot Burn Native Asset
 		CannotBurnNativeAsset,
+		/// Cannot create native Asset
+		CannotCreateNativeAsset,
 	}
 
 	impl<T: Config> Create<T::AccountId> for Pallet<T> {
@@ -57,8 +63,11 @@ pub mod pallet {
 			is_sufficient: bool,
 			min_balance: Self::Balance,
 		) -> DispatchResult {
-			// TODO: Handle Native Currency
-			T::MultiCurrency::create(id, admin, is_sufficient, min_balance)
+			if id != T::NativeCurrencyId::get() {
+				T::MultiCurrency::create(id, admin, is_sufficient, min_balance)
+			} else {
+				Err(Error::<T>::CannotCreateNativeAsset.into())
+			}
 		}
 	}
 
@@ -71,7 +80,10 @@ pub mod pallet {
 			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::total_issuance(asset.saturated_into()).saturated_into()
 			} else {
-				T::Currency::total_issuance().saturated_into()
+				<<T as Config>::Currency as frame_support::traits::fungible::Inspect<
+					T::AccountId,
+				>>::total_issuance()
+				.saturated_into()
 			}
 		}
 
@@ -79,7 +91,10 @@ pub mod pallet {
 			if asset != T::NativeCurrencyId::get() {
 				T::MultiCurrency::minimum_balance(asset.saturated_into()).saturated_into()
 			} else {
-				T::Currency::minimum_balance().saturated_into()
+				<<T as Config>::Currency as frame_support::traits::fungible::Inspect<
+					T::AccountId,
+				>>::minimum_balance()
+				.saturated_into()
 			}
 		}
 
@@ -100,7 +115,10 @@ pub mod pallet {
 				T::MultiCurrency::reducible_balance(asset.saturated_into(), who, keep_alive)
 					.saturated_into()
 			} else {
-				T::Currency::free_balance(who).saturated_into()
+				<<T as Config>::Currency as frame_support::traits::fungible::Inspect<
+					T::AccountId,
+				>>::reducible_balance(who, true)
+				.saturated_into()
 			}
 		}
 
