@@ -14,7 +14,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 parity-scale-codec = { workspace = true, default-features = false, features = ["derive"] }
 scale-info = { workspace = true, default-features = false, features = ["derive"] }
-pallet-timestamp = { workspace = true, default-features = false }
 # Substrate
 frame-benchmarking = { workspace = true, default-features = false, optional = true }
 pallet-assets = { workspace = true, default-features = false, optional = true }
@@ -27,16 +26,22 @@ xcm-builder = { workspace = true, default-features = false }
 orml-xtokens = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
 sp-core = { workspace = true, default-features = false }
+sp-std = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 cumulus-primitives-core = { workspace = true, default-features = false }
-support = { path = "../support", default-features = false }
+support = { workspace = true, default-features = false }
+thea-primitives = { workspace = true, default-features = false }
+polkadex-primitives = {workspace = true, default-features = false}
+
 [dev-dependencies]
 serde = { workspace = true }
-
-# Substrate
 sp-core = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 sp-runtime = { workspace = true, default-features = false }
+orml-traits = { workspace = true, default-features = false }
+pallet-balances = { workspace = true, default-features = false }
+thea-message-handler = { workspace = true, default-features = false }
+asset-handler = { path = "../asset-handler", default-features = false }
 
 [features]
 default = ["std"]
@@ -55,6 +60,12 @@ std = [
 	"cumulus-primitives-core/std",
 	"pallet-assets/std",
 	"xcm-builder/std",
-	"support/std"
+	"support/std",
+	"sp-std/std",
+	"pallet-balances/std",
+	"orml-traits/std",
+	"thea-primitives/std",
+	"thea-message-handler/std",
+	"asset-handler/std"
 ]
 try-runtime = [ "frame-support/try-runtime" ]

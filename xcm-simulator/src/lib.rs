@@ -17,10 +17,12 @@
 mod mock_amm;
 mod parachain;
 mod relay_chain;
-
+#[allow(unused_imports)]
+use crate::parachain::{RuntimeEvent, System, XcmHelper};
 use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
-
 use polkadot_parachain::primitives::Id as ParaId;
+#[allow(unused_imports)]
+use thea_primitives::types::{Deposit, Withdraw};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub const ASSET_HANDLER_PALLET_ID: PalletId = PalletId(*b"XcmHandl");
@@ -72,7 +74,7 @@ pub fn para_account_id(id: u32) -> relay_chain::AccountId {
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
-	use parachain::{MsgQueue, Runtime, System};
+	use parachain::{MsgQueue, Runtime};
 
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
 
@@ -110,17 +112,12 @@ pub type ParachainPalletXcm = pallet_xcm::Pallet<parachain::Runtime>;
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use codec::Encode;
 
 	use frame_support::{assert_noop, assert_ok};
 	use polkadot_core_primitives::AccountId;
 	use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
-	use xcm_helper::PendingWithdrawal;
 	use xcm_simulator::TestExt;
-
-	// Helper function for forming buy execution message
-	fn buy_execution<C>(fees: impl Into<MultiAsset>) -> Instruction<C> {
-		BuyExecution { fees: fees.into(), weight_limit: Unlimited }
-	}
 
 	#[test]
 	fn test_withdraw_from_parachain_to_relay_chain() {
@@ -316,10 +313,7 @@ mod tests {
 		MockNet::reset();
 		ParaA::execute_with(|| {
 			//Add to pending withdrawal
-			let location =
-				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
-			let asset_id = AssetId::Concrete(location);
-			let asset = MultiAsset { id: asset_id, fun: Fungibility::Fungible(1_000_000_000_000) };
+			let amount = 1_000_000_000_000u128;
 			let destination = MultiLocation {
 				parents: 0,
 				interior: Junctions::X1(Junction::AccountId32 {
@@ -327,10 +321,14 @@ mod tests {
 					id: [1; 32],
 				}),
 			};
-			let pending_withdrawal = PendingWithdrawal {
-				asset: Box::new(asset.into()),
-				destination: Box::new(destination.into()),
+			let destination: VersionedMultiLocation = destination.into();
+			let asset_id = 100;
+			let pending_withdrawal = Withdraw {
+				asset_id,
+				amount,
+				destination: destination.encode(),
 				is_blocked: false,
+				extra: vec![],
 			};
 			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
 			System::set_block_number(99);
@@ -349,7 +347,7 @@ mod tests {
 			let location =
 				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
 			let asset_id = AssetId::Concrete(location);
-			let asset = MultiAsset { id: asset_id, fun: Fungibility::Fungible(1_000_000_000_000) };
+			let amount = 1_000_000_000_000u128;
 			let destination = MultiLocation {
 				parents: 0,
 				interior: Junctions::X1(Junction::AccountId32 {
@@ -357,10 +355,14 @@ mod tests {
 					id: [1; 32],
 				}),
 			};
-			let pending_withdrawal = PendingWithdrawal {
-				asset: Box::new(asset.into()),
-				destination: Box::new(destination.into()),
+			// Register Asset Id
+			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
+			let pending_withdrawal = Withdraw {
+				asset_id,
+				amount,
+				destination: destination.encode(),
 				is_blocked: false,
+				extra: vec![],
 			};
 			create_dot_asset();
 			mint_native_token(sp_core::crypto::AccountId32::new([1; 32]));
@@ -423,12 +425,14 @@ mod tests {
 	use crate::parachain::{AssetHandlerPalletId, AssetsPallet};
 	fn mint_dot_token(account: AccountId) {
 		use frame_support::traits::fungibles::Mutate;
-		let asset_id = 313675452054768990531043083915731189857u128;
+		let asset = AssetId::Concrete(Parent.into());
+		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
 		assert_ok!(AssetsPallet::mint_into(asset_id, &account, 100_000_000_000_000));
 	}
 
 	fn get_dot_balance(account: AccountId) -> u128 {
-		let asset_id = 313675452054768990531043083915731189857u128;
+		let asset = AssetId::Concrete(Parent.into());
+		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
 		AssetsPallet::balance(asset_id, &account)
 	}
 
@@ -443,7 +447,11 @@ mod tests {
 	}
 
 	fn create_non_native_asset() {
-		let asset_id = 223679455805618077770456114078724992490u128;
+		let asset = AssetId::Concrete(MultiLocation {
+			parents: 1,
+			interior: Junctions::X2(Parachain(1), Junction::GeneralIndex(100)),
+		});
+		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
 		assert_ok!(AssetsPallet::create(
 			RuntimeOrigin::signed(ALICE),
 			codec::Compact(asset_id),
@@ -454,12 +462,17 @@ mod tests {
 
 	fn mint_non_native_token(account: AccountId) {
 		use frame_support::traits::fungibles::Mutate;
-		let asset_id = 223679455805618077770456114078724992490u128;
+		let asset = AssetId::Concrete(MultiLocation {
+			parents: 1,
+			interior: Junctions::X2(Parachain(1), Junction::GeneralIndex(100)),
+		});
+		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
 		assert_ok!(AssetsPallet::mint_into(asset_id, &account, 100_000_000_000_000));
 	}
 
 	fn create_asset() {
-		let asset_id = 313675452054768990531043083915731189857u128;
+		let asset = AssetId::Concrete(Parent.into());
+		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
 		assert_ok!(AssetsPallet::create(
 			RuntimeOrigin::signed(ALICE),
 			codec::Compact(asset_id),
@@ -479,7 +492,8 @@ mod tests {
 	}
 
 	fn create_dot_asset() {
-		let asset_id = 250795704345233296850763536153850679878u128;
+		let asset = AssetId::Concrete(Parent.into());
+		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
 		assert_ok!(AssetsPallet::create(
 			RuntimeOrigin::signed(ALICE),
 			codec::Compact(asset_id),
@@ -487,6 +501,7 @@ mod tests {
 			1
 		));
 	}
+	use frame_support::traits::{OnFinalize, OnInitialize};
 
 	pub fn run_to_block(n: u64) {
 		while System::block_number() < n {
@@ -498,6 +513,4 @@ mod tests {
 			XcmHelper::on_initialize(System::block_number());
 		}
 	}
-
-	//
 }

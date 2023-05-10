@@ -14,7 +14,7 @@ use crate::constants::currency::{CENTS, DOLLARS};
 use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, ConstU32, Get, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU32, ConstU64, Get, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
@@ -52,6 +52,7 @@ pub use sp_runtime::BuildStorage;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
 use frame_support::traits::AsEnsureOriginWithArg;
+use thea_primitives::{AuthorityId, AuthoritySignature};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 // XCM Imports
@@ -463,28 +464,38 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 }
-
+use polkadex_primitives::POLKADEX_NATIVE_ASSET_ID;
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
 	pub ParachainId: u32 = ParachainInfo::get().into();
-	pub const ParachainNetworkId: u8 = 1;
+	pub const ParachainNetworkId: u8 = 1; // Our parachain's thea id is one.
+	pub const PolkadexAssetid: u128 = POLKADEX_NATIVE_ASSET_ID;
 }
 
 impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type AccountIdConvert = LocationToAccountId;
 	type AssetManager = Assets;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
+	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
 	type ParachainNetworkId = ParachainNetworkId;
+	type NativeAssetId = PolkadexAssetid;
+	type WeightInfo = xcm_helper::weights::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+	pub const MinimumActiveCouncilSize: u8 = 2;
 }
 
 impl thea_council::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type MinimumActiveCouncilSize = MinimumActiveCouncilSize;
+	type RetainPeriod = ConstU64<7200>;
+	type TheaCouncilWeightInfo = thea_council::weights::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -540,11 +551,11 @@ impl pallet_amm::Config for Runtime {
 	type LockAccountId = OneAccount;
 	type CreatePoolOrigin = EnsureRoot<Self::AccountId>;
 	type ProtocolFeeUpdateOrigin = EnsureRoot<Self::AccountId>;
+	type WeightInfo = pallet_amm::weights::WeightInfo<Runtime>;
 	type LpFee = DefaultLpFee;
 	type MinimumLiquidity = MinimumLiquidity;
 	type MaxLengthRoute = MaxLengthRoute;
 	type GetNativeCurrencyId = NativeCurrencyId;
-	type WeightInfo = pallet_amm::weights::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -553,7 +564,7 @@ parameter_types! {
 
 impl asset_handler::Config for Runtime {
 	type Currency = Balances;
-	type MultiCurrency = Assets;
+	type MultiCurrency = AssetHandler;
 	type NativeCurrencyId = NativeCurrencyId;
 }
 
@@ -569,6 +580,18 @@ impl router::Config for Runtime {
 	type MaxLengthRoute = MaxLengthRoute;
 	type GetNativeCurrencyId = NativeCurrencyId;
 	type Assets = AssetHandler;
+}
+
+parameter_types! {
+	pub const TheaMaxAuthorities: u32 = 10;
+}
+
+impl thea_message_handler::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type TheaId = AuthorityId;
+	type Signature = AuthoritySignature;
+	type MaxAuthorities = TheaMaxAuthorities;
+	type Executor = XcmHelper;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -613,6 +636,9 @@ construct_runtime!(
 		AssetHandler: asset_handler::pallet::{Pallet, Storage} = 44,
 
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
+
+		// Thea Pallet
+		TheaMessageHandler: thea_message_handler::{Pallet, Call, Storage, Event<T>, ValidateUnsigned} = 46
 	}
 );
 
@@ -629,6 +655,8 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[thea_council, TheaCouncil]
+		[xcm_helper, XcmHelper]
 	);
 }
 
@@ -788,6 +816,8 @@ impl_runtime_apis! {
 			use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
+			list_benchmark!(list, extra, xcm_helper, XcmHelper);
+			list_benchmark!(list, extra, thea_council, TheaCouncil);
 			list_benchmark!(list, extra, pallet_amm, Swap);
 			list_benchmarks!(list, extra);
 
@@ -821,6 +851,8 @@ impl_runtime_apis! {
 
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
+			add_benchmark!(params, batches, thea_council, TheaCouncil);
+			add_benchmark!(params, batches, xcm_helper, XcmHelper);
 			add_benchmark!(params, batches, pallet_amm, Swap);
 			add_benchmarks!(params, batches);
 

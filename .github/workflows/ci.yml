@@ -81,8 +81,7 @@ jobs:
       - name: Check Clippy
         run: cargo clippy -- -D warnings
       - name: Test Project
-#        TODO: Remove "--workspace --exclude xcm-simulator" args when xcm-simulator test build will be fixed by @Zktony
-        run: cargo test --workspace --exclude xcm-simulator
+        run: cargo test --workspace
   stop-runner:
     name: Stop self-hosted EC2 runner
     needs:

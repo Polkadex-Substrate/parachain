@@ -45,10 +45,17 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+pub mod weights;
+pub use weights::*;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::{Percent, SaturatedConversion};
 
 	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen, Copy, Clone)]
 	pub enum Proposal<AccountId> {
@@ -59,6 +66,13 @@ pub mod pallet {
 	#[derive(Encode, Decode, TypeInfo, MaxEncodedLen, Copy, Clone, Eq, PartialEq, Debug)]
 	pub struct Voted<AccountId>(pub AccountId);
 
+	pub trait TheaCouncilWeightInfo {
+		fn add_member(b: u32) -> Weight;
+		fn remove_member(_b: u32) -> Weight;
+		fn claim_membership(b: u32) -> Weight;
+		fn delete_transaction(_b: u32) -> Weight;
+	}
+
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
@@ -68,6 +82,14 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + xcm_helper::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// Minimum Active Council Size below witch Removal is not possible
+		#[pallet::constant]
+		type MinimumActiveCouncilSize: Get<u8>;
+		/// How long pending council member have to claim membership
+		#[pallet::constant]
+		type RetainPeriod: Get<u64>;
+		/// Wight Info
+		type TheaCouncilWeightInfo: TheaCouncilWeightInfo;
 	}
 
 	/// Active Council Members
@@ -80,7 +102,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_pending_council_members)]
 	pub(super) type PendingCouncilMembers<T: Config> =
-		StorageValue<_, BoundedVec<T::AccountId, ConstU32<10>>, ValueQuery>;
+		StorageValue<_, BoundedVec<(u64, T::AccountId), ConstU32<10>>, ValueQuery>;
 
 	/// Proposals
 	#[pallet::storage]
@@ -89,7 +111,7 @@ pub mod pallet {
 		_,
 		frame_support::Blake2_128Concat,
 		Proposal<T::AccountId>,
-		BoundedVec<Voted<T::AccountId>, ConstU32<100>>,
+		BoundedVec<Voted<T::AccountId>, ConstU32<10>>,
 		ValueQuery,
 	>;
 
@@ -106,6 +128,8 @@ pub mod pallet {
 		MemberRemoved(T::AccountId),
 		/// Transaction deleted
 		TransactionDeleted(u32),
+		/// Removed some unclaimed proposed council members
+		RetainPeriodExpiredForCouncilProposal(u32),
 	}
 
 	// Errors inform users that something went wrong.
@@ -125,6 +149,14 @@ pub mod pallet {
 		SenderAlreadyVoted,
 		/// Not Active Member
 		NotActiveMember,
+		/// Active Council Size is below Threshold
+		ActiveCouncilSizeIsBelowThreshold,
+		/// Proposals Storage Overflow
+		ProposalsStorageOverflow,
+		/// Pending Council Storage Overflow
+		PendingCouncilStorageOverflow,
+		/// Active Council Storage Overflow
+		ActiveCouncilStorageOverflow,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -138,7 +170,7 @@ pub mod pallet {
 		///
 		/// * `new_member`: AccountId of New Member.
 		#[pallet::call_index(0)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::add_member(1))]
 		pub fn add_member(origin: OriginFor<T>, new_member: T::AccountId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(Self::is_council_member(&sender), Error::<T>::SenderNotCouncilMember);
@@ -152,7 +184,7 @@ pub mod pallet {
 		///
 		/// * `member_to_be_removed`: AccountId for memebr to be removed.
 		#[pallet::call_index(1)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::remove_member(1))]
 		pub fn remove_member(
 			origin: OriginFor<T>,
 			member_to_be_removed: T::AccountId,
@@ -166,7 +198,7 @@ pub mod pallet {
 		/// Converts Pending Council Member to Active Council Member.
 		///
 		#[pallet::call_index(2)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::claim_membership(1))]
 		pub fn claim_membership(origin: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::do_claim_membership(&sender)?;
@@ -181,7 +213,7 @@ pub mod pallet {
 		/// * `block_no`: Block No which contains malicious transaction.
 		/// * `index`: Index of Malicious transaction in the list.
 		#[pallet::call_index(3)]
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		#[pallet::weight(T::TheaCouncilWeightInfo::delete_transaction(1))]
 		pub fn delete_transaction(
 			origin: OriginFor<T>,
 			block_no: T::BlockNumber,
@@ -195,13 +227,38 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(n: T::BlockNumber) -> Weight {
+			let mut removed = 0;
+			<PendingCouncilMembers<T>>::mutate(|m| {
+				let was = m.len();
+				m.retain(|i| {
+					T::RetainPeriod::get().saturating_add(i.0) >= n.saturated_into::<u64>()
+				});
+				removed = was.saturating_sub(m.len());
+			});
+			Self::deposit_event(Event::<T>::RetainPeriodExpiredForCouncilProposal(
+				removed.saturated_into(),
+			));
+			T::DbWeight::get().reads_writes(1, removed.saturated_into())
+		}
+	}
+
 	impl<T: Config> Pallet<T> {
 		fn is_council_member(sender: &T::AccountId) -> bool {
 			let active_members = <ActiveCouncilMembers<T>>::get();
 			active_members.contains(sender)
 		}
 
+		fn is_pending_council_member(sender: &T::AccountId) -> bool {
+			let pending_members = <PendingCouncilMembers<T>>::get();
+			pending_members.iter().any(|m| m.1 == *sender)
+		}
+
 		fn do_add_member(sender: T::AccountId, new_member: T::AccountId) -> DispatchResult {
+			ensure!(!Self::is_council_member(&new_member), Error::<T>::AlreadyMember);
+			ensure!(!Self::is_pending_council_member(&new_member), Error::<T>::AlreadyMember);
 			let proposal = Proposal::AddNewMember(new_member);
 			Self::evaluate_proposal(proposal, sender)?;
 			Ok(())
@@ -216,21 +273,30 @@ pub mod pallet {
 			Ok(())
 		}
 
+		pub(crate) fn get_expected_votes() -> usize {
+			let total_active_council_size = <ActiveCouncilMembers<T>>::get().len();
+			if total_active_council_size == 2 {
+				2
+			} else {
+				let p = Percent::from_percent(65);
+				p * total_active_council_size
+			}
+		}
+
 		fn evaluate_proposal(
 			proposal: Proposal<T::AccountId>,
 			sender: T::AccountId,
 		) -> DispatchResult {
 			let current_votes =
-				|votes: &BoundedVec<Voted<T::AccountId>, ConstU32<100>>| -> usize { votes.len() };
-			let expected_votes = || -> usize {
-				let total_active_council_size = <ActiveCouncilMembers<T>>::get().len();
-				total_active_council_size.saturating_mul(2).saturating_div(3)
-			};
+				|votes: &BoundedVec<Voted<T::AccountId>, ConstU32<10>>| -> usize { votes.len() };
+			let expected_votes = Self::get_expected_votes();
 			let mut remove_proposal = false;
 			<Proposals<T>>::try_mutate(proposal.clone(), |votes| {
 				ensure!(!votes.contains(&Voted(sender.clone())), Error::<T>::SenderAlreadyVoted);
-				votes.try_push(Voted(sender)).map_err(|_| Error::<T>::StorageOverflow)?;
-				if current_votes(votes) >= expected_votes() {
+				votes
+					.try_push(Voted(sender))
+					.map_err(|_| Error::<T>::ProposalsStorageOverflow)?;
+				if current_votes(votes) >= expected_votes {
 					Self::execute_proposal(proposal.clone())?;
 					remove_proposal = true;
 				}
@@ -257,8 +323,11 @@ pub mod pallet {
 		fn execute_add_member(new_member: T::AccountId) -> DispatchResult {
 			let mut pending_council_member = <PendingCouncilMembers<T>>::get();
 			pending_council_member
-				.try_push(new_member.clone())
-				.map_err(|_| Error::<T>::StorageOverflow)?;
+				.try_push((
+					<frame_system::Pallet<T>>::block_number().saturated_into(),
+					new_member.clone(),
+				))
+				.map_err(|_| Error::<T>::PendingCouncilStorageOverflow)?;
 			<PendingCouncilMembers<T>>::put(pending_council_member);
 			Self::deposit_event(Event::<T>::NewPendingMemberAdded(new_member));
 			Ok(())
@@ -266,6 +335,10 @@ pub mod pallet {
 
 		fn execute_remove_member(member_to_be_removed: T::AccountId) -> DispatchResult {
 			let mut active_council_member = <ActiveCouncilMembers<T>>::get();
+			ensure!(
+				active_council_member.len() > T::MinimumActiveCouncilSize::get().into(),
+				Error::<T>::ActiveCouncilSizeIsBelowThreshold
+			);
 			let index = active_council_member
 				.iter()
 				.position(|member| *member == member_to_be_removed)
@@ -278,17 +351,16 @@ pub mod pallet {
 
 		fn do_claim_membership(sender: &T::AccountId) -> DispatchResult {
 			let mut pending_members = <PendingCouncilMembers<T>>::get();
-			ensure!(pending_members.contains(sender), Error::<T>::NotPendingMember);
 			let index = pending_members
 				.iter()
-				.position(|member| *member == *sender)
-				.ok_or(Error::<T>::NotActiveMember)?;
+				.position(|member| member.1 == *sender)
+				.ok_or(Error::<T>::NotPendingMember)?;
 			pending_members.remove(index);
 			<PendingCouncilMembers<T>>::put(pending_members);
 			let mut active_council_member = <ActiveCouncilMembers<T>>::get();
 			active_council_member
 				.try_push(sender.clone())
-				.map_err(|_| Error::<T>::StorageOverflow)?;
+				.map_err(|_| Error::<T>::ActiveCouncilStorageOverflow)?;
 			<ActiveCouncilMembers<T>>::put(active_council_member);
 			Ok(())
 		}

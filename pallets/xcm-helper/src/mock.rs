@@ -1,4 +1,4 @@
-use crate as thea_council;
+use crate as xcm_helper;
 use frame_support::{
 	parameter_types,
 	traits::{ConstU16, ConstU64},
@@ -25,24 +25,12 @@ frame_support::construct_runtime!(
 		System: frame_system,
 		Balances: pallet_balances,
 		Assets: pallet_assets,
-		XcmHnadler: xcm_helper,
-		TheaCouncil: thea_council,
+		XcmHelper: xcm_helper,
+		TheaMessageHandler: thea_message_handler,
 		XToken: orml_xtokens,
-		TheaMessageHandler: thea_message_handler
+		AssetHandler: asset_handler
 	}
 );
-
-parameter_types! {
-	pub const TheaMaxAuthorities: u32 = 10;
-}
-
-impl thea_message_handler::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
-	type TheaId = AuthorityId;
-	type Signature = AuthoritySignature;
-	type MaxAuthorities = TheaMaxAuthorities;
-	type Executor = XcmHnadler;
-}
 
 impl system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
@@ -71,20 +59,13 @@ impl system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl thea_council::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
-	type MinimumActiveCouncilSize = frame_support::traits::ConstU8<2>;
-	type RetainPeriod = ConstU64<7200>;
-	type TheaCouncilWeightInfo = crate::weights::WeightInfo<Test>; // 24h
-}
-
 use frame_support::{traits::AsEnsureOriginWithArg, PalletId};
-use frame_system::EnsureSigned;
+use frame_system::{EnsureRoot, EnsureSigned};
 
 pub const TOKEN: u128 = 1_000_000_000_000;
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 1 * TOKEN;
+	pub const ExistentialDeposit: u128 = TOKEN;
 	pub const MaxLocks: u32 = 50;
 	pub const MaxReserves: u32 = 50;
 }
@@ -102,24 +83,35 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
+	pub const TheaMaxAuthorities: u32 = 10;
+}
+
+impl thea_message_handler::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type TheaId = AuthorityId;
+	type Signature = AuthoritySignature;
+	type MaxAuthorities = TheaMaxAuthorities;
+	type Executor = XcmHelper;
+}
+
+parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
-	pub ParachainId: u32 = 2040;
-	pub NativeAssetId: u128 = 100;
+	pub const NativeAssetId:u128 = 100;
 }
 
 impl xcm_helper::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = ();
-	type AssetManager = Assets;
-	type AssetCreateUpdateOrigin = EnsureSigned<Self::AccountId>;
+	type AssetManager = AssetHandler;
+	type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
 	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
-	type ParachainId = ParachainId;
-	type ParachainNetworkId = frame_support::traits::ConstU8<0>;
+	type ParachainId = ();
+	type ParachainNetworkId = ();
 	type NativeAssetId = NativeAssetId;
-	type WeightInfo = xcm_helper::weights::WeightInfo<Test>;
+	type WeightInfo = crate::weights::WeightInfo<Test>;
 }
 
 parameter_types! {
@@ -135,7 +127,7 @@ impl pallet_assets::Config for Test {
 	type Balance = u128;
 	type RemoveItemsLimit = ConstU32<1000>;
 	type AssetId = u128;
-	type AssetIdParameter = codec::Compact<u128>;
+	type AssetIdParameter = parity_scale_codec::Compact<u128>;
 	type Currency = Balances;
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<Self::AccountId>>;
 	type ForceOrigin = EnsureSigned<Self::AccountId>;
@@ -183,6 +175,16 @@ impl orml_xtokens::Config for Test {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = ();
 	type ReserveProvider = AbsoluteReserveProvider;
+}
+
+parameter_types! {
+	pub const NativeCurrencyId: u128 = 100;
+}
+
+impl asset_handler::Config for Test {
+	type Currency = Balances;
+	type MultiCurrency = Assets;
+	type NativeCurrencyId = NativeCurrencyId;
 }
 
 // Build genesis storage according to the mock runtime.
