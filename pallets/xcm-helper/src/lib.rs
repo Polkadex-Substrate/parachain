@@ -61,26 +61,34 @@
 //!
 //! ### Public Functions
 //! - `handle_deposit` - Handles deposits from foreign chain.
-//! - `deposit_native_asset` - Deposits Native Assets using Balances Pallet.
-//! - `deposit-non-native-asset` - Deposits Non-native Assets using Assets Pallet.
+//! - `generate_asset_id_for_parachain` - Retrieves the existing asset ID for given assetid
+//!    or generates and stores a new asset ID.
+//! - `block_by_ele` - Blocks Transaction to be Executed.
+//! - `convert_asset_id_to_location` - Converts asset_id to XCM::MultiLocation.
+//! - `convert_location_to_asset_id` - Converts Multilocation to u128.
+//! - `insert_pending_withdrawal` - Stores provided withdraw in a "PendingWithdrawals" collectiom.
+//! - `multi_location_to_account_converter` - Resolves "AccountId" based on provided MultiLocatiom.
 //!
 //! ### Public Inspection functions - Immutable (accessors)
-//! - `get_pallet_id` - Get xcm_helper Pallet Id
+//! - `get_pallet_account` - Returns Pallet Id.
 //! - `get_destination_account` - Converts Multilocation to AccountId.
 //! - `is_polkadex_parachain_destination` - Checks if destination address belongs to native parachain or not.
 //! - `is_parachain_asset` - Checks if given asset is native asset or not.
+//! - `get_amount` - Converts XCM::Fungibility into u128
 //!
 //! ### Storage Items
-//! - `ActiveTheaKey` - Stores Latest Thea Key.
-//! - `WithdrawNonce` - Stores Latest withdrawal nonce.
 //! - `PendingWithdrawals` - Stores all pending withdrawal.
 //! - `FailedWithdrawals` - Stores failed withdrawals which failed during execution.
-//! - `TheaAssets` - Stores all Thea Assets.
+//! - `ParachainAssets` - Stores assets mapping from u128 asset to multi asset.
+//! - `WhitelistedTokens` - Stores whitelisted Tokens.
 //! -
 //! # Events
 //! - `AssetDeposited` - Asset Deposited from XCM.
 //! - `AssetWithdrawn` - Asset burned/locked from native Parachain.
 //! - `TheaAssetCreated` - New Asset Created.
+//! - `TokenWhitelistedForXcm` - Token Whitelisted For Xcm Token.
+//! - `XcmFeeTransferred` - Xcm Fee Transferred.
+//! - `NativeAssetIdMappingRegistered` - Native asset id mapping is registered.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
