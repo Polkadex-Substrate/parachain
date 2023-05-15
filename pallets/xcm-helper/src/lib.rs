@@ -359,7 +359,7 @@ pub mod pallet {
 				extra: Vec::new(),
 			};
 			let network = T::ParachainNetworkId::get();
-			T::Executor::execute_withdrawals(network, deposit.encode()).unwrap();
+			T::Executor::execute_withdrawals(network, sp_std::vec![deposit].encode()).unwrap();
 			Ok(())
 		}
 	}
