@@ -307,7 +307,6 @@ pub mod mock_msg_queue {
 			xcm: VersionedXcm<T::RuntimeCall>,
 			max_weight: Weight,
 		) -> Result<Weight, XcmError> {
-			//assert_eq!("hello", "no_hello");
 			let hash = Encode::using_encoded(&xcm, T::Hashing::hash);
 			let (result, event) = match Xcm::<T::RuntimeCall>::try_from(xcm) {
 				Ok(xcm) => {
@@ -359,7 +358,6 @@ pub mod mock_msg_queue {
 			iter: impl Iterator<Item = (RelayBlockNumber, Vec<u8>)>,
 			limit: Weight,
 		) -> Weight {
-			//assert_eq!("hello", "no_hello");
 			for (_i, (_sent_at, data)) in iter.enumerate() {
 				let id = sp_io::hashing::blake2_256(&data[..]);
 				let maybe_msg = VersionedXcm::<T::RuntimeCall>::decode(&mut &data[..])
@@ -489,7 +487,6 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 }
 
 parameter_types! {
-	//pub ParaId: ParaId = mock_msg_queue::<Runtime>::get();
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(MsgQueue::parachain_id().into()))); //TODO: CHnage to our Parachin Id
 	pub const BaseXcmWeight: XCMWeight = 100_000_000; // TODO: recheck this
 	pub const MaxAssetsForTransfer: usize = 2;
