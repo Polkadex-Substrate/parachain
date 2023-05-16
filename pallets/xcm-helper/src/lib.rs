@@ -37,8 +37,6 @@
 //!
 //! - **WithdrawalExecutionBlockDiff** Delays in Blocks after which Pending withdrawal will be executed.
 //!
-//! - **TheaMessage** Thea Messages will be fetched and relayed by Relayers from Parachain to Solochain.
-//!
 //! - **ParachainAsset** Type using which native Parachain will identify assets from foregin Parachain.
 //!
 //! ### Implementations
@@ -52,9 +50,8 @@
 //!
 //! ### Dispatchable Functions
 //! - `withdraw_asset` - Transfers Assets from Polkadex Sovereign Account to Others on native/non-native parachains using XCMP.
-//! - `change_thea_key` - Replaces existing Thea Key with new one.
-//! - `set_thea_key` - Initializes Thea Key.
-//! - `create_parachain_asset` - Creates new Assets using Parachain info.
+//! - `deposit_asset` - Generate Ingress Message for new Deposit.
+//! - `transfer_asset` - Transfers Asset from source account to destination account.
 //!
 //! ### Supported Origins
 //! - `AssetCreateUpdateOrigin` - Origin which has access to Create Asset.
