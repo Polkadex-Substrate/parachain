@@ -77,7 +77,7 @@ jobs:
       - name: Build Project with runtime benchmarks
         run: cargo build --features runtime-benchmarks
       - name: Build
-        run: cargo build
+        run: RUSTFLAGS="-D warnings" cargo build
       - name: Check Formatting
         run: cargo fmt --all -- --check
       - name: Check Clippy
