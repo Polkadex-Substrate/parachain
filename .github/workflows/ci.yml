@@ -75,7 +75,7 @@ jobs:
           cargo fmt -- --version
           cargo clippy -V
       - name: Build Project with runtime benchmarks
-        run: cargo build --features runtime-benchmarks
+        run: RUSTFLAGS="-D warnings" cargo build --features runtime-benchmarks
       - name: Build
         run: RUSTFLAGS="-D warnings" cargo build
       - name: Check Formatting
