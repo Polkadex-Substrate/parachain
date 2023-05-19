@@ -137,7 +137,9 @@ pub type Barrier = (
 	AllowSubscriptionsFrom<Everything>,
 );
 
-use crate::{AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, Swap, XcmHelper};
+use crate::{
+	AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, Swap, XcmHelper,
+};
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;

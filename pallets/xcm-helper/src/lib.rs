@@ -297,11 +297,13 @@ pub mod pallet {
 									fun: Fungibility::Fungible(withdrawal.amount),
 								};
 								// Mint
-								if let Err(_) = T::AssetManager::mint_into(
+								if T::AssetManager::mint_into(
 									withdrawal.asset_id,
 									&T::AssetHandlerPalletId::get().into_account_truncating(),
 									withdrawal.amount,
-								) {
+								)
+								.is_err()
+								{
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 								};
