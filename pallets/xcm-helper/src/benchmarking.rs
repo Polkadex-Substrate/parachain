@@ -11,6 +11,7 @@ use frame_system::RawOrigin;
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
+use frame_support::traits::fungibles::Create;
 
 const SEED: u32 = 0;
 
@@ -45,8 +46,9 @@ benchmarks! {
 	transfer_fee {
 		let b in 1 .. 1000;
 		let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
+		let asset = T::NativeAssetId::get();
 		T::AssetManager::mint_into(
-			100,
+			asset,
 			&pallet_account,
 			2_000_000_000_000_000u128.saturated_into()
 		).unwrap();

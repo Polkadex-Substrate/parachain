@@ -97,7 +97,7 @@ impl thea_message_handler::Config for Test {
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
-	pub const NativeAssetId:u128 = 100;
+	pub const NativeAssetId: u128 = 100;
 }
 
 impl xcm_helper::Config for Test {

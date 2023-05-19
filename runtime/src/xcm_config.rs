@@ -137,9 +137,7 @@ pub type Barrier = (
 	AllowSubscriptionsFrom<Everything>,
 );
 
-use crate::{
-	AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, NativeCurrencyId, Swap, XcmHelper,
-};
+use crate::{AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, Swap, XcmHelper};
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -286,7 +284,7 @@ where
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
 				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::Trap(1001))?;
-			let path = vec![NativeCurrencyId::get(), foreign_currency_asset_id];
+			let path = vec![PolkadexAssetid::get(), foreign_currency_asset_id];
 			let (unused, expected_fee_in_foreign_currency) =
 				if let Ok(expected_fee_in_foreign_currencies) =
 					AMM::get_amounts_in(fee_in_native_token, path)
@@ -390,7 +388,7 @@ where
 						}
 						if let Err(e) = AMM::swap(
 							&asset_handler_account,
-							(asset_id, NativeCurrencyId::get()),
+							(asset_id, PolkadexAssetid::get()),
 							amount,
 						) {
 							error!(target: "runtime", "Failed to swap asset {:?} for {:?} with reason {:?}", asset_id, asset_handler_account, e);

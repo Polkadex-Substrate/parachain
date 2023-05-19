@@ -476,7 +476,7 @@ parameter_types! {
 impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = LocationToAccountId;
-	type AssetManager = Assets;
+	type AssetManager = AssetHandler;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
 	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
@@ -555,17 +555,13 @@ impl pallet_amm::Config for Runtime {
 	type LpFee = DefaultLpFee;
 	type MinimumLiquidity = MinimumLiquidity;
 	type MaxLengthRoute = MaxLengthRoute;
-	type GetNativeCurrencyId = NativeCurrencyId;
-}
-
-parameter_types! {
-	pub const NativeCurrencyId: u128 = 0;
+	type GetNativeCurrencyId = PolkadexAssetid;
 }
 
 impl asset_handler::Config for Runtime {
 	type Currency = Balances;
 	type MultiCurrency = AssetHandler;
-	type NativeCurrencyId = NativeCurrencyId;
+	type NativeCurrencyId = PolkadexAssetid;
 }
 
 //Install Router pallet
@@ -578,7 +574,7 @@ impl router::Config for Runtime {
 	type PalletId = RouterPalletId;
 	type AMM = Swap;
 	type MaxLengthRoute = MaxLengthRoute;
-	type GetNativeCurrencyId = NativeCurrencyId;
+	type GetNativeCurrencyId = PolkadexAssetid;
 	type Assets = AssetHandler;
 }
 
