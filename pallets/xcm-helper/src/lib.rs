@@ -104,7 +104,14 @@ pub use weights::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::RawOrigin, pallet_prelude::*, sp_runtime::traits::AccountIdConversion, traits::fungibles::{Create, Inspect, Mutate, Transfer}, PalletId, log};
+	use frame_support::{
+		dispatch::RawOrigin,
+		log,
+		pallet_prelude::*,
+		sp_runtime::traits::AccountIdConversion,
+		traits::fungibles::{Create, Inspect, Mutate, Transfer},
+		PalletId,
+	};
 	use frame_system::pallet_prelude::*;
 
 	use polkadex_primitives::Balance;
@@ -227,7 +234,7 @@ pub mod pallet {
 		/// Native asset id mapping is registered
 		NativeAssetIdMappingRegistered(u128, Box<AssetId>),
 		/// Whitelisted Token removed
-		WhitelistedTokenRemoved(u128)
+		WhitelistedTokenRemoved(u128),
 	}
 
 	// Errors inform users that something went wrong.
@@ -262,7 +269,7 @@ pub mod pallet {
 		/// Withdrawal Execution Failed
 		WithdrawalExecutionFailed,
 		/// Token Is Not Whitelisted
-		TokenIsNotWhitelisted
+		TokenIsNotWhitelisted,
 	}
 
 	#[pallet::hooks]
@@ -290,7 +297,11 @@ pub mod pallet {
 									fun: Fungibility::Fungible(withdrawal.amount),
 								};
 								// Mint
-								if let Err(_) = T::AssetManager::mint_into(withdrawal.asset_id, &T::AssetHandlerPalletId::get().into_account_truncating(), withdrawal.amount) {
+								if let Err(_) = T::AssetManager::mint_into(
+									withdrawal.asset_id,
+									&T::AssetHandlerPalletId::get().into_account_truncating(),
+									withdrawal.amount,
+								) {
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 								};
@@ -341,7 +352,12 @@ pub mod pallet {
 			let token = Self::generate_asset_id_for_parachain(token);
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			ensure!(!whitelisted_tokens.contains(&token), Error::<T>::TokenIsAlreadyWhitelisted);
-			T::AssetManager::create(token, T::AssetHandlerPalletId::get().into_account_truncating(), true, 1u128)?;
+			T::AssetManager::create(
+				token,
+				T::AssetHandlerPalletId::get().into_account_truncating(),
+				true,
+				1u128,
+			)?;
 			whitelisted_tokens.push(token);
 			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
@@ -350,17 +366,22 @@ pub mod pallet {
 
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::whitelist_token(1))] //TODO: Fix Weight
-		pub fn remove_whitelisted_token(origin: OriginFor<T>, token_to_be_removed: AssetId) -> DispatchResult {
+		pub fn remove_whitelisted_token(
+			origin: OriginFor<T>,
+			token_to_be_removed: AssetId,
+		) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let token_to_be_removed = Self::generate_asset_id_for_parachain(token_to_be_removed);
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
-			let index = whitelisted_tokens.iter().position(|token| *token == token_to_be_removed).ok_or(Error::<T>::TokenIsNotWhitelisted)?;
+			let index = whitelisted_tokens
+				.iter()
+				.position(|token| *token == token_to_be_removed)
+				.ok_or(Error::<T>::TokenIsNotWhitelisted)?;
 			whitelisted_tokens.remove(index);
 			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::WhitelistedTokenRemoved(token_to_be_removed));
 			Ok(())
 		}
-
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::transfer_fee(1))]

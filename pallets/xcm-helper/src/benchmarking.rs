@@ -3,11 +3,13 @@ use super::*;
 #[allow(unused_imports)]
 use crate::Pallet as XcmHelper;
 use frame_benchmarking::{account, benchmarks};
-use frame_support::{sp_runtime::SaturatedConversion, traits::fungibles::Mutate};
+use frame_support::{
+	sp_runtime::SaturatedConversion,
+	traits::fungibles::{Inspect, Mutate},
+};
 use frame_system::RawOrigin;
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
-use frame_support::traits::fungibles::Inspect;
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
 
 const SEED: u32 = 0;

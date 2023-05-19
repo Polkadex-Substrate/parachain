@@ -28,7 +28,10 @@ fn test_remove_whitelisted_token_returns_token_not_found_error() {
 	new_test_ext().execute_with(|| {
 		let asset_location = MultiLocation::parent();
 		let token: AssetId = AssetId::Concrete(asset_location);
-		assert_noop!(XcmHelper::remove_whitelisted_token(RuntimeOrigin::root(), token), Error::<Test>::TokenIsNotWhitelisted);
+		assert_noop!(
+			XcmHelper::remove_whitelisted_token(RuntimeOrigin::root(), token),
+			Error::<Test>::TokenIsNotWhitelisted
+		);
 	});
 }
 
