@@ -560,7 +560,7 @@ impl pallet_amm::Config for Runtime {
 
 impl asset_handler::Config for Runtime {
 	type Currency = Balances;
-	type MultiCurrency = AssetHandler;
+	type MultiCurrency = Assets;
 	type NativeCurrencyId = PolkadexAssetid;
 }
 

@@ -54,7 +54,7 @@ benchmarks! {
 		let recipeint: T::AccountId = account("mem1", b, SEED);
 	}: _(RawOrigin::Root, recipeint.clone())
 	verify {
-		assert_eq!(T::AssetManager::balance(100, &recipeint), 1999000000000000u128.saturated_into());
+		assert_eq!(T::AssetManager::balance(asset, &recipeint), 1999000000000000u128.saturated_into());
 	}
 
 }
