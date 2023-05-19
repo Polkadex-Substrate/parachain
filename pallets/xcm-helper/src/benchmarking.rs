@@ -11,7 +11,6 @@ use frame_system::RawOrigin;
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
-use frame_support::traits::fungibles::Create;
 
 const SEED: u32 = 0;
 
