@@ -2,20 +2,42 @@ use crate::{mock::*, Error, PendingWithdrawals};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use sp_runtime::{traits::AccountIdConversion, SaturatedConversion};
 use thea_primitives::types::Withdraw;
+use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
 
 #[test]
 fn test_whitelist_token_returns_ok() {
 	new_test_ext().execute_with(|| {
-		let token = 100;
+		let asset_location = MultiLocation::parent();
+		let token: AssetId = AssetId::Concrete(asset_location);
 		assert_ok!(XcmHelper::whitelist_token(RuntimeOrigin::root(), token));
+	});
+}
+
+#[test]
+fn test_remove_whitelisted_token_returns_ok() {
+	new_test_ext().execute_with(|| {
+		let asset_location = MultiLocation::parent();
+		let token: AssetId = AssetId::Concrete(asset_location);
+		assert_ok!(XcmHelper::whitelist_token(RuntimeOrigin::root(), token.clone()));
+		assert_ok!(XcmHelper::remove_whitelisted_token(RuntimeOrigin::root(), token));
+	});
+}
+
+#[test]
+fn test_remove_whitelisted_token_returns_token_not_found_error() {
+	new_test_ext().execute_with(|| {
+		let asset_location = MultiLocation::parent();
+		let token: AssetId = AssetId::Concrete(asset_location);
+		assert_noop!(XcmHelper::remove_whitelisted_token(RuntimeOrigin::root(), token), Error::<Test>::TokenIsNotWhitelisted);
 	});
 }
 
 #[test]
 fn test_whitelist_token_returns_token_is_already_whitelisted() {
 	new_test_ext().execute_with(|| {
-		let token = 100;
-		assert_ok!(XcmHelper::whitelist_token(RuntimeOrigin::root(), token));
+		let asset_location = MultiLocation::parent();
+		let token: AssetId = AssetId::Concrete(asset_location);
+		assert_ok!(XcmHelper::whitelist_token(RuntimeOrigin::root(), token.clone()));
 		assert_noop!(
 			XcmHelper::whitelist_token(RuntimeOrigin::root(), token),
 			Error::<Test>::TokenIsAlreadyWhitelisted

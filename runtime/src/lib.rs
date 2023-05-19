@@ -176,7 +176,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadex-parachain"),
 	impl_name: create_runtime_str!("polkadex-parachain"),
 	authoring_version: 1,
-	spec_version: 2,
+	spec_version: 8,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -467,7 +467,7 @@ impl pallet_sudo::Config for Runtime {
 use polkadex_primitives::POLKADEX_NATIVE_ASSET_ID;
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
-	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
+	pub const WithdrawalExecutionBlockDiff: u32 = 5;
 	pub ParachainId: u32 = ParachainInfo::get().into();
 	pub const ParachainNetworkId: u8 = 1; // Our parachain's thea id is one.
 	pub const PolkadexAssetid: u128 = POLKADEX_NATIVE_ASSET_ID;
