@@ -41,6 +41,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned,
 };
+use polkadex_primitives::POLKADEX_NATIVE_ASSET_ID;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
@@ -464,7 +465,7 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 }
-use polkadex_primitives::POLKADEX_NATIVE_ASSET_ID;
+
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
