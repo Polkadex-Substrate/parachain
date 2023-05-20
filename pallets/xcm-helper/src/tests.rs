@@ -17,7 +17,7 @@ use crate::{mock::*, Error, PendingWithdrawals};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use sp_runtime::{traits::AccountIdConversion, DispatchError, SaturatedConversion};
 use thea_primitives::types::Withdraw;
-use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
+use xcm::latest::{AssetId, MultiLocation};
 
 #[test]
 fn test_whitelist_token_returns_ok() {
@@ -64,6 +64,19 @@ fn test_remove_whitelisted_token_returns_token_not_found_error() {
 }
 
 #[test]
+fn test_remove_whitelisted_token_with_bad_origin_will_return_bad_origin_error() {
+	new_test_ext().execute_with(|| {
+		let asset_location = MultiLocation::parent();
+		let token: AssetId = AssetId::Concrete(asset_location);
+
+		assert_noop!(
+			XcmHelper::remove_whitelisted_token(RuntimeOrigin::none(), token),
+			DispatchError::BadOrigin
+		);
+	});
+}
+
+#[test]
 fn test_whitelist_token_returns_token_is_already_whitelisted() {
 	new_test_ext().execute_with(|| {
 		let asset_location = MultiLocation::parent();
@@ -81,7 +94,7 @@ fn test_transfer_fee_returns_ok() {
 	new_test_ext().execute_with(|| {
 		let recipient = 1;
 		let pallet_account = AssetHandlerPalletId::get().into_account_truncating();
-		Balances::deposit_creating(
+		let _ = Balances::deposit_creating(
 			&pallet_account,
 			5_000_000_000_000_000_000_000u128.saturated_into(),
 		);
