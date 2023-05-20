@@ -1,6 +1,24 @@
+// This file is part of Polkadex.
+
+// Copyright (C) 2020-2023 Polkadex oü.
+// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+
 use super::{
 	AccountId, Balances, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall,
 	RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
+};
+use crate::{
+	AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, Swap, XcmHelper,
 };
 use core::marker::PhantomData;
 use frame_support::{
@@ -22,6 +40,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Zero},
 	SaturatedConversion,
 };
+use sp_std::vec;
 use xcm::latest::{prelude::*, Weight as XCMWeight};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
@@ -137,9 +156,6 @@ pub type Barrier = (
 	AllowSubscriptionsFrom<Everything>,
 );
 
-use crate::{
-	AssetHandler, AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, Swap, XcmHelper,
-};
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
@@ -259,7 +275,6 @@ where
 	_pd: PhantomData<(T, R, AMM, AC, WH)>,
 }
 
-use sp_std::vec;
 impl<T, R, AMM, AC, WH> WeightTrader for ForeignAssetFeeHandler<T, R, AMM, AC, WH>
 where
 	T: WeightToFeeT<Balance = u128>,
