@@ -15,7 +15,7 @@
 
 use crate::{mock::*, Error, PendingWithdrawals};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
-use sp_runtime::{traits::AccountIdConversion, SaturatedConversion};
+use sp_runtime::{traits::AccountIdConversion, DispatchError, SaturatedConversion};
 use thea_primitives::types::Withdraw;
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
 
@@ -25,6 +25,19 @@ fn test_whitelist_token_returns_ok() {
 		let asset_location = MultiLocation::parent();
 		let token: AssetId = AssetId::Concrete(asset_location);
 		assert_ok!(XcmHelper::whitelist_token(RuntimeOrigin::root(), token));
+	});
+}
+
+#[test]
+fn test_whitelist_token_with_bad_origin_will_return_bad_origin_error() {
+	new_test_ext().execute_with(|| {
+		let asset_location = MultiLocation::parent();
+		let token: AssetId = AssetId::Concrete(asset_location);
+
+		assert_noop!(
+			XcmHelper::whitelist_token(RuntimeOrigin::none(), token),
+			DispatchError::BadOrigin
+		);
 	});
 }
 
@@ -74,6 +87,23 @@ fn test_transfer_fee_returns_ok() {
 		);
 		assert_ok!(XcmHelper::transfer_fee(RuntimeOrigin::root(), recipient));
 		assert_eq!(Balances::free_balance(recipient), 4999999999000000000000u128.saturated_into());
+	});
+}
+
+#[test]
+fn test_transfer_fee_with_bad_origin_will_return_bad_origin_error() {
+	new_test_ext().execute_with(|| {
+		let recipient = 1;
+		let pallet_account = AssetHandlerPalletId::get().into_account_truncating();
+		let _ = Balances::deposit_creating(
+			&pallet_account,
+			5_000_000_000_000_000_000_000u128.saturated_into(),
+		);
+
+		assert_noop!(
+			XcmHelper::transfer_fee(RuntimeOrigin::none(), recipient),
+			DispatchError::BadOrigin
+		);
 	});
 }
 
