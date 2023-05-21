@@ -335,7 +335,10 @@ pub mod pallet {
 					}
 				}
 			});
-			<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
+			// Only update the storage if vector is not empty
+			if !failed_withdrawal.is_empty() {
+				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
+			}
 			Weight::default()
 		}
 	}
