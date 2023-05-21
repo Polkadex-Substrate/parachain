@@ -126,7 +126,7 @@ pub mod pallet {
 	use xcm::{
 		latest::{
 			Error as XcmError, Fungibility, Junction, Junctions, MultiAsset, MultiAssets,
-			MultiLocation, Result,
+			MultiLocation,
 		},
 		prelude::Parachain,
 		v1::AssetId,
@@ -273,7 +273,7 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
 			// TODO: Benchmark this is with a predefined bound but don't use bounded vec @zktony
 			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
@@ -408,7 +408,7 @@ pub mod pallet {
 
 	impl<T: Config> TransactAsset for Pallet<T> {
 		/// Generate Ingress Message for new Deposit
-		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
+		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> xcm::latest::Result {
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
 			let recipient =

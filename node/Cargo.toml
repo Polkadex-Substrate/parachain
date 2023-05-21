@@ -45,6 +45,7 @@ sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "pol
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 sp-keystore = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
@@ -82,4 +83,4 @@ runtime-benchmarks = [
     "parachain-polkadex-runtime/runtime-benchmarks",
     "polkadot-cli/runtime-benchmarks",
 ]
-try-runtime = ["parachain-polkadex-runtime/try-runtime"]
+try-runtime = ["parachain-polkadex-runtime/try-runtime", "try-runtime-cli/try-runtime"]
