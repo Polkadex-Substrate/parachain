@@ -41,6 +41,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned,
 };
+use polkadex_primitives::POLKADEX_NATIVE_ASSET_ID;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
 use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
@@ -464,7 +465,7 @@ impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
 }
-use polkadex_primitives::POLKADEX_NATIVE_ASSET_ID;
+
 parameter_types! {
 	pub const AssetHandlerPalletId: PalletId = PalletId(*b"XcmHandl");
 	pub const WithdrawalExecutionBlockDiff: u32 = 1000;
@@ -476,7 +477,7 @@ parameter_types! {
 impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = LocationToAccountId;
-	type AssetManager = Assets;
+	type AssetManager = AssetHandler;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
 	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
@@ -555,17 +556,13 @@ impl pallet_amm::Config for Runtime {
 	type LpFee = DefaultLpFee;
 	type MinimumLiquidity = MinimumLiquidity;
 	type MaxLengthRoute = MaxLengthRoute;
-	type GetNativeCurrencyId = NativeCurrencyId;
-}
-
-parameter_types! {
-	pub const NativeCurrencyId: u128 = 0;
+	type GetNativeCurrencyId = PolkadexAssetid;
 }
 
 impl asset_handler::Config for Runtime {
 	type Currency = Balances;
-	type MultiCurrency = AssetHandler;
-	type NativeCurrencyId = NativeCurrencyId;
+	type MultiCurrency = Assets;
+	type NativeCurrencyId = PolkadexAssetid;
 }
 
 //Install Router pallet
@@ -578,7 +575,7 @@ impl router::Config for Runtime {
 	type PalletId = RouterPalletId;
 	type AMM = Swap;
 	type MaxLengthRoute = MaxLengthRoute;
-	type GetNativeCurrencyId = NativeCurrencyId;
+	type GetNativeCurrencyId = PolkadexAssetid;
 	type Assets = AssetHandler;
 }
 
