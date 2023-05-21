@@ -275,7 +275,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
-			// TODO: Benchmark this is with a predefined bound but don't use bounded vec
+			// TODO: Benchmark this is with a predefined bound but don't use bounded vec @zktony
 			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
@@ -367,7 +367,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::whitelist_token(1))] //TODO: Fix Weight
+		#[pallet::weight(T::WeightInfo::whitelist_token(1))] //TODO: Fix Weight @serhii
 		pub fn remove_whitelisted_token(
 			origin: OriginFor<T>,
 			token_to_be_removed: AssetId,

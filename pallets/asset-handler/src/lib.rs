@@ -161,7 +161,6 @@ pub mod pallet {
 			} else if T::Currency::free_balance(who) >= amount.saturated_into() {
 				WithdrawConsequence::Success
 			} else {
-				// TODO: Need a better error mapping
 				WithdrawConsequence::UnknownAsset
 			}
 		}

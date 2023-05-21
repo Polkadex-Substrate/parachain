@@ -168,7 +168,9 @@ impl xcm_executor::Config for XcmConfig {
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader = (
-		UsingComponents<WeightToFee, PdexLocation, AccountId, Balances, ToAuthor<Runtime>>, //TODO: Change destination account
+		// If the XCM message is paying the fees in PDEX ( the native ) then
+		// it will go to the author of the block as rewards
+		UsingComponents<WeightToFee, PdexLocation, AccountId, Balances, ToAuthor<Runtime>>,
 		ForeignAssetFeeHandler<
 			WeightToFee,
 			RevenueCollector<AssetHandler, XcmHelper, Swap, TypeConv, TypeConv>,
@@ -230,7 +232,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
-	pub const BaseXcmWeight: XCMWeight = 100_000_000; // TODO: recheck this
+	pub const BaseXcmWeight: XCMWeight = 100_000_000; // TODO: recheck this @zktony
 	pub const MaxAssetsForTransfer: usize = 2;
 }
 
@@ -390,7 +392,7 @@ where
 			if let (Some(asset_id), Fungibility::Fungible(amount)) =
 				(AC::convert_location_to_asset_id(location), revenue.fun)
 			{
-				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating(); //TODO: Change account
+				let asset_handler_account = AssetHandlerPalletId::get().into_account_truncating();
 				if let (Ok(asset_id_associated_type), Ok(amount_associated_type)) =
 					(AssetConv::convert_ref(asset_id), BalanceConv::convert_ref(amount))
 				{
