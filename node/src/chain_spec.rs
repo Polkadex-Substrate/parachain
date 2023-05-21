@@ -76,7 +76,7 @@ pub fn development_config() -> ChainSpec {
 		"dev",
 		ChainType::Development,
 		move || {
-			testnet_genesis(
+			create_genesis_config(
 				// initial collators.
 				vec![
 					(
@@ -133,7 +133,7 @@ pub fn local_testnet_config() -> ChainSpec {
 		"local_testnet",
 		ChainType::Local,
 		move || {
-			testnet_genesis(
+			create_genesis_config(
 				// initial collators.
 				vec![
 					(
@@ -181,7 +181,7 @@ pub fn local_testnet_config() -> ChainSpec {
 	)
 }
 
-fn testnet_genesis(
+fn create_genesis_config(
 	invulnerables: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
@@ -252,7 +252,7 @@ pub fn mainnet_config() -> ChainSpec {
 		"parachain_live",
 		ChainType::Live,
 		move || {
-			testnet_genesis(
+			create_genesis_config(
 				// initial collators.
 				vec![(initial_collator.clone(), initial_collator_aura_id.clone())],
 				vec![root_key.clone(), initial_collator.clone()],
