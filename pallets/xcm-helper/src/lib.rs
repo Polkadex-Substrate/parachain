@@ -140,6 +140,7 @@ pub mod pallet {
 
 	pub trait XcmHelperWeightInfo {
 		fn whitelist_token(_b: u32) -> Weight;
+		fn remove_whitelisted_token(_b: u32) -> Weight;
 		fn transfer_fee(b: u32) -> Weight;
 	}
 
@@ -370,7 +371,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::whitelist_token(1))] //TODO: Fix Weight @serhii
+		#[pallet::weight(T::WeightInfo::remove_whitelisted_token(1))]
 		pub fn remove_whitelisted_token(
 			origin: OriginFor<T>,
 			token_to_be_removed: AssetId,
