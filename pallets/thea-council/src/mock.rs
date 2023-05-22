@@ -132,7 +132,7 @@ impl xcm_helper::Config for Test {
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
-	type ParachainNetworkId = frame_support::traits::ConstU8<0>;
+	type SubstrateNetworkId = frame_support::traits::ConstU8<0>;
 	type NativeAssetId = NativeAssetId;
 	type WeightInfo = xcm_helper::weights::WeightInfo<Test>;
 }

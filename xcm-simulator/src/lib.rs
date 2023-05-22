@@ -324,6 +324,7 @@ mod tests {
 			let destination: VersionedMultiLocation = destination.into();
 			let asset_id = 100;
 			let pending_withdrawal = Withdraw {
+				id: Vec::new(),
 				asset_id,
 				amount,
 				destination: destination.encode(),
@@ -358,6 +359,7 @@ mod tests {
 			// Register Asset Id
 			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
 			let pending_withdrawal = Withdraw {
+				id: Vec::new(),
 				asset_id,
 				amount,
 				destination: destination.encode(),

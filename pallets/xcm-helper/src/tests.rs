@@ -124,6 +124,7 @@ fn test_transfer_fee_with_bad_origin_will_return_bad_origin_error() {
 fn test_block_by_ele() {
 	new_test_ext().execute_with(|| {
 		let first_withdrawal = Withdraw {
+			id: Vec::new(),
 			asset_id: 1,
 			amount: 1,
 			destination: vec![],
@@ -131,6 +132,7 @@ fn test_block_by_ele() {
 			extra: vec![],
 		};
 		let sec_withdrawal = Withdraw {
+			id: Vec::new(),
 			asset_id: 2,
 			amount: 2,
 			destination: vec![],
@@ -141,6 +143,7 @@ fn test_block_by_ele() {
 		assert_ok!(XcmHelper::block_by_ele(1, 1));
 		let actual_withdrawals = <PendingWithdrawals<Test>>::get(1);
 		let expected_withdraw = Withdraw {
+			id: Vec::new(),
 			asset_id: 2,
 			amount: 2,
 			destination: vec![],

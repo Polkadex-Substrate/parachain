@@ -444,7 +444,7 @@ impl xcm_helper::Config for Runtime {
 	type AssetHandlerPalletId = AssetHandlerPalletId;
 	type WithdrawalExecutionBlockDiff = WithdrawalExecutionBlockDiff;
 	type ParachainId = ParachainId;
-	type ParachainNetworkId = ParachainNetworkId;
+	type SubstrateNetworkId = ParachainNetworkId;
 	type NativeAssetId = NativeAssetId;
 	type WeightInfo = xcm_helper::weights::WeightInfo<Runtime>;
 }

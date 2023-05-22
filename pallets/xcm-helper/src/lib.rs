@@ -181,7 +181,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type ParachainId: Get<u32>;
 		#[pallet::constant]
-		type ParachainNetworkId: Get<u8>;
+		type SubstrateNetworkId: Get<u8>;
 		/// Native Asset Id
 		#[pallet::constant]
 		type NativeAssetId: Get<u128>;
@@ -210,6 +210,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
 	pub type WhitelistedTokens<T: Config> = StorageValue<_, Vec<u128>, ValueQuery>;
+
+	/// Nonce used to generate randomness for txn id
+	#[pallet::storage]
+	#[pallet::getter(fn randomness_nonce)]
+	pub type RandomnessNonce<T: Config> = StorageValue<_, u32, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
@@ -415,10 +420,15 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone());
-			let deposit: Deposit<T::AccountId> =
-				Deposit { recipient, asset_id, amount, extra: Vec::new() };
+			let deposit: Deposit<T::AccountId> = Deposit {
+				id: Self::new_random_id(),
+				recipient,
+				asset_id,
+				amount,
+				extra: Vec::new(),
+			};
 
-			let parachain_network_id = T::ParachainNetworkId::get();
+			let parachain_network_id = T::SubstrateNetworkId::get();
 			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
 				.map_err(|_| XcmError::Trap(102))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(
@@ -463,6 +473,16 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Generates a new random id for withdrawals
+		fn new_random_id() -> Vec<u8> {
+			let mut nonce = <RandomnessNonce<T>>::get();
+			nonce = nonce.wrapping_add(1);
+			<RandomnessNonce<T>>::put(nonce);
+			let network_id = T::SubstrateNetworkId::get();
+			let entropy = sp_io::hashing::blake2_256(&((network_id, nonce).encode()));
+			entropy.to_vec()
+		}
+
 		/// Get Pallet Id
 		pub fn get_pallet_account() -> T::AccountId {
 			T::AssetHandlerPalletId::get().into_account_truncating()

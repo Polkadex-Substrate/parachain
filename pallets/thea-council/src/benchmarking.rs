@@ -20,7 +20,7 @@ use crate::Pallet as TheaCouncil;
 use frame_benchmarking::{account, benchmarks};
 use frame_support::{sp_runtime::SaturatedConversion, BoundedVec};
 use frame_system::RawOrigin;
-use sp_std::vec;
+use sp_std::{vec, vec::Vec};
 use thea_primitives::types::Withdraw;
 const SEED: u32 = 0;
 
@@ -79,6 +79,7 @@ benchmarks! {
 		// Add Pending Withdrawal
 		let block_no: T::BlockNumber = 100u64.saturated_into();
 		let pending_withdrawal = Withdraw {
+			id: Vec::new(),
 			asset_id: 0,
 			amount: 0,
 			destination: vec![],
