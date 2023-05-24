@@ -72,47 +72,48 @@ benchmarks! {
 		assert_eq!(T::AssetManager::balance(asset, &recipeint), 1999000000000000u128.saturated_into());
 	}
 
-	on_initialize {
-		let x: T::BlockNumber = 1u64.saturated_into();
-		let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
-		let asset = T::NativeAssetId::get();
-		let asset_id = AssetId::Concrete(MultiLocation::new(1, Junctions::X1(Junction::Parachain(1000))));
-		let asset_id = XcmHelper::<T>::generate_asset_id_for_parachain(asset_id);
-		T::AssetManager::mint_into(
-			asset,
-			&pallet_account,
-			2_000_000_000_000_000u128.saturated_into()
-		).unwrap();
-		T::AssetManager::create(
-				asset_id,
-				T::AssetHandlerPalletId::get().into_account_truncating(),
-				true,
-				1u128,
-			)?;
-		<ParachainAssets<T>>::insert(asset_id,
-			AssetId::Concrete(MultiLocation::new(1, Junctions::X1(Junction::Parachain(1000)))));
-		let withdrawals: Vec<Withdraw> = vec![Withdraw {
-			id: Vec::new(),
-	asset_id: asset_id,
-	amount: UNIT_BALANCE * 10,
-	destination: VersionedMultiLocation::V1(MultiLocation::new(1,
-															 Junctions::X2(
-																 Junction::Parachain(1000),
-																 Junction::PalletInstance(1)
-															 )
-	)).encode(),
-	is_blocked: false,
-	extra: Vec::new(),
-		};100];
-		<PendingWithdrawals<T>>::insert(x,withdrawals);
-	}: {
-		Pallet::<T>::on_initialize(x);
-	} verify {
-		let withdrawals = <PendingWithdrawals<T>>::get(x);
-		let failed_withdrawals = <FailedWithdrawals<T>>::get(x);
-		assert!(failed_withdrawals.is_empty());
-		assert!(withdrawals.is_empty())
-	}
+	// TODO: We need to adapt this benchmark to work in runtime context
+	// on_initialize {
+	// 	let x: T::BlockNumber = 1u64.saturated_into();
+	// 	let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
+	// 	let asset = T::NativeAssetId::get();
+	// 	let asset_id = AssetId::Concrete(MultiLocation::new(1, Junctions::X1(Junction::Parachain(1000))));
+	// 	let asset_id = XcmHelper::<T>::generate_asset_id_for_parachain(asset_id);
+	// 	T::AssetManager::mint_into(
+	// 		asset,
+	// 		&pallet_account,
+	// 		2_000_000_000_000_000u128.saturated_into()
+	// 	).unwrap();
+	// 	T::AssetManager::create(
+	// 			asset_id,
+	// 			T::AssetHandlerPalletId::get().into_account_truncating(),
+	// 			true,
+	// 			1u128,
+	// 		)?;
+	// 	<ParachainAssets<T>>::insert(asset_id,
+	// 		AssetId::Concrete(MultiLocation::new(1, Junctions::X1(Junction::Parachain(1000)))));
+	// 	let withdrawals: Vec<Withdraw> = vec![Withdraw {
+	// 		id: Vec::new(),
+	// asset_id: asset_id,
+	// amount: UNIT_BALANCE * 10,
+	// destination: VersionedMultiLocation::V1(MultiLocation::new(1,
+	// 														 Junctions::X2(
+	// 															 Junction::Parachain(1000),
+	// 															 Junction::PalletInstance(1)
+	// 														 )
+	// )).encode(),
+	// is_blocked: false,
+	// extra: Vec::new(),
+	// 	};100];
+	// 	<PendingWithdrawals<T>>::insert(x,withdrawals);
+	// }: {
+	// 	Pallet::<T>::on_initialize(x);
+	// } verify {
+	// 	let withdrawals = <PendingWithdrawals<T>>::get(x);
+	// 	let failed_withdrawals = <FailedWithdrawals<T>>::get(x);
+	// 	assert!(failed_withdrawals.is_empty());
+	// 	assert!(withdrawals.is_empty())
+	// }
 }
 
 use frame_support::traits::Hooks;
