@@ -71,10 +71,40 @@ benchmarks! {
 		assert_eq!(T::AssetManager::balance(asset, &recipeint), 1999000000000000u128.saturated_into());
 	}
 
+	on_initialize {
+		let x: T::BlockNumber = 1u64.saturated_into();
+		<ParachainAssets<T>>::insert(u128::MAX,
+			AssetId::Concrete(MultiLocation::new(1, Junctions::X1(Junction::Parachain(1000)))));
+		let withdrawals: Vec<Withdraw> = vec![Withdraw {
+			id: Vec::new(),
+	asset_id: u128::MAX,
+	amount: UNIT_BALANCE,
+	destination: VersionedMultiLocation::V1(MultiLocation::new(1,
+															 Junctions::X2(
+																 Junction::Parachain(1000),
+																 Junction::PalletInstance(1)
+															 )
+	)).encode(),
+	is_blocked: false,
+	extra: Vec::new(),
+		};100];
+		<PendingWithdrawals<T>>::insert(x,withdrawals);
+	}: {
+		Pallet::<T>::on_initialize(x);
+	} verify {
+		let withdrawals = <PendingWithdrawals<T>>::get(x);
+		assert!(withdrawals.is_empty())
+	}
 }
+
+use frame_support::traits::Hooks;
+use polkadex_primitives::UNIT_BALANCE;
+use thea_primitives::types::Withdraw;
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
+use parity_scale_codec::Encode;
+use xcm::VersionedMultiLocation;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(XcmHelper, crate::mock::new_test_ext(), crate::mock::Test);
