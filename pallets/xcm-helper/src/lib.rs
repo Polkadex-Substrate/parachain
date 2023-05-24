@@ -89,10 +89,17 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight};
 pub use pallet::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+
+/// We allow for 0.5 of a second of compute with a 12 second average block time.
+const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+	cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64,
+);
 
 #[cfg(test)]
 mod mock;
@@ -118,6 +125,7 @@ pub mod pallet {
 	use sp_core::sp_std;
 	use sp_runtime::{traits::Convert, SaturatedConversion};
 
+	use crate::MAXIMUM_BLOCK_WEIGHT;
 	use sp_std::{boxed::Box, vec, vec::Vec};
 	use thea_primitives::{
 		types::{Deposit, Withdraw},
@@ -281,7 +289,6 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
-			// TODO: Benchmark this is with a predefined bound but don't use bounded vec @zktony
 			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
@@ -313,7 +320,7 @@ pub mod pallet {
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 								};
-								orml_xtokens::module::Pallet::<T>::transfer_multiassets(
+								if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
 									RawOrigin::Signed(
 										T::AssetHandlerPalletId::get().into_account_truncating(),
 									)
@@ -322,12 +329,12 @@ pub mod pallet {
 									0,
 									Box::new(destination.clone()),
 									WeightLimit::Unlimited,
-								).unwrap();
-								// .is_err()
-								// {
-								// 	failed_withdrawal.push(withdrawal.clone());
-								// 	log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
-								// }
+								)
+								.is_err()
+								{
+									failed_withdrawal.push(withdrawal.clone());
+									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+								}
 							} else {
 								failed_withdrawal.push(withdrawal)
 							}
@@ -345,7 +352,9 @@ pub mod pallet {
 			if !failed_withdrawal.is_empty() {
 				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
 			}
-			Weight::default()
+			// TODO: We are currently over estimating the weight here to 1/4th of total block time
+			// 	Need a better way to estimate this hook
+			MAXIMUM_BLOCK_WEIGHT.saturating_div(4)
 		}
 	}
 

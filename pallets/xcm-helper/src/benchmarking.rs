@@ -20,14 +20,13 @@ use crate::Pallet as XcmHelper;
 use frame_benchmarking::{account, benchmarks};
 use frame_support::{
 	sp_runtime::SaturatedConversion,
-	traits::fungibles::{Inspect, Mutate},
+	traits::fungibles::{Create, Inspect, Mutate},
 };
 use frame_system::RawOrigin;
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
-use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
-use frame_support::traits::fungibles::Create;
 use sp_std::{vec, vec::Vec};
+use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
 const SEED: u32 = 0;
 
 benchmarks! {
