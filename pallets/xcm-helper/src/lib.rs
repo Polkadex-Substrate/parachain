@@ -89,10 +89,17 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight};
 pub use pallet::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+
+/// We allow for 0.5 of a second of compute with a 12 second average block time.
+const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+	cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64,
+);
 
 #[cfg(test)]
 mod mock;
@@ -118,6 +125,7 @@ pub mod pallet {
 	use sp_core::sp_std;
 	use sp_runtime::{traits::Convert, SaturatedConversion};
 
+	use crate::MAXIMUM_BLOCK_WEIGHT;
 	use sp_std::{boxed::Box, vec, vec::Vec};
 	use thea_primitives::{
 		types::{Deposit, Withdraw},
@@ -281,7 +289,6 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
-			// TODO: Benchmark this is with a predefined bound but don't use bounded vec @zktony
 			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
@@ -345,7 +352,9 @@ pub mod pallet {
 			if !failed_withdrawal.is_empty() {
 				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
 			}
-			Weight::default()
+			// TODO: We are currently over estimating the weight here to 1/4th of total block time
+			// 	Need a better way to estimate this hook
+			MAXIMUM_BLOCK_WEIGHT.saturating_div(4)
 		}
 	}
 
@@ -450,6 +459,7 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(what.id.clone());
+
 			T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
 				.map_err(|_| XcmError::Trap(24))?;
 			Ok(what.clone().into())

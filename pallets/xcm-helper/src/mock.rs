@@ -51,7 +51,6 @@ impl system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
-	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
 	type Index = u64;
@@ -63,6 +62,7 @@ impl system::Config for Test {
 	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
+	type DbWeight = ();
 	type Version = ();
 	type PalletInfo = PalletInfo;
 	type AccountData = pallet_balances::AccountData<u128>;
@@ -173,6 +173,7 @@ parameter_types! {
 	pub UnitWeightCost: u64 = 1_000_000_000;
 	pub const MaxInstructions: u32 = 100;
 	pub Ancestry: xcm::v1::MultiLocation = MultiLocation::default();
+	pub MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Test {
@@ -188,7 +189,7 @@ impl orml_xtokens::Config for Test {
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type BaseXcmWeight = ();
 	type LocationInverter = LocationInverter<Ancestry>;
-	type MaxAssetsForTransfer = ();
+	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type ReserveProvider = AbsoluteReserveProvider;
 }
 
