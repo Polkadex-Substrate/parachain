@@ -313,7 +313,7 @@ pub mod pallet {
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 								};
-								if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
+								orml_xtokens::module::Pallet::<T>::transfer_multiassets(
 									RawOrigin::Signed(
 										T::AssetHandlerPalletId::get().into_account_truncating(),
 									)
@@ -322,12 +322,12 @@ pub mod pallet {
 									0,
 									Box::new(destination.clone()),
 									WeightLimit::Unlimited,
-								)
-								.is_err()
-								{
-									failed_withdrawal.push(withdrawal.clone());
-									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
-								}
+								).unwrap();
+								// .is_err()
+								// {
+								// 	failed_withdrawal.push(withdrawal.clone());
+								// 	log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+								// }
 							} else {
 								failed_withdrawal.push(withdrawal)
 							}
@@ -450,6 +450,7 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(what.id.clone());
+
 			T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
 				.map_err(|_| XcmError::Trap(24))?;
 			Ok(what.clone().into())

@@ -173,6 +173,7 @@ parameter_types! {
 	pub UnitWeightCost: u64 = 1_000_000_000;
 	pub const MaxInstructions: u32 = 100;
 	pub Ancestry: xcm::v1::MultiLocation = MultiLocation::default();
+	pub MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Test {
@@ -188,7 +189,7 @@ impl orml_xtokens::Config for Test {
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type BaseXcmWeight = ();
 	type LocationInverter = LocationInverter<Ancestry>;
-	type MaxAssetsForTransfer = ();
+	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type ReserveProvider = AbsoluteReserveProvider;
 }
 
