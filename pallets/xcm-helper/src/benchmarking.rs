@@ -20,12 +20,11 @@ use crate::Pallet as XcmHelper;
 use frame_benchmarking::{account, benchmarks};
 use frame_support::{
 	sp_runtime::SaturatedConversion,
-	traits::fungibles::{Create, Inspect, Mutate},
+	traits::fungibles::{Inspect, Mutate},
 };
 use frame_system::RawOrigin;
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
-use sp_std::{vec, vec::Vec};
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
 const SEED: u32 = 0;
 
@@ -116,14 +115,8 @@ benchmarks! {
 	// }
 }
 
-use frame_support::traits::Hooks;
-use polkadex_primitives::UNIT_BALANCE;
-use thea_primitives::types::Withdraw;
-
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
-use parity_scale_codec::Encode;
-use xcm::VersionedMultiLocation;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(XcmHelper, crate::mock::new_test_ext(), crate::mock::Test);
