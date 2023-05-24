@@ -879,7 +879,7 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 [[package]]
 name = "bls-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#f65859c87394f91e75e1d6ea1698d4bbc5f3440b"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7cd2b056c1c251a961b4a0353e3b6efd798e0c83"
 dependencies = [
  "ark-bls12-381",
  "ark-ec",
@@ -949,9 +949,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.12.2"
+version = "3.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c6ed94e98ecff0c12dd1b04c15ec0d7d9458ca8fe806cea6f12954efe74c63b"
+checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
 
 [[package]]
 name = "byte-slice-cast"
@@ -5590,7 +5590,7 @@ dependencies = [
 [[package]]
 name = "pallet-amm"
 version = "1.9.5"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#f65859c87394f91e75e1d6ea1698d4bbc5f3440b"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7cd2b056c1c251a961b4a0353e3b6efd798e0c83"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6596,7 +6596,7 @@ dependencies = [
 
 [[package]]
 name = "parachain-polkadex-node"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "clap",
  "cumulus-client-cli",
@@ -7023,7 +7023,7 @@ checksum = "e3d7ddaed09e0eb771a79ab0fd64609ba0afb0a8366421957936ad14cbd13630"
 [[package]]
 name = "polkadex-primitives"
 version = "0.9.28"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#f65859c87394f91e75e1d6ea1698d4bbc5f3440b"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7cd2b056c1c251a961b4a0353e3b6efd798e0c83"
 dependencies = [
  "anyhow",
  "frame-support",
@@ -8730,13 +8730,13 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.8.1"
+version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af83e617f331cc6ae2da5443c602dfa5af81e517212d9d611a5b3ba1777b5370"
+checksum = "d1a59b5d8e97dee33696bf13c5ba8ab85341c002922fba050069326b9c498974"
 dependencies = [
  "aho-corasick 1.0.1",
  "memchr",
- "regex-syntax 0.7.1",
+ "regex-syntax 0.7.2",
 ]
 
 [[package]]
@@ -8756,9 +8756,9 @@ checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
 name = "regex-syntax"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
+checksum = "436b050e76ed2903236f032a59761c1eb99e1b0aead2c257922771dab1fc8c78"
 
 [[package]]
 name = "resolv-conf"
@@ -8909,7 +8909,7 @@ dependencies = [
 [[package]]
 name = "router"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#f65859c87394f91e75e1d6ea1698d4bbc5f3440b"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7cd2b056c1c251a961b4a0353e3b6efd798e0c83"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -11609,7 +11609,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "support"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#f65859c87394f91e75e1d6ea1698d4bbc5f3440b"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7cd2b056c1c251a961b4a0353e3b6efd798e0c83"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -11749,7 +11749,7 @@ dependencies = [
 [[package]]
 name = "thea-message-handler"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#f65859c87394f91e75e1d6ea1698d4bbc5f3440b"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7cd2b056c1c251a961b4a0353e3b6efd798e0c83"
 dependencies = [
  "bls-primitives",
  "frame-benchmarking",
@@ -11768,7 +11768,7 @@ dependencies = [
 [[package]]
 name = "thea-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#f65859c87394f91e75e1d6ea1698d4bbc5f3440b"
+source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop#7cd2b056c1c251a961b4a0353e3b6efd798e0c83"
 dependencies = [
  "bls-primitives",
  "frame-support",
@@ -12050,9 +12050,9 @@ checksum = "5a76a9312f5ba4c2dec6b9161fdf25d87ad8a09256ccea5a556fef03c706a10f"
 
 [[package]]
 name = "toml_edit"
-version = "0.19.9"
+version = "0.19.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92d964908cec0d030b812013af25a0e57fddfadb1e066ecc6681d86253129d4f"
+checksum = "2380d56e8670370eee6566b0bfd4265f65b3f432e8c6d85623f728d4fa31f739"
 dependencies = [
  "indexmap",
  "toml_datetime",

@@ -1,11 +1,11 @@
 [package]
 name = "parachain-polkadex-node"
-version = "0.1.0"
-authors = ["Anonymous"]
-description = "A new Cumulus FRAME-based Substrate Node, ready for hacking together a parachain."
-license = "Unlicense"
-homepage = "https://substrate.io"
-repository = "https://github.com/paritytech/cumulus/"
+version = "1.0.0"
+authors = ["Polkadex OÜ <https://polkadex.trade>"]
+description = "Polkadex parachain node"
+license = "GNU GPL v3"
+homepage = "https://polkadex.trade"
+repository = "https://github.com/Polkadex-Substrate/parachain/"
 edition = "2021"
 build = "build.rs"
 
