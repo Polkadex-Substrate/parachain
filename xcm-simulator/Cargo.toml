@@ -30,8 +30,8 @@ pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "pol
 
 # ORML Pallets
 orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", branch = "polkadot-v0.9.37" }
-orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37" }
-orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git",  branch = "polkadot-v0.9.37" }
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", branch = "polkadot-v0.9.37" }
+orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", branch = "polkadot-v0.9.37" }
 
 # Custom pallets
 xcm-helper = { path = "../pallets/xcm-helper" }

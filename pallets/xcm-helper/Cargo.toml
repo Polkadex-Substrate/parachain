@@ -17,7 +17,7 @@ scale-info = { workspace = true, default-features = false, features = ["derive"]
 # Substrate
 frame-benchmarking = { workspace = true, default-features = false, optional = true }
 pallet-assets = { workspace = true, default-features = false, optional = true }
-frame-support = {  default-features = false, workspace = true }
+frame-support = { default-features = false, workspace = true }
 frame-system = { workspace = true, default-features = false }
 xcm-executor = { workspace = true, default-features = false }
 xcm = { workspace = true, default-features = false }
@@ -31,7 +31,7 @@ sp-io = { workspace = true, default-features = false }
 cumulus-primitives-core = { workspace = true, default-features = false }
 support = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }
-polkadex-primitives = {workspace = true, default-features = false}
+polkadex-primitives = { workspace = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true }
@@ -47,25 +47,25 @@ asset-handler = { path = "../asset-handler", default-features = false }
 default = ["std"]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 std = [
-	"parity-scale-codec/std",
-	"scale-info/std",
-	"frame-benchmarking/std",
-	"frame-support/std",
-	"frame-system/std",
-	"xcm-executor/std",
-	"pallet-xcm/std",
-	"orml-xtokens/std",
-	"sp-runtime/std",
-	"sp-core/std",
-	"cumulus-primitives-core/std",
-	"pallet-assets/std",
-	"xcm-builder/std",
-	"support/std",
-	"sp-std/std",
-	"pallet-balances/std",
-	"orml-traits/std",
-	"thea-primitives/std",
-	"thea-message-handler/std",
-	"asset-handler/std"
+  "parity-scale-codec/std",
+  "scale-info/std",
+  "frame-benchmarking/std",
+  "frame-support/std",
+  "frame-system/std",
+  "xcm-executor/std",
+  "pallet-xcm/std",
+  "orml-xtokens/std",
+  "sp-runtime/std",
+  "sp-core/std",
+  "cumulus-primitives-core/std",
+  "pallet-assets/std",
+  "xcm-builder/std",
+  "support/std",
+  "sp-std/std",
+  "pallet-balances/std",
+  "orml-traits/std",
+  "thea-primitives/std",
+  "thea-message-handler/std",
+  "asset-handler/std",
 ]
-try-runtime = [ "frame-support/try-runtime" ]
+try-runtime = ["frame-support/try-runtime"]

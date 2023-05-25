@@ -79,8 +79,5 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/substrate"
 
 [features]
 default = []
-runtime-benchmarks = [
-    "parachain-polkadex-runtime/runtime-benchmarks",
-    "polkadot-cli/runtime-benchmarks",
-]
+runtime-benchmarks = ["parachain-polkadex-runtime/runtime-benchmarks", "polkadot-cli/runtime-benchmarks"]
 try-runtime = ["parachain-polkadex-runtime/try-runtime", "try-runtime-cli/try-runtime"]
