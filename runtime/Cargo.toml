@@ -16,10 +16,10 @@ substrate-wasm-builder = { workspace = true }
 
 [dependencies]
 parity-scale-codec = { workspace = true, default-features = false, features = ["derive"] }
-hex-literal = {workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
 log = { workspace = true, default-features = false }
 scale-info = { workspace = true, default-features = false, features = ["derive"] }
-smallvec = {workspace = true}
+smallvec = { workspace = true }
 
 # Substrate
 frame-benchmarking = { workspace = true, default-features = false, optional = true }
@@ -31,6 +31,7 @@ frame-system-rpc-runtime-api = { workspace = true, default-features = false }
 frame-try-runtime = { workspace = true, default-features = false, optional = true }
 pallet-aura = { workspace = true, default-features = false }
 pallet-authorship = { workspace = true, default-features = false }
+pallet-assets = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
 pallet-session = { workspace = true, default-features = false }
 pallet-sudo = { workspace = true, default-features = false }
@@ -61,7 +62,7 @@ xcm-executor = { workspace = true, default-features = false }
 cumulus-pallet-aura-ext = { workspace = true, default-features = false }
 cumulus-pallet-dmp-queue = { workspace = true, default-features = false }
 cumulus-pallet-parachain-system = { workspace = true, default-features = false }
-cumulus-pallet-session-benchmarking = {workspace = true, default-features = false}
+cumulus-pallet-session-benchmarking = { workspace = true, default-features = false }
 cumulus-pallet-xcm = { workspace = true, default-features = false }
 cumulus-pallet-xcmp-queue = { workspace = true, default-features = false }
 cumulus-primitives-core = { workspace = true, default-features = false }
@@ -70,88 +71,129 @@ cumulus-primitives-utility = { workspace = true, default-features = false }
 pallet-collator-selection = { workspace = true, default-features = false }
 parachain-info = { workspace = true, default-features = false }
 
+# ORML
+orml-xtokens = { workspace = true, default-features = false }
+orml-traits = { workspace = true, default-features = false }
+orml-xcm-support = { workspace = true, default-features = false }
+
+# Local
+xcm-helper = { path = "../pallets/xcm-helper", default-features = false }
+thea-council = { path = "../pallets/thea-council", default-features = false }
+pallet-amm = { workspace = true, default-features = false }
+support = { workspace = true, default-features = false }
+router = { workspace = true, default-features = false }
+asset-handler = { path = "../pallets/asset-handler", default-features = false }
+thea-message-handler = { workspace = true, default-features = false }
+thea-primitives = { workspace = true, default-features = false }
+polkadex-primitives = { workspace = true, default-features = false }
+
 [features]
-default = [
-	"std",
-]
+default = ["std"]
 std = [
-	"parity-scale-codec/std",
-	"log/std",
-	"scale-info/std",
-	"cumulus-pallet-aura-ext/std",
-	"cumulus-pallet-dmp-queue/std",
-	"cumulus-pallet-parachain-system/std",
-	"cumulus-pallet-xcm/std",
-	"cumulus-pallet-xcmp-queue/std",
-	"cumulus-primitives-core/std",
-	"cumulus-primitives-timestamp/std",
-	"cumulus-primitives-utility/std",
-	"frame-executive/std",
-	"frame-support/std",
-	"frame-system-rpc-runtime-api/std",
-	"frame-system/std",
-	"pallet-aura/std",
-	"pallet-authorship/std",
-	"pallet-balances/std",
-	"pallet-collator-selection/std",
-	"pallet-session/std",
-	"pallet-sudo/std",
-	"pallet-timestamp/std",
-	"pallet-transaction-payment-rpc-runtime-api/std",
-	"pallet-transaction-payment/std",
-	"pallet-xcm/std",
-	"parachain-info/std",
-	"polkadot-parachain/std",
-	"polkadot-runtime-common/std",
-	"sp-api/std",
-	"sp-block-builder/std",
-	"sp-consensus-aura/std",
-	"sp-core/std",
-	"sp-inherents/std",
-	"sp-offchain/std",
-	"sp-runtime/std",
-	"sp-session/std",
-	"sp-std/std",
-	"sp-transaction-pool/std",
-	"sp-version/std",
-	"xcm-builder/std",
-	"xcm-executor/std",
-	"xcm/std",
+  "parity-scale-codec/std",
+  "log/std",
+  "scale-info/std",
+  "cumulus-pallet-aura-ext/std",
+  "cumulus-pallet-dmp-queue/std",
+  "cumulus-pallet-parachain-system/std",
+  "cumulus-pallet-xcm/std",
+  "cumulus-pallet-xcmp-queue/std",
+  "cumulus-primitives-core/std",
+  "cumulus-primitives-timestamp/std",
+  "cumulus-primitives-utility/std",
+  "frame-executive/std",
+  "frame-support/std",
+  "frame-system-rpc-runtime-api/std",
+  "frame-system/std",
+  "pallet-aura/std",
+  "pallet-authorship/std",
+  "pallet-assets/std",
+  "pallet-balances/std",
+  "pallet-collator-selection/std",
+  "pallet-session/std",
+  "pallet-sudo/std",
+  "pallet-timestamp/std",
+  "pallet-transaction-payment-rpc-runtime-api/std",
+  "pallet-transaction-payment/std",
+  "pallet-xcm/std",
+  "parachain-info/std",
+  "polkadot-parachain/std",
+  "polkadot-runtime-common/std",
+  "sp-api/std",
+  "sp-block-builder/std",
+  "sp-consensus-aura/std",
+  "sp-core/std",
+  "sp-inherents/std",
+  "sp-offchain/std",
+  "sp-runtime/std",
+  "sp-session/std",
+  "sp-std/std",
+  "sp-transaction-pool/std",
+  "sp-version/std",
+  "xcm-builder/std",
+  "xcm-executor/std",
+  "xcm/std",
+  "xcm-helper/std",
+  "orml-xtokens/std",
+  "orml-traits/std",
+  "thea-council/std",
+  "pallet-amm/std",
+  "support/std",
+  "router/std",
+  "asset-handler/std",
+  "orml-xcm-support/std",
+  "thea-message-handler/std",
+  "thea-primitives/std",
 ]
 
 runtime-benchmarks = [
-	"hex-literal",
-	"frame-benchmarking/runtime-benchmarks",
-	"frame-support/runtime-benchmarks",
-	"frame-system-benchmarking/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"pallet-balances/runtime-benchmarks",
-	"pallet-collator-selection/runtime-benchmarks",
-	"pallet-timestamp/runtime-benchmarks",
-	"pallet-xcm/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
-	"xcm-builder/runtime-benchmarks",
-	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
-	"cumulus-pallet-xcmp-queue/runtime-benchmarks",
+  "hex-literal",
+  "frame-benchmarking/runtime-benchmarks",
+  "frame-support/runtime-benchmarks",
+  "frame-system-benchmarking/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
+  "pallet-balances/runtime-benchmarks",
+  "pallet-collator-selection/runtime-benchmarks",
+  "pallet-timestamp/runtime-benchmarks",
+  "pallet-xcm/runtime-benchmarks",
+  "sp-runtime/runtime-benchmarks",
+  "xcm-builder/runtime-benchmarks",
+  "cumulus-pallet-session-benchmarking/runtime-benchmarks",
+  "cumulus-pallet-xcmp-queue/runtime-benchmarks",
+  "pallet-amm/runtime-benchmarks",
+  "xcm-helper/runtime-benchmarks",
+  "thea-council/runtime-benchmarks",
+  "asset-handler/runtime-benchmarks",
 ]
 
 try-runtime = [
-	"cumulus-pallet-aura-ext/try-runtime",
-	"cumulus-pallet-dmp-queue/try-runtime",
-	"cumulus-pallet-parachain-system/try-runtime",
-	"cumulus-pallet-xcm/try-runtime",
-	"cumulus-pallet-xcmp-queue/try-runtime",
-	"frame-executive/try-runtime",
-	"frame-system/try-runtime",
-	"frame-try-runtime",
-	"pallet-aura/try-runtime",
-	"pallet-authorship/try-runtime",
-	"pallet-balances/try-runtime",
-	"pallet-collator-selection/try-runtime",
-	"pallet-session/try-runtime",
-	"pallet-sudo/try-runtime",
-	"pallet-timestamp/try-runtime",
-	"pallet-transaction-payment/try-runtime",
-	"pallet-xcm/try-runtime",
-	"parachain-info/try-runtime",
+  "cumulus-pallet-aura-ext/try-runtime",
+  "cumulus-pallet-dmp-queue/try-runtime",
+  "cumulus-pallet-parachain-system/try-runtime",
+  "cumulus-pallet-xcm/try-runtime",
+  "cumulus-pallet-xcmp-queue/try-runtime",
+  "frame-executive/try-runtime",
+  "frame-support/try-runtime",
+  "frame-system/try-runtime",
+  "frame-try-runtime",
+  "pallet-aura/try-runtime",
+  "pallet-authorship/try-runtime",
+  "pallet-assets/try-runtime",
+  "pallet-balances/try-runtime",
+  "pallet-collator-selection/try-runtime",
+  "pallet-session/try-runtime",
+  "pallet-sudo/try-runtime",
+  "pallet-timestamp/try-runtime",
+  "pallet-transaction-payment/try-runtime",
+  "pallet-xcm/try-runtime",
+  "parachain-info/try-runtime",
+  "polkadot-runtime-common/try-runtime",
+  "orml-xtokens/try-runtime",
+  "pallet-amm/try-runtime",
+  "support/try-runtime",
+  "router/try-runtime",
+  "thea-message-handler/try-runtime",
+  "xcm-helper/try-runtime",
+  "thea-council/try-runtime",
+  "asset-handler/try-runtime",
 ]
