@@ -53,6 +53,8 @@ jobs:
           target: wasm32-unknown-unknown
           default: true
           components: rustfmt, clippy
+      - name: Install .toml files linter
+        run: cargo install taplo-cli --locked
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
       - name: Install dependencies
@@ -74,6 +76,10 @@ jobs:
           rustup -V
           cargo fmt -- --version
           cargo clippy -V
+      - name: Lint .toml files
+        run: |
+          taplo lint
+          taplo fmt --check
       - name: Build Project with runtime benchmarks
         run: RUSTFLAGS="-D warnings" cargo build --features runtime-benchmarks
       - name: Test weights generation
