@@ -27,13 +27,13 @@ All notable changes to this project will be documented in this file.
 - `parachain-polkadex-node` crate ([#3])
 - `parachain-polkadex-runtime` crate ([#3], [#13])
 - Bumped dependencies versions ([#15], [#13], [#23])
-- CI setup ([#28], [#46])
+- CI setup ([#28], [#46], [#52])
 
 ### Fixed
 
 - `parachain-polkadex-node` crate chain spec resolving logic ([#23])
 - Bugs found during testing ([#23])
-- Code style ([#33], [#30], [#35])
+- Code style ([#33], [#30], [#35], [#52])
 
 [unreleased]: https://github.com/Polkadex-Substrate/parachain/compare/v0.1.0...HEAD
 [v1.0.0]: https://github.com/Polkadex-Substrate/parachain/compare/v0.1.0...v1.0.0
@@ -64,3 +64,4 @@ All notable changes to this project will be documented in this file.
 [#47]: https://github.com/Polkadex-Substrate/parachain/pull/47
 [#50]: https://github.com/Polkadex-Substrate/parachain/pull/50
 [#51]: https://github.com/Polkadex-Substrate/parachain/pull/51
+[#52]: https://github.com/Polkadex-Substrate/parachain/pull/52
