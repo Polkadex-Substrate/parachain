@@ -232,7 +232,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
-	pub const BaseXcmWeight: XCMWeight = 100_000_000; // TODO: recheck this @zktony
+	pub const BaseXcmWeight: XCMWeight = 100_000_000;
 	pub const MaxAssetsForTransfer: usize = 2;
 }
 
