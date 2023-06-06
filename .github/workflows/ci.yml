@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y clang
+          apt install -y clang zip
       - name: Checkout to the current branch
         uses: actions/checkout@v3
       - name: Cache cargo registry
