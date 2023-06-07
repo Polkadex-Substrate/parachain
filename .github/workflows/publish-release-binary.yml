@@ -1,9 +1,8 @@
-name: Continuous Integration
+name: Publish Release Binary
 
 on:
-  pull_request: []
-  push:
-    branches: [develop, main]
+  release:
+    types: [created]
 
 env:
   RUNNER_INSTANCE_TYPE: c5d.9xlarge
@@ -39,7 +38,7 @@ jobs:
               {"Key": "GitHubRepository", "Value": "${{ github.repository }}"}
             ]
   build:
-    name: Build | Run linters | Run tests
+    name: Publish binary
     needs: start-runner
     runs-on: ${{ needs.start-runner.outputs.label }}
     steps:
@@ -52,9 +51,6 @@ jobs:
           toolchain: nightly
           target: wasm32-unknown-unknown
           default: true
-          components: rustfmt, clippy
-      - name: Install .toml files linter
-        run: cargo install taplo-cli --locked
       - name: Install dependencies
         run: |
           apt update
@@ -72,28 +68,16 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
       - name: Check versions info
-        run: |
-          rustup -V
-          cargo fmt -- --version
-          cargo clippy -V
-      - name: Lint .toml files
-        run: |
-          taplo lint
-          taplo fmt --check
-      - name: Build Project with runtime benchmarks
-        run: RUSTFLAGS="-D warnings" cargo build --features runtime-benchmarks
-      - name: Test weights generation
-        run: ./target/debug/parachain-polkadex-node benchmark pallet --pallet "*" --extrinsic "*" --steps 2 --repeat 1
-      - name: Build Project with try-runtime
-        run: RUSTFLAGS="-D warnings" cargo build --features try-runtime
+        run: rustup -V
       - name: Build
-        run: RUSTFLAGS="-D warnings" cargo build
-      - name: Check Formatting
-        run: cargo fmt --all -- --check
-      - name: Check Clippy
-        run: cargo clippy -- -D warnings
-      - name: Test Project
-        run: cargo test --workspace
+        run: cargo build --release
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/release/parachain-polkadex-node
+          asset_name: parachain-polkadex-node
+          tag: ${{ github.ref }}
   stop-runner:
     name: Stop self-hosted EC2 runner
     needs:
