@@ -98,7 +98,7 @@ mod benchmarking;
 /// We allow for 0.5 of a second of compute with a 12 second average block time.
 const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 	WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
-	cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64,
+cumulus_primitives_core::relay_chain::MAX_POV_SIZE as u64,
 );
 
 #[cfg(test)]
@@ -116,9 +116,10 @@ pub mod pallet {
 		log,
 		pallet_prelude::*,
 		sp_runtime::traits::AccountIdConversion,
-		traits::fungibles::{Create, Inspect, Mutate, Transfer},
+		traits::fungibles::{Create, Inspect, Mutate},
 		PalletId,
 	};
+	use frame_support::traits::tokens::{Fortitude, Precision, Preservation};
 	use frame_system::pallet_prelude::*;
 
 	use polkadex_primitives::Balance;
@@ -137,10 +138,11 @@ pub mod pallet {
 			MultiLocation,
 		},
 		prelude::Parachain,
-		v1::AssetId,
+		v3::AssetId,
 		v2::WeightLimit,
 		VersionedMultiAssets, VersionedMultiLocation,
 	};
+	use xcm::latest::XcmContext;
 	use xcm_executor::{
 		traits::{Convert as MoreConvert, TransactAsset},
 		Assets,
@@ -172,8 +174,7 @@ pub mod pallet {
 		/// Multilocation to AccountId Convert
 		type AccountIdConvert: MoreConvert<MultiLocation, Self::AccountId>;
 		/// Asset Manager
-		type AssetManager: Transfer<Self::AccountId, AssetId = u128, Balance = Balance>
-			+ Inspect<Self::AccountId, AssetId = u128, Balance = Balance>
+		type AssetManager: Inspect<Self::AccountId, AssetId = u128, Balance = Balance>
 			+ Mutate<Self::AccountId, AssetId = u128, Balance = Balance>
 			+ Create<Self::AccountId>;
 		/// Asset Create/ Update Origin
@@ -328,7 +329,7 @@ pub mod pallet {
 									Box::new(multi_asset.into()),
 									0,
 									Box::new(destination.clone()),
-									WeightLimit::Unlimited,
+									cumulus_primitives_core::WeightLimit::Unlimited
 								)
 								.is_err()
 								{
@@ -408,8 +409,8 @@ pub mod pallet {
 		pub fn transfer_fee(origin: OriginFor<T>, to: T::AccountId) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let from = T::AssetHandlerPalletId::get().into_account_truncating();
-			let amount = T::AssetManager::reducible_balance(T::NativeAssetId::get(), &from, true);
-			T::AssetManager::transfer(T::NativeAssetId::get(), &from, &to, amount, true)?;
+			let amount = T::AssetManager::reducible_balance(T::NativeAssetId::get(), &from, Preservation::Preserve, Fortitude::Polite);
+			T::AssetManager::transfer(T::NativeAssetId::get(), &from, &to, amount, Preservation::Protect)?;
 			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount));
 			Ok(())
 		}
@@ -423,7 +424,8 @@ pub mod pallet {
 
 	impl<T: Config> TransactAsset for Pallet<T> {
 		/// Generate Ingress Message for new Deposit
-		fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> xcm::latest::Result {
+		// TODO: Check for XcmContext
+		fn deposit_asset(what: &MultiAsset, who: &MultiLocation, _context: &XcmContext) -> xcm::latest::Result {
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
 			let recipient =
@@ -450,9 +452,11 @@ pub mod pallet {
 		}
 
 		/// Burns/Lock asset from provided account.
+		//TODO: Check for context
 		fn withdraw_asset(
 			what: &MultiAsset,
 			who: &MultiLocation,
+			_context: Option<&XcmContext>
 		) -> sp_std::result::Result<Assets, XcmError> {
 			let MultiAsset { id: _, fun } = what;
 			let who =
@@ -460,16 +464,18 @@ pub mod pallet {
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(what.id.clone());
 
-			T::AssetManager::burn_from(asset_id, &who, amount.saturated_into())
+			T::AssetManager::burn_from(asset_id, &who, amount.saturated_into(), Precision::BestEffort, Fortitude::Polite)
 				.map_err(|_| XcmError::Trap(24))?;
 			Ok(what.clone().into())
 		}
 
 		/// Transfers Asset from source account to destination account
+		//TODO: Check for context
 		fn transfer_asset(
 			asset: &MultiAsset,
 			from: &MultiLocation,
 			to: &MultiLocation,
+			_context: &XcmContext
 		) -> sp_std::result::Result<Assets, XcmError> {
 			let MultiAsset { id, fun } = asset;
 			let from =
@@ -477,7 +483,7 @@ pub mod pallet {
 			let to = T::AccountIdConvert::convert_ref(to).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone());
-			T::AssetManager::transfer(asset_id, &from, &to, amount, true)
+			T::AssetManager::transfer(asset_id, &from, &to, amount, Preservation::Preserve)
 				.map_err(|_| XcmError::Trap(23))?;
 			Ok(asset.clone().into())
 		}
