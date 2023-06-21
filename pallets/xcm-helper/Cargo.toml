@@ -29,7 +29,6 @@ sp-core = { workspace = true, default-features = false }
 sp-std = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 cumulus-primitives-core = { workspace = true, default-features = false }
-support = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }
 polkadex-primitives = { workspace = true, default-features = false }
 
@@ -41,7 +40,6 @@ sp-runtime = { workspace = true, default-features = false }
 orml-traits = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
-asset-handler = { path = "../asset-handler", default-features = false }
 
 [features]
 default = ["std"]
@@ -60,12 +58,10 @@ std = [
   "cumulus-primitives-core/std",
   "pallet-assets/std",
   "xcm-builder/std",
-  "support/std",
   "sp-std/std",
   "pallet-balances/std",
   "orml-traits/std",
   "thea-primitives/std",
   "thea-message-handler/std",
-  "asset-handler/std",
 ]
 try-runtime = ["frame-support/try-runtime"]

@@ -220,7 +220,7 @@ const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 0.5 of a second of compute with a 12 second average block time.
 const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
 	WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
-	cumulus_primitives_core::relay_chain::v2::MAX_POV_SIZE as u64,
+	cumulus_primitives_core::relay_chain::MAX_POV_SIZE as u64,
 );
 
 /// The version information used to identify this runtime when compiled natively.
@@ -329,8 +329,6 @@ parameter_types! {
 
 impl pallet_authorship::Config for Runtime {
 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
-	type UncleGenerations = UncleGenerations;
-	type FilterUncle = ();
 	type EventHandler = (CollatorSelection,);
 }
 
@@ -352,6 +350,11 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = [u8; 8];
+	//FIXME: See these settings
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = ();
+	type MaxFreezes = ();
 }
 
 parameter_types! {
@@ -398,6 +401,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 	type ControllerOrigin = EnsureRoot<AccountId>;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
+	type PriceForSiblingDelivery = ();
 	type WeightInfo = ();
 }
 
@@ -464,6 +468,7 @@ impl pallet_collator_selection::Config for Runtime {
 impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeCall = RuntimeCall;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -477,7 +482,9 @@ parameter_types! {
 impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = LocationToAccountId;
-	type AssetManager = AssetHandler;
+	type Assets = Assets;
+	type AssetId = u128;
+	type Currency = Balances;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
 	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
@@ -528,57 +535,6 @@ impl pallet_assets::Config for Runtime {
 	type WeightInfo = ();
 }
 
-//Install Nomination Pool
-parameter_types! {
-	pub const PostUnbondPoolsWindow: u32 = 4;
-	pub const NominationPoolsPalletId: PalletId = PalletId(*b"py/nopls");
-	pub const MaxPointsToBalance: u8 = 10;
-}
-
-//Install Swap pallet
-parameter_types! {
-	pub const SwapPalletId: PalletId = PalletId(*b"sw/accnt");
-	pub DefaultLpFee: Permill = Permill::from_rational(30u32, 10000u32);
-	pub OneAccount: AccountId = AccountId::from([1u8; 32]);
-	pub DefaultProtocolFee: Permill = Permill::from_rational(0u32, 10000u32);
-	pub const MinimumLiquidity: u128 = 1_000u128;
-	pub const MaxLengthRoute: u8 = 10;
-}
-
-impl pallet_amm::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Assets = AssetHandler;
-	type PalletId = SwapPalletId;
-	type LockAccountId = OneAccount;
-	type CreatePoolOrigin = EnsureRoot<Self::AccountId>;
-	type ProtocolFeeUpdateOrigin = EnsureRoot<Self::AccountId>;
-	type WeightInfo = pallet_amm::weights::WeightInfo<Runtime>;
-	type LpFee = DefaultLpFee;
-	type MinimumLiquidity = MinimumLiquidity;
-	type MaxLengthRoute = MaxLengthRoute;
-	type GetNativeCurrencyId = PolkadexAssetid;
-}
-
-impl asset_handler::Config for Runtime {
-	type Currency = Balances;
-	type MultiCurrency = Assets;
-	type NativeCurrencyId = PolkadexAssetid;
-}
-
-//Install Router pallet
-parameter_types! {
-	pub const RouterPalletId: PalletId = PalletId(*b"rw/accnt");
-}
-
-impl router::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type PalletId = RouterPalletId;
-	type AMM = Swap;
-	type MaxLengthRoute = MaxLengthRoute;
-	type GetNativeCurrencyId = PolkadexAssetid;
-	type Assets = AssetHandler;
-}
-
 parameter_types! {
 	pub const TheaMaxAuthorities: u32 = 10;
 }
@@ -589,6 +545,7 @@ impl thea_message_handler::Config for Runtime {
 	type Signature = AuthoritySignature;
 	type MaxAuthorities = TheaMaxAuthorities;
 	type Executor = XcmHelper;
+	type WeightInfo = thea_message_handler::weights::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -611,7 +568,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
 
 		// Collator support. The order of these 4 are important and shall not change.
-		Authorship: pallet_authorship::{Pallet, Call, Storage} = 20,
+		Authorship: pallet_authorship::{Pallet, Storage} = 20,
 		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 22,
 		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
@@ -628,10 +585,6 @@ construct_runtime!(
 		// Custom Pallets
 		XcmHelper: xcm_helper::{Pallet, Call, Storage, Event<T>}  = 40,
 		TheaCouncil: thea_council::{Pallet, Call, Storage, Event<T>} = 41,
-		Swap: pallet_amm::pallet::{Pallet, Call, Storage, Event<T>} = 42,
-		Router: router::pallet::{Pallet, Call, Storage, Event<T>} = 43,
-		AssetHandler: asset_handler::pallet::{Pallet, Storage} = 44,
-
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Event<T>, Config<T>} = 45,
 
 		// Thea Pallet
@@ -686,6 +639,12 @@ impl_runtime_apis! {
 		fn metadata() -> OpaqueMetadata {
 			OpaqueMetadata::new(Runtime::metadata().into())
 		}
+
+		fn metadata_at_version(_: u32) -> Option<OpaqueMetadata> {
+			todo!()
+		}
+
+        fn metadata_versions() -> Vec<u32> { todo!() }
 	}
 
 	impl sp_block_builder::BlockBuilder<Block> for Runtime {
@@ -744,35 +703,42 @@ impl_runtime_apis! {
 	}
 
 	impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance> for Runtime {
-		fn query_info(
-			uxt: <Block as BlockT>::Extrinsic,
-			len: u32,
-		) -> pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo<Balance> {
-			TransactionPayment::query_info(uxt, len)
-		}
-		fn query_fee_details(
-			uxt: <Block as BlockT>::Extrinsic,
-			len: u32,
-		) -> pallet_transaction_payment::FeeDetails<Balance> {
-			TransactionPayment::query_fee_details(uxt, len)
-		}
+		 fn query_info(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment::RuntimeDispatchInfo<Balance> {
+            TransactionPayment::query_info(uxt, len)
+        }
+        fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment::FeeDetails<Balance> {
+            TransactionPayment::query_fee_details(uxt, len)
+        }
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
+        }
 	}
 
 	impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentCallApi<Block, Balance, RuntimeCall>
 		for Runtime
 	{
-		fn query_call_info(
-			call: RuntimeCall,
-			len: u32,
-		) -> pallet_transaction_payment::RuntimeDispatchInfo<Balance> {
-			TransactionPayment::query_call_info(call, len)
-		}
-		fn query_call_fee_details(
-			call: RuntimeCall,
-			len: u32,
-		) -> pallet_transaction_payment::FeeDetails<Balance> {
-			TransactionPayment::query_call_fee_details(call, len)
-		}
+		 fn query_call_info(
+            call: RuntimeCall,
+            len: u32,
+        ) -> pallet_transaction_payment::RuntimeDispatchInfo<Balance> {
+            TransactionPayment::query_call_info(call, len)
+        }
+        fn query_call_fee_details(
+            call: RuntimeCall,
+            len: u32,
+        ) -> pallet_transaction_payment::FeeDetails<Balance> {
+            TransactionPayment::query_call_fee_details(call, len)
+        }
+        fn query_weight_to_fee(weight: Weight) -> Balance {
+            TransactionPayment::weight_to_fee(weight)
+        }
+
+        fn query_length_to_fee(length: u32) -> Balance {
+            TransactionPayment::length_to_fee(length)
+        }
 	}
 
 	impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {

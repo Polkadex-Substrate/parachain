@@ -119,10 +119,11 @@ pub mod pallet {
 		traits::fungibles::{Create, Inspect, Mutate},
 		PalletId,
 	};
+	use frame_support::traits::fungible::{Inspect as InspectNative, Mutate as MutateNative};
 	use frame_support::traits::tokens::{Fortitude, Precision, Preservation};
 	use frame_system::pallet_prelude::*;
 
-	use polkadex_primitives::Balance;
+	use polkadex_primitives::{Balance, Resolver};
 	use sp_core::sp_std;
 	use sp_runtime::{traits::Convert, SaturatedConversion};
 
@@ -173,10 +174,22 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Multilocation to AccountId Convert
 		type AccountIdConvert: MoreConvert<MultiLocation, Self::AccountId>;
-		/// Asset Manager
-		type AssetManager: Inspect<Self::AccountId, AssetId = u128, Balance = Balance>
-			+ Mutate<Self::AccountId, AssetId = u128, Balance = Balance>
-			+ Create<Self::AccountId>;
+		/// Assets
+		type Assets: frame_support::traits::tokens::fungibles::Mutate<Self::AccountId>
+		+ frame_support::traits::tokens::fungibles::Create<Self::AccountId>
+		+ frame_support::traits::tokens::fungibles::Inspect<Self::AccountId>;
+		/// Asset Id
+		type AssetId: Member
+		+ Parameter
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ MaxEncodedLen
+		+ Into<<<Self as Config>::Assets as Inspect<Self::AccountId>>::AssetId>
+		+ From<u128>
+		+ Into<u128>;
+		/// Balances Pallet
+		type Currency: frame_support::traits::tokens::fungible::Mutate<Self::AccountId>
+		+ frame_support::traits::tokens::fungible::Inspect<Self::AccountId>;
 		/// Asset Create/ Update Origin
 		type AssetCreateUpdateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Message Executor
@@ -194,7 +207,7 @@ pub mod pallet {
 		type SubstrateNetworkId: Get<u8>;
 		/// Native Asset Id
 		#[pallet::constant]
-		type NativeAssetId: Get<u128>;
+		type NativeAssetId: Get<Self::AssetId>;
 		/// Weight Info
 		type WeightInfo: XcmHelperWeightInfo;
 	}
@@ -310,13 +323,9 @@ pub mod pallet {
 									id: asset,
 									fun: Fungibility::Fungible(withdrawal.amount),
 								};
+								let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
 								// Mint
-								if T::AssetManager::mint_into(
-									withdrawal.asset_id,
-									&T::AssetHandlerPalletId::get().into_account_truncating(),
-									withdrawal.amount,
-								)
-								.is_err()
+								if Self::resolver_deposit(withdrawal.asset_id.into(), withdrawal.amount, &pallet_account, pallet_account.clone(), 1u128, pallet_account.clone()).is_err()
 								{
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
@@ -373,12 +382,13 @@ pub mod pallet {
 			let token = Self::generate_asset_id_for_parachain(token);
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			ensure!(!whitelisted_tokens.contains(&token), Error::<T>::TokenIsAlreadyWhitelisted);
-			T::AssetManager::create(
-				token,
-				T::AssetHandlerPalletId::get().into_account_truncating(),
-				true,
-				1u128,
-			)?;
+			// FIXME: Expend Resolver trait
+			// T::Assets::create(
+			// 	token.into(),
+			// 	T::AssetHandlerPalletId::get().into_account_truncating(),
+			// 	true,
+			// 	1u128.saturated_into(),
+			// )?;
 			whitelisted_tokens.push(token);
 			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
@@ -409,9 +419,9 @@ pub mod pallet {
 		pub fn transfer_fee(origin: OriginFor<T>, to: T::AccountId) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			let from = T::AssetHandlerPalletId::get().into_account_truncating();
-			let amount = T::AssetManager::reducible_balance(T::NativeAssetId::get(), &from, Preservation::Preserve, Fortitude::Polite);
-			T::AssetManager::transfer(T::NativeAssetId::get(), &from, &to, amount, Preservation::Protect)?;
-			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount));
+			let amount = T::Currency::reducible_balance( &from, Preservation::Preserve, Fortitude::Polite);
+			T::Currency::transfer( &from, &to, amount, Preservation::Protect)?;
+			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount.saturated_into()));
 			Ok(())
 		}
 	}
@@ -463,9 +473,8 @@ pub mod pallet {
 				T::AccountIdConvert::convert_ref(who).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(what.id.clone());
-
-			T::AssetManager::burn_from(asset_id, &who, amount.saturated_into(), Precision::BestEffort, Fortitude::Polite)
-				.map_err(|_| XcmError::Trap(24))?;
+			let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
+            Self::resolver_withdraw(asset_id.into(), amount.saturated_into(), &who, pallet_account).map_err(|_| XcmError::Trap(25))?;
 			Ok(what.clone().into())
 		}
 
@@ -483,8 +492,9 @@ pub mod pallet {
 			let to = T::AccountIdConvert::convert_ref(to).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone());
-			T::AssetManager::transfer(asset_id, &from, &to, amount, Preservation::Preserve)
-				.map_err(|_| XcmError::Trap(23))?;
+			//FIXME: Update Resolver trait
+			// T::Assets::transfer(asset_id, &from, &to, amount, Preservation::Preserve)
+			// 	.map_err(|_| XcmError::Trap(23))?;
 			Ok(asset.clone().into())
 		}
 	}
@@ -514,11 +524,8 @@ pub mod pallet {
 				location.try_into().map_err(|_| Error::<T>::UnableToConvertToMultiLocation)?,
 			)
 			.ok_or(Error::<T>::UnableToConvertToAccount)?;
-			T::AssetManager::mint_into(
-				withdrawal.asset_id,
-				&destination_account,
-				withdrawal.amount,
-			)?;
+			let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
+			Self::resolver_deposit(withdrawal.asset_id.into(), withdrawal.amount, &destination_account, pallet_account.clone(), 1u128, pallet_account)?;
 			Ok(())
 		}
 
@@ -573,7 +580,7 @@ pub mod pallet {
 					parents: 1,
 					interior: Junctions::X1(Parachain(T::ParachainId::get())),
 				}) {
-				return T::NativeAssetId::get()
+				return T::NativeAssetId::get().into()
 			}
 			// If it's not native, then hash and generate the asset id
 			let asset_id = u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]));
@@ -664,5 +671,16 @@ pub mod pallet {
 				);
 			}
 		}
+	}
+
+	impl<T: Config>
+	polkadex_primitives::assets::Resolver<
+		T::AccountId,
+		T::Currency,
+		T::Assets,
+		T::AssetId,
+		T::NativeAssetId,
+	> for Pallet<T>
+	{
 	}
 }
