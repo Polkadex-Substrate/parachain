@@ -71,7 +71,7 @@ pallet-collator-selection = { git = "https://github.com/paritytech/cumulus.git",
 parachain-info = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.43", default-features = false }
 
 #Polkadex Dependecies
-polkadex-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-benchmark-43", default-features = false }
+polkadex-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "zk-update-resolver", default-features = false }
 thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
 thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }

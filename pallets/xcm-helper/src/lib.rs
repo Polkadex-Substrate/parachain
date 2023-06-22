@@ -382,13 +382,8 @@ pub mod pallet {
 			let token = Self::generate_asset_id_for_parachain(token);
 			let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			ensure!(!whitelisted_tokens.contains(&token), Error::<T>::TokenIsAlreadyWhitelisted);
-			// FIXME: Expend Resolver trait
-			// T::Assets::create(
-			// 	token.into(),
-			// 	T::AssetHandlerPalletId::get().into_account_truncating(),
-			// 	true,
-			// 	1u128.saturated_into(),
-			// )?;
+			let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
+			Self::resolve_create(token.into(), pallet_account, 1u128)?;
 			whitelisted_tokens.push(token);
 			<WhitelistedTokens<T>>::put(whitelisted_tokens);
 			Self::deposit_event(Event::<T>::TokenWhitelistedForXcm(token));
@@ -492,9 +487,7 @@ pub mod pallet {
 			let to = T::AccountIdConvert::convert_ref(to).map_err(|_| XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(id.clone());
-			//FIXME: Update Resolver trait
-			// T::Assets::transfer(asset_id, &from, &to, amount, Preservation::Preserve)
-			// 	.map_err(|_| XcmError::Trap(23))?;
+			Self::resolve_transfer(asset_id.into(), &from, &to, amount).map_err(|_| XcmError::Trap(102))?;
 			Ok(asset.clone().into())
 		}
 	}

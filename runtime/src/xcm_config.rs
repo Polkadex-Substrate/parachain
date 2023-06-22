@@ -61,7 +61,7 @@ use crate::AllPalletsWithSystem;
 
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
-	pub const RelayNetwork: NetworkId = NetworkId::Polkadot; //FIXME: Verify this
+	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
 	pub RelayChainOrigin: RuntimeOrigin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 	pub PdexLocation: MultiLocation = Here.into();
@@ -96,7 +96,7 @@ pub type LocalAssetTransactor = CurrencyAdapter<
 	(),
 >;
 
-//FIXME: Need more info for this
+// Not using it for now. Saved for future.
 pub struct SafeCallFilter;
 impl SafeCallFilter {
 	// 1. RuntimeCall::EVM(..) & RuntimeCall::Ethereum(..) have to be prohibited since we cannot measure PoV size properly
@@ -119,7 +119,6 @@ impl SafeCallFilter {
 	/// Each composite call's subcalls are checked against base call filter. No nesting of composite calls is allowed.
 	pub fn allow_composite_call(call: &RuntimeCall) -> bool {
 		match call {
-			//FIXME: Checkout this
 			_ => false,
 		}
 	}
@@ -187,7 +186,6 @@ impl xcm_executor::Config for XcmConfig {
 	// Teleporting is disabled.
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-	//FIXME: Fix trader setting
 	type Trader = (
 		// If the XCM message is paying the fees in PDEX ( the native ) then
 		// it will go to the author of the block as rewards
@@ -211,7 +209,7 @@ impl xcm_executor::Config for XcmConfig {
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
-	type SafeCallFilter = SafeCallFilter;
+	type SafeCallFilter = Everything; //Note: All kind of ext can be accessed through XCM
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
@@ -247,11 +245,11 @@ impl pallet_xcm::Config for Runtime {
 	const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 	// ^ Override for AdvertisedXcmVersion default
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
-	type AdminOrigin = EnsureRoot<AccountId>; //FIXME: Check this
+	type AdminOrigin = EnsureRoot<AccountId>;
 	type TrustedLockers = ();
 	type SovereignAccountOf = LocationToAccountId;
-	type MaxLockers = ConstU32<0>;
-	type MaxRemoteLockConsumers = (); //FIXME: Check this
+	type MaxLockers = ConstU32<8>;
+	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
 	type WeightInfo = pallet_xcm::TestWeightInfo;
 }
@@ -264,13 +262,13 @@ impl cumulus_pallet_xcm::Config for Runtime {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 	fn convert(account: AccountId) -> MultiLocation {
-		X1(AccountId32 { network: Some(NetworkId::Polkadot), id: account.into() }).into() //TODO: Check Network also
+		X1(AccountId32 { network: None, id: account.into() }).into()
 	}
 }
 
 parameter_types! {
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
-	pub BaseXcmWeight: Weight = Weight::zero(); //FIXME: Weight::from(100_000_000u64);
+	pub BaseXcmWeight: Weight =  XCMWeight::from_parts(100_000_000, 0);
 	pub const MaxAssetsForTransfer: usize = 2;
 }
 

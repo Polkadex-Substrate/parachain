@@ -350,11 +350,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = [u8; 8];
-	//FIXME: See these settings
 	type HoldIdentifier = ();
 	type FreezeIdentifier = ();
-	type MaxHolds = ();
-	type MaxFreezes = ();
+	type MaxHolds = ConstU32<0>;
+	type MaxFreezes = ConstU32<0>;
 }
 
 parameter_types! {
@@ -640,11 +639,11 @@ impl_runtime_apis! {
 			OpaqueMetadata::new(Runtime::metadata().into())
 		}
 
-		fn metadata_at_version(_: u32) -> Option<OpaqueMetadata> {
-			todo!()
+		fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+			Runtime::metadata_at_version(version)
 		}
 
-        fn metadata_versions() -> Vec<u32> { todo!() }
+        fn metadata_versions() -> Vec<u32> { Runtime::metadata_versions() }
 	}
 
 	impl sp_block_builder::BlockBuilder<Block> for Runtime {
