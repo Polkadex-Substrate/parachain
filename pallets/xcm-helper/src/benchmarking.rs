@@ -113,10 +113,6 @@ benchmarks! {
 	// }
 }
 
-// fn test() {
-// 	crate::pallet::Pallet::<T>::resolver_deposit();
-// }
-
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
 
