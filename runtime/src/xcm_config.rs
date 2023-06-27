@@ -18,18 +18,17 @@ use super::{
 	RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use crate::{
-	AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, XcmHelper
+	AllPalletsWithSystem, AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, XcmHelper,
 };
 use core::marker::PhantomData;
 use frame_support::{
 	match_types, parameter_types,
 	traits::{
 		fungibles::{Inspect, Mutate},
-		Everything, Nothing,
+		Contains, Everything, Nothing,
 	},
 	weights::WeightToFee as WeightToFeeT,
 };
-use frame_support::traits::Contains;
 use frame_system::EnsureRoot;
 use log::error;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
@@ -52,12 +51,10 @@ use xcm_builder::{
 	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{
-	traits::{ShouldExecute, WeightTrader},
+	traits::{ShouldExecute, WeightTrader, WithOriginFilter},
 	Assets, XcmExecutor,
 };
-use xcm_executor::traits::WithOriginFilter;
 use xcm_helper::{AssetIdConverter, WhitelistedTokenHandler};
-use crate::AllPalletsWithSystem;
 
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
@@ -105,12 +102,11 @@ impl SafeCallFilter {
 	/// Checks whether the base (non-composite) call is allowed to be executed via `Transact` XCM instruction.
 	pub fn allow_base_call(call: &RuntimeCall) -> bool {
 		match call {
-			RuntimeCall::System(..)
-			| RuntimeCall::Balances(..)
-			| RuntimeCall::Assets(..)
-			| RuntimeCall::PolkadotXcm(..)
-			| RuntimeCall::Session(..)
-			 => true,
+			RuntimeCall::System(..) |
+			RuntimeCall::Balances(..) |
+			RuntimeCall::Assets(..) |
+			RuntimeCall::PolkadotXcm(..) |
+			RuntimeCall::Session(..) => true,
 			_ => false,
 		}
 	}
@@ -190,7 +186,8 @@ impl xcm_executor::Config for XcmConfig {
 		// If the XCM message is paying the fees in PDEX ( the native ) then
 		// it will go to the author of the block as rewards
 		UsingComponents<WeightToFee, PdexLocation, AccountId, Balances, ToAuthor<Runtime>>,
-		ForeignAssetFeeHandler<    //TODO: Should we go for FixedRateOfForeignAsset
+		ForeignAssetFeeHandler<
+			//TODO: Should we go for FixedRateOfForeignAsset
 			WeightToFee,
 			RevenueCollector,
 			XcmHelper,
@@ -319,7 +316,12 @@ where
 	WH: WhitelistedTokenHandler,
 {
 	fn new() -> Self {
-		Self { weight: Weight::zero(), consumed: 0, asset_location_and_units_per_second: None, _pd: PhantomData }
+		Self {
+			weight: Weight::zero(),
+			consumed: 0,
+			asset_location_and_units_per_second: None,
+			_pd: PhantomData,
+		}
 	}
 
 	/// NOTE: If the token is allowlisted by AMM pallet ( probably using governance )
@@ -330,15 +332,14 @@ where
 		weight: Weight,
 		payment: Assets,
 	) -> sp_std::result::Result<Assets, XcmError> {
-		let fee_in_native_token =
-			T::weight_to_fee(&weight);
+		let fee_in_native_token = T::weight_to_fee(&weight);
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
 				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::Trap(1001))?;
 			let path = vec![PolkadexAssetid::get(), foreign_currency_asset_id];
 			let (unused, expected_fee_in_foreign_currency) =
-				 if WH::check_whitelisted_token(foreign_currency_asset_id) {
+				if WH::check_whitelisted_token(foreign_currency_asset_id) {
 					(payment, 0u128)
 				} else {
 					return Err(XcmError::Trap(1004))
@@ -391,8 +392,6 @@ impl<Source: TryFrom<Dest> + Clone, Dest: TryFrom<Source> + Clone>
 
 pub struct RevenueCollector;
 
-impl TakeRevenue for RevenueCollector
-{
-	fn take_revenue(revenue: MultiAsset) {
-	}
+impl TakeRevenue for RevenueCollector {
+	fn take_revenue(revenue: MultiAsset) {}
 }

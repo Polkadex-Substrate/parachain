@@ -1,35 +1,35 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 // std
-use std::{sync::Arc, time::Duration};
-use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
+use cumulus_client_cli::CollatorOptions;
 use cumulus_client_service::{
 	build_network, build_relay_chain_interface, prepare_node_config, start_collator,
 	start_full_node, BuildNetworkParams, StartCollatorParams, StartFullNodeParams,
 };
-use cumulus_client_cli::CollatorOptions;
+use frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE;
+use std::{sync::Arc, time::Duration};
 // Local Runtime Types
-use parachain_polkadex_runtime::{opaque::Block, Hash, RuntimeApi};
+use parachain_polkadex_runtime::{opaque::Block, RuntimeApi};
 
 // Cumulus Imports
 use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
 use cumulus_client_consensus_common::{
 	ParachainBlockImport as TParachainBlockImport, ParachainConsensus,
 };
-use cumulus_client_network::BlockAnnounceValidator;
+
 use cumulus_primitives_core::ParaId;
-use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface};
+use cumulus_relay_chain_interface::RelayChainInterface;
 
 // Substrate Imports
 use sc_consensus::ImportQueue;
 use sc_executor::NativeElseWasmExecutor;
-use sc_network::NetworkService;
+
 use sc_network::NetworkBlock;
+use sc_network_sync::SyncingService;
 use sc_service::{Configuration, PartialComponents, TFullBackend, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
 use sp_keystore::KeystorePtr;
 use substrate_prometheus_endpoint::Registry;
-use sc_network_sync::SyncingService;
 
 /// Native executor type.
 pub struct ParachainNativeExecutor;
@@ -162,8 +162,8 @@ async fn start_node_impl(
 		collator_options.clone(),
 		hwbench.clone(),
 	)
-		.await
-		.map_err(|e| sc_service::Error::Application(Box::new(e) as Box<_>))?;
+	.await
+	.map_err(|e| sc_service::Error::Application(Box::new(e) as Box<_>))?;
 
 	let force_authoring = parachain_config.force_authoring;
 	let validator = parachain_config.role.is_authority();
@@ -182,7 +182,7 @@ async fn start_node_impl(
 			relay_chain_interface: relay_chain_interface.clone(),
 			import_queue: params.import_queue,
 		})
-			.await?;
+		.await?;
 
 	if parachain_config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(
@@ -383,7 +383,7 @@ fn build_consensus(
 						&validation_data,
 						para_id,
 					)
-						.await;
+					.await;
 				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
 				let slot =

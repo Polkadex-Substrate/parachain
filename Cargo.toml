@@ -2,7 +2,7 @@
 panic = "unwind"
 
 [workspace]
-members = ["node", "runtime", "pallets/xcm-helper", "pallets/thea-council"]
+members = ["node", "runtime", "pallets/xcm-helper", "pallets/thea-council", "xcm-simulator"]
 
 [workspace.dependencies]
 parity-scale-codec = { version = "3.0.0", default-features = false, features = ["derive"] }

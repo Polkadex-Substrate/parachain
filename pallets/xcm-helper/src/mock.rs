@@ -170,13 +170,12 @@ parameter_type_with_key! {
 	};
 }
 
-use xcm_builder::FixedWeightBounds;
-use cumulus_primitives_core::Parachain;
-use cumulus_primitives_core::GlobalConsensus;
-use xcm_builder::test_utils::X2;
+use cumulus_primitives_core::{GlobalConsensus, InteriorMultiLocation, Parachain};
 use xcm::latest::MultiLocation;
-use cumulus_primitives_core::InteriorMultiLocation;
-use xcm_builder::test_utils::NetworkId;
+use xcm_builder::{
+	test_utils::{NetworkId, X2},
+	FixedWeightBounds,
+};
 
 parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
