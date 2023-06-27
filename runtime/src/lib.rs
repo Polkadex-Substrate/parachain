@@ -780,7 +780,6 @@ impl_runtime_apis! {
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmark!(list, extra, xcm_helper, XcmHelper);
 			list_benchmark!(list, extra, thea_council, TheaCouncil);
-			list_benchmark!(list, extra, pallet_amm, Swap);
 			list_benchmarks!(list, extra);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -815,7 +814,6 @@ impl_runtime_apis! {
 			let params = (&config, &whitelist);
 			add_benchmark!(params, batches, thea_council, TheaCouncil);
 			add_benchmark!(params, batches, xcm_helper, XcmHelper);
-			add_benchmark!(params, batches, pallet_amm, Swap);
 			add_benchmarks!(params, batches);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }

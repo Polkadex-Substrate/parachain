@@ -565,7 +565,6 @@ where
 		payment: AssetsXcm,
 	) -> sp_std::result::Result<AssetsXcm, XcmError> {
 		let fee_in_native_token = T::weight_to_fee(&weight);
-		panic!("here");
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
