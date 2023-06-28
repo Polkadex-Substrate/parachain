@@ -31,10 +31,9 @@ pallet-message-queue = { git = "https://github.com/paritytech/substrate", branch
 pallet-uniques = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 
 # ORML Pallets
-#TODO: Update these dependencies
-orml-xtokens = { git = "https://github.com/rakanalh/open-runtime-module-library.git", branch = "feature/update-polkadot-0.9.43" }
-orml-traits = { git = "https://github.com/rakanalh/open-runtime-module-library.git", branch = "feature/update-polkadot-0.9.43" }
-orml-xcm-support = { git = "https://github.com/rakanalh/open-runtime-module-library.git", branch = "feature/update-polkadot-0.9.43" }
+orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", rev = "28a2e6f", default-features = false }
+orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", rev = "28a2e6f", default-features = false }
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", rev = "28a2e6f", default-features = false }
 
 # Custom pallets
 xcm-helper = { path = "../pallets/xcm-helper" }

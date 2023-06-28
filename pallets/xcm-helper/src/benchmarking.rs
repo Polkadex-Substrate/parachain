@@ -20,10 +20,7 @@ use crate::Pallet as XcmHelper;
 use frame_benchmarking::{account, benchmarks};
 use frame_support::{
 	sp_runtime::SaturatedConversion,
-	traits::{
-		fungible::{Inspect as NativeInspect, Mutate as NativeMutate},
-		fungibles::{Inspect, Mutate},
-	},
+	traits::fungible::{Inspect as NativeInspect, Mutate as NativeMutate},
 };
 use frame_system::RawOrigin;
 

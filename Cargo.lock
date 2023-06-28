@@ -5737,7 +5737,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/rakanalh/open-runtime-module-library.git?branch=feature/update-polkadot-0.9.43#73f248b213bcec73d6a33d90c846df6d30a1f4c9"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=28a2e6f#28a2e6f0df9540d91db4018c7ecebb8bfc217a2a"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -5756,7 +5756,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/rakanalh/open-runtime-module-library.git?branch=feature/update-polkadot-0.9.43#73f248b213bcec73d6a33d90c846df6d30a1f4c9"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=28a2e6f#28a2e6f0df9540d91db4018c7ecebb8bfc217a2a"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -5770,7 +5770,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/rakanalh/open-runtime-module-library.git?branch=feature/update-polkadot-0.9.43#73f248b213bcec73d6a33d90c846df6d30a1f4c9"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=28a2e6f#28a2e6f0df9540d91db4018c7ecebb8bfc217a2a"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -5784,7 +5784,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/rakanalh/open-runtime-module-library.git?branch=feature/update-polkadot-0.9.43#73f248b213bcec73d6a33d90c846df6d30a1f4c9"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=28a2e6f#28a2e6f0df9540d91db4018c7ecebb8bfc217a2a"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
