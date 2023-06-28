@@ -93,14 +93,14 @@ impl SafeCallFilter {
 
 	/// Checks whether the base (non-composite) call is allowed to be executed via `Transact` XCM instruction.
 	pub fn allow_base_call(call: &RuntimeCall) -> bool {
-		match call {
+		matches! (call,
 			RuntimeCall::System(..) |
 			RuntimeCall::Balances(..) |
 			RuntimeCall::Assets(..) |
 			RuntimeCall::PolkadotXcm(..) |
 			RuntimeCall::Session(..) => true,
 			_ => false,
-		}
+		)
 	}
 	/// Checks whether composite call is allowed to be executed via `Transact` XCM instruction.
 	///
@@ -337,8 +337,7 @@ where
 					return Err(XcmError::Trap(1004))
 				};
 			self.weight = self.weight.saturating_add(weight);
-			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second
-			{
+			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second {
 				if old_asset_location == location {
 					self.consumed = self
 						.consumed

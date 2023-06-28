@@ -64,7 +64,7 @@ benchmarks! {
 		let b in 1 .. 1000;
 		let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
 		let asset = T::NativeAssetId::get();
-		T::Currency::mint_into(&pallet_account, 2_000_000_000_000_000u128.saturated_into());
+		T::Currency::mint_into(&pallet_account, 2_000_000_000_000_000u128.saturated_into()).unwrap();
 		let recipeint: T::AccountId = account("mem1", b, SEED);
 	}: _(RawOrigin::Root, recipeint.clone())
 	verify {
