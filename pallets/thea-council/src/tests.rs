@@ -41,8 +41,8 @@ fn test_add_member_returns_ok() {
 			new_member
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
-		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
-		<Proposals<Test>>::remove(proposal.clone());
+		assert!(pending_set.iter().any(|m| m.1 == new_member));
+		<Proposals<Test>>::remove(proposal);
 		assert!(!<Proposals<Test>>::contains_key(proposal));
 	})
 }
@@ -69,7 +69,7 @@ fn pending_council_member_cleaned_up_ok_test() {
 			new_member
 		));
 		let pending_set = <PendingCouncilMembers<Test>>::get();
-		assert!(pending_set.iter().find(|m| m.1 == new_member).is_some());
+		assert!(pending_set.iter().any(|m| m.1 == new_member));
 		// less than 24h
 		// we still have entry
 		let pending = <PendingCouncilMembers<Test>>::get();
@@ -175,7 +175,7 @@ fn get_expected_votes_test() {
 		for i in 2..11 {
 			// we start with 1 and it can go up to 10
 			let members_vec: Vec<u64> =
-				(1u64..=i).into_iter().enumerate().map(|(n, _)| n as u64 + 1).collect();
+				(1u64..=i).enumerate().map(|(n, _)| n as u64 + 1).collect();
 			let members = BoundedVec::try_from(members_vec).unwrap();
 			<ActiveCouncilMembers<Test>>::put(members.clone());
 			// we check if we have more than half of actual council members always

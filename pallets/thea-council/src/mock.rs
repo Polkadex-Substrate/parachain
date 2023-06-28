@@ -108,7 +108,7 @@ use frame_system::EnsureSigned;
 pub const TOKEN: u128 = 1_000_000_000_000;
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 1 * TOKEN;
+	pub const ExistentialDeposit: u128 = TOKEN;
 	pub const MaxLocks: u32 = 50;
 	pub const MaxReserves: u32 = 50;
 }
