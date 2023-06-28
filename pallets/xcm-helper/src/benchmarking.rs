@@ -20,15 +20,16 @@ use crate::Pallet as XcmHelper;
 use frame_benchmarking::{account, benchmarks};
 use frame_support::{
 	sp_runtime::SaturatedConversion,
-	traits::fungibles::{Inspect, Mutate},
+	traits::{
+		fungible::{Inspect as NativeInspect, Mutate as NativeMutate},
+		fungibles::{Inspect, Mutate},
+	},
 };
-use frame_support::traits::fungible::Mutate as NativeMutate;
 use frame_system::RawOrigin;
+use polkadex_primitives::Resolver;
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
-use frame_support::traits::fungible::Inspect as NativeInspect;
-use polkadex_primitives::Resolver;
 const SEED: u32 = 0;
 
 benchmarks! {
