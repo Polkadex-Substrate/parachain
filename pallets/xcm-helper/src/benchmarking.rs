@@ -26,7 +26,7 @@ use frame_support::{
 	},
 };
 use frame_system::RawOrigin;
-use polkadex_primitives::Resolver;
+
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
@@ -38,7 +38,7 @@ benchmarks! {
 		let token = b as u128;
 		let asset_location = MultiLocation::new(1, Junctions::X1(Junction::Parachain(b)));
 		let token: AssetId = AssetId::Concrete(asset_location);
-	}: _(RawOrigin::Root, token.clone())
+	}: _(RawOrigin::Root, token)
 	verify {
 		let token = XcmHelper::<T>::generate_asset_id_for_parachain(token);
 		let whitelisted_tokens = <WhitelistedTokens<T>>::get();
@@ -50,7 +50,7 @@ benchmarks! {
 		let token = b as u128;
 		let asset_location = MultiLocation::new(1, Junctions::X1(Junction::Parachain(b)));
 		let token: AssetId = AssetId::Concrete(asset_location);
-		let token_id = XcmHelper::<T>::generate_asset_id_for_parachain(token.clone());
+		let token_id = XcmHelper::<T>::generate_asset_id_for_parachain(token);
 		let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 		whitelisted_tokens.push(token_id);
 		<WhitelistedTokens<T>>::put(whitelisted_tokens);
