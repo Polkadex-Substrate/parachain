@@ -181,5 +181,5 @@ try-runtime = [
   "orml-xtokens/try-runtime",
   "thea-message-handler/try-runtime",
   "xcm-helper/try-runtime",
-  "thea-council/try-runtime"
+  "thea-council/try-runtime",
 ]

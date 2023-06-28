@@ -41,10 +41,7 @@ xcm-helper = { path = "../pallets/xcm-helper" }
 thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
 thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop" }
 [features]
-runtime-benchmarks = [
-    "pallet-xcm/runtime-benchmarks",
-    "xcm-builder/runtime-benchmarks"
-]
+runtime-benchmarks = ["pallet-xcm/runtime-benchmarks", "xcm-builder/runtime-benchmarks"]
 
 [lib]
 doctest = false
