@@ -18,19 +18,18 @@ use super::{
 	RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
 use crate::{
-	AllPalletsWithSystem, AssetHandlerPalletId, Balance, BlockNumber, PolkadexAssetid, XcmHelper,
+	AllPalletsWithSystem, Balance, PolkadexAssetid, XcmHelper,
 };
 use core::marker::PhantomData;
 use frame_support::{
 	match_types, parameter_types,
 	traits::{
-		fungibles::{Inspect, Mutate},
 		Contains, Everything, Nothing,
 	},
 	weights::WeightToFee as WeightToFeeT,
 };
 use frame_system::EnsureRoot;
-use log::error;
+
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
@@ -38,7 +37,7 @@ use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
 use sp_core::{ConstU32, Get};
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert, Zero},
+	traits::{Convert, Zero},
 	SaturatedConversion,
 };
 use sp_std::vec;
@@ -51,7 +50,7 @@ use xcm_builder::{
 	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{
-	traits::{ShouldExecute, WeightTrader, WithOriginFilter},
+	traits::{WeightTrader, WithOriginFilter},
 	Assets, XcmExecutor,
 };
 use xcm_helper::{AssetIdConverter, WhitelistedTokenHandler};
@@ -334,12 +333,12 @@ where
 		weight: Weight,
 		payment: Assets,
 	) -> sp_std::result::Result<Assets, XcmError> {
-		let fee_in_native_token = T::weight_to_fee(&weight);
+		let _fee_in_native_token = T::weight_to_fee(&weight);
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
 				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::Trap(1001))?;
-			let path = vec![PolkadexAssetid::get(), foreign_currency_asset_id];
+			let _path = vec![PolkadexAssetid::get(), foreign_currency_asset_id];
 			let (unused, expected_fee_in_foreign_currency) =
 				if WH::check_whitelisted_token(foreign_currency_asset_id) {
 					(payment, 0u128)
@@ -395,5 +394,5 @@ impl<Source: TryFrom<Dest> + Clone, Dest: TryFrom<Source> + Clone>
 pub struct RevenueCollector;
 
 impl TakeRevenue for RevenueCollector {
-	fn take_revenue(revenue: MultiAsset) {}
+	fn take_revenue(_revenue: MultiAsset) {}
 }
