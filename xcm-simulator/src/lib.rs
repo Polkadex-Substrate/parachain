@@ -17,7 +17,7 @@
 mod parachain;
 mod relay_chain;
 
-use crate::parachain::{System, XcmHelper};
+
 use frame_support::sp_tracing;
 use xcm::prelude::*;
 use xcm_executor::traits::Convert;
@@ -146,7 +146,7 @@ mod tests {
 
 	use frame_support::{assert_noop, assert_ok, PalletId};
 	use polkadot_core_primitives::AccountId;
-	use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
+	use xcm::{VersionedMultiAssets, VersionedMultiLocation};
 	use xcm_simulator::TestExt;
 
 	#[test]
@@ -158,7 +158,7 @@ mod tests {
 				1_000_000_000
 			);
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
 				1_000_000_000
 			);
 		});
@@ -189,8 +189,8 @@ mod tests {
 				999_000_000
 			);
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
-				1001_000_000
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
+				1_001_000_000
 			);
 		});
 	}
@@ -306,7 +306,7 @@ mod tests {
 				1_000_000_000
 			);
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
 				1_000_000_000
 			);
 		});
@@ -463,7 +463,7 @@ mod tests {
 		assert_ok!(Balances::force_set_balance(
 			RuntimeOrigin::root(),
 			account,
-			1 * 10_000_000_000_000_000u128
+			10_000_000_000_000_000u128
 		));
 	}
 

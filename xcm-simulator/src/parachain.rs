@@ -50,14 +50,13 @@ use sp_std::prelude::*;
 use thea_primitives::{AuthorityId, AuthoritySignature, Network};
 use xcm::{latest::prelude::*, VersionedXcm};
 use xcm_builder::{
-	Account32Hash, AccountId32Aliases, AllowUnpaidExecutionFrom, ConvertedConcreteId,
-	CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-	IsConcrete, NativeAsset, NoChecking, NonFungiblesAdapter, ParentIsPreset,
+	Account32Hash, AccountId32Aliases, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
+	FixedRateOfFungible, FixedWeightBounds, NativeAsset, ParentIsPreset,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
 	SovereignSignedViaLocation, TakeRevenue,
 };
 use xcm_executor::{
-	traits::{Convert as XCMConvert, JustTry, WeightTrader},
+	traits::{Convert as XCMConvert, WeightTrader},
 	Assets as AssetsXcm, Config, XcmExecutor,
 };
 use xcm_helper::{AssetIdConverter, WhitelistedTokenHandler};
@@ -180,9 +179,6 @@ parameter_types! {
 	pub ForeignPrefix: MultiLocation = (Parent,).into();
 }
 
-pub type LocalAssetTransactor =
-	(XcmCurrencyAdapter<Balances, IsConcrete<KsmLocation>, LocationToAccountId, AccountId, ()>,);
-
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
 pub type Barrier = AllowUnpaidExecutionFrom<Everything>;
 
@@ -299,7 +295,7 @@ pub mod mock_msg_queue {
 				Ok(xcm) => {
 					let location = (Parent, Parachain(sender.into()));
 					match T::XcmExecutor::execute_xcm(location, xcm, message_hash, max_weight) {
-						Outcome::Error(e) => (Err(e.clone()), Event::Fail(Some(hash), e)),
+						Outcome::Error(e) => (Err(e), Event::Fail(Some(hash), e)),
 						Outcome::Complete(w) => (Ok(w), Event::Success(Some(hash))),
 						// As far as the caller is concerned, this was dispatched without error, so
 						// we just report the weight used.
@@ -323,7 +319,7 @@ pub mod mock_msg_queue {
 				let _ = XcmpMessageFormat::decode(&mut data_ref)
 					.expect("Simulator encodes with versioned xcm format; qed");
 
-				let mut remaining_fragments = &data_ref[..];
+				let mut remaining_fragments = data_ref;
 				while !remaining_fragments.is_empty() {
 					if let Ok(xcm) =
 						VersionedXcm::<T::RuntimeCall>::decode(&mut remaining_fragments)
@@ -564,12 +560,12 @@ where
 		weight: Weight,
 		payment: AssetsXcm,
 	) -> sp_std::result::Result<AssetsXcm, XcmError> {
-		let fee_in_native_token = T::weight_to_fee(&weight);
+		let _fee_in_native_token = T::weight_to_fee(&weight);
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
-				AC::convert_location_to_asset_id(location.clone()).ok_or(XcmError::Trap(1001))?;
-			let path = vec![PolkadexAssetid::get(), foreign_currency_asset_id];
+				AC::convert_location_to_asset_id(location).ok_or(XcmError::Trap(1001))?;
+			let _path = vec![PolkadexAssetid::get(), foreign_currency_asset_id];
 			let (unused, expected_fee_in_foreign_currency) =
 				if WH::check_whitelisted_token(foreign_currency_asset_id) {
 					(payment, 0u128)
@@ -577,8 +573,7 @@ where
 					return Err(XcmError::Trap(1004))
 				};
 			self.weight = self.weight.saturating_add(weight);
-			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second.clone()
-			{
+			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second {
 				if old_asset_location == location {
 					self.consumed = self
 						.consumed
@@ -605,7 +600,7 @@ where
 	WH: WhitelistedTokenHandler,
 {
 	fn drop(&mut self) {
-		if let Some((asset_location, _)) = self.asset_location_and_units_per_second.clone() {
+		if let Some((asset_location, _)) = self.asset_location_and_units_per_second {
 			if self.consumed > 0 {
 				R::take_revenue((asset_location, self.consumed).into());
 			}
@@ -625,7 +620,7 @@ impl<Source: TryFrom<Dest> + Clone, Dest: TryFrom<Source> + Clone>
 pub struct RevenueCollector;
 
 impl TakeRevenue for RevenueCollector {
-	fn take_revenue(revenue: MultiAsset) {}
+	fn take_revenue(_revenue: MultiAsset) {}
 }
 
 use frame_support::weights::WeightToFeeCoefficient;
