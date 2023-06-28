@@ -12304,6 +12304,7 @@ dependencies = [
  "pallet-assets",
  "pallet-balances",
  "pallet-xcm",
+ "parachain-info",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
