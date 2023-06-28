@@ -93,13 +93,13 @@ impl SafeCallFilter {
 
 	/// Checks whether the base (non-composite) call is allowed to be executed via `Transact` XCM instruction.
 	pub fn allow_base_call(call: &RuntimeCall) -> bool {
-		matches! (call,
+		matches!(
+			call,
 			RuntimeCall::System(..) |
-			RuntimeCall::Balances(..) |
-			RuntimeCall::Assets(..) |
-			RuntimeCall::PolkadotXcm(..) |
-			RuntimeCall::Session(..) => true,
-			_ => false,
+				RuntimeCall::Balances(..) |
+				RuntimeCall::Assets(..) |
+				RuntimeCall::PolkadotXcm(..) |
+				RuntimeCall::Session(..)
 		)
 	}
 	/// Checks whether composite call is allowed to be executed via `Transact` XCM instruction.
