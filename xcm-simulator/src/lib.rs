@@ -17,7 +17,6 @@
 mod parachain;
 mod relay_chain;
 
-
 use frame_support::sp_tracing;
 use xcm::prelude::*;
 use xcm_executor::traits::Convert;
@@ -142,8 +141,8 @@ pub type ParachainPalletXcm = pallet_xcm::Pallet<parachain::Runtime>;
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::parachain::{System, XcmHelper};
 	use codec::Encode;
-
 	use frame_support::{assert_noop, assert_ok, PalletId};
 	use polkadot_core_primitives::AccountId;
 	use xcm::{VersionedMultiAssets, VersionedMultiLocation};
