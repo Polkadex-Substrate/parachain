@@ -6975,7 +6975,7 @@ dependencies = [
  "pallet-xcm",
  "parachain-info",
  "parity-scale-codec",
- "polkadex-primitives 1.1.0 (git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=zk-update-resolver)",
+ "polkadex-primitives",
  "polkadot-parachain",
  "polkadot-runtime-common",
  "scale-info",
@@ -7326,24 +7326,6 @@ dependencies = [
  "rust_decimal",
  "scale-info",
  "serde",
- "sp-application-crypto",
- "sp-core",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "polkadex-primitives"
-version = "1.1.0"
-source = "git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=zk-update-resolver#cd2b8a4508f79e6c9ab4aeefc559109b67ee2ed0"
-dependencies = [
- "anyhow",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "primitive-types",
- "rust_decimal",
- "scale-info",
  "sp-application-crypto",
  "sp-core",
  "sp-runtime",
@@ -12347,7 +12329,7 @@ dependencies = [
  "frame-system",
  "pallet-timestamp",
  "parity-scale-codec",
- "polkadex-primitives 1.1.0 (git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop)",
+ "polkadex-primitives",
  "scale-info",
  "sp-core",
  "sp-runtime",
@@ -12364,7 +12346,7 @@ dependencies = [
  "frame-support",
  "hex",
  "parity-scale-codec",
- "polkadex-primitives 1.1.0 (git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=Develop)",
+ "polkadex-primitives",
  "scale-info",
  "sp-api",
  "sp-application-crypto",
@@ -14313,7 +14295,7 @@ dependencies = [
  "pallet-balances",
  "pallet-xcm",
  "parity-scale-codec",
- "polkadex-primitives 1.1.0 (git+https://github.com/Polkadex-Substrate/Polkadex.git?branch=zk-update-resolver)",
+ "polkadex-primitives",
  "scale-info",
  "serde",
  "sp-core",
