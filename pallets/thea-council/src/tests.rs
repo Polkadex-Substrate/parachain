@@ -174,8 +174,7 @@ fn get_expected_votes_test() {
 		// at most 10 council members allowed
 		for i in 2..11 {
 			// we start with 1 and it can go up to 10
-			let members_vec: Vec<u64> =
-				(1u64..=i).enumerate().map(|(n, _)| n as u64 + 1).collect();
+			let members_vec: Vec<u64> = (1u64..=i).enumerate().map(|(n, _)| n as u64 + 1).collect();
 			let members = BoundedVec::try_from(members_vec).unwrap();
 			<ActiveCouncilMembers<Test>>::put(members.clone());
 			// we check if we have more than half of actual council members always

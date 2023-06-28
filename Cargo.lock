@@ -6965,6 +6965,7 @@ dependencies = [
  "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
+ "pallet-bags-list",
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-session",
