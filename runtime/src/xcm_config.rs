@@ -138,7 +138,6 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
 	pub const UnitWeightCost: XCMWeight = XCMWeight::from_parts(200_000_000, 0);
 	pub const MaxInstructions: u32 = 100;
 }
@@ -167,9 +166,9 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = XcmHelper;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
+	// Teleporting is disabled.
 	type IsTeleporter = ();
 	type UniversalLocation = UniversalLocation;
-	// Teleporting is disabled.
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader = (
