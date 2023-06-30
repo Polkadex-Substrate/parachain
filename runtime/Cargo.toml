@@ -33,6 +33,7 @@ pallet-aura = { workspace = true, default-features = false }
 pallet-authorship = { workspace = true, default-features = false }
 pallet-assets = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
+pallet-bags-list = { workspace = true, default-features = false, optional = true }
 pallet-session = { workspace = true, default-features = false }
 pallet-sudo = { workspace = true, default-features = false }
 pallet-timestamp = { workspace = true, default-features = false }
@@ -79,10 +80,6 @@ orml-xcm-support = { workspace = true, default-features = false }
 # Local
 xcm-helper = { path = "../pallets/xcm-helper", default-features = false }
 thea-council = { path = "../pallets/thea-council", default-features = false }
-pallet-amm = { workspace = true, default-features = false }
-support = { workspace = true, default-features = false }
-router = { workspace = true, default-features = false }
-asset-handler = { path = "../pallets/asset-handler", default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }
 polkadex-primitives = { workspace = true, default-features = false }
@@ -137,10 +134,6 @@ std = [
   "orml-xtokens/std",
   "orml-traits/std",
   "thea-council/std",
-  "pallet-amm/std",
-  "support/std",
-  "router/std",
-  "asset-handler/std",
   "orml-xcm-support/std",
   "thea-message-handler/std",
   "thea-primitives/std",
@@ -160,10 +153,8 @@ runtime-benchmarks = [
   "xcm-builder/runtime-benchmarks",
   "cumulus-pallet-session-benchmarking/runtime-benchmarks",
   "cumulus-pallet-xcmp-queue/runtime-benchmarks",
-  "pallet-amm/runtime-benchmarks",
   "xcm-helper/runtime-benchmarks",
   "thea-council/runtime-benchmarks",
-  "asset-handler/runtime-benchmarks",
 ]
 
 try-runtime = [
@@ -180,6 +171,7 @@ try-runtime = [
   "pallet-authorship/try-runtime",
   "pallet-assets/try-runtime",
   "pallet-balances/try-runtime",
+  "pallet-bags-list/try-runtime",
   "pallet-collator-selection/try-runtime",
   "pallet-session/try-runtime",
   "pallet-sudo/try-runtime",
@@ -189,11 +181,7 @@ try-runtime = [
   "parachain-info/try-runtime",
   "polkadot-runtime-common/try-runtime",
   "orml-xtokens/try-runtime",
-  "pallet-amm/try-runtime",
-  "support/try-runtime",
-  "router/try-runtime",
   "thea-message-handler/try-runtime",
   "xcm-helper/try-runtime",
   "thea-council/try-runtime",
-  "asset-handler/try-runtime",
 ]

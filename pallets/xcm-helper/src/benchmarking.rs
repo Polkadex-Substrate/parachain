@@ -20,9 +20,10 @@ use crate::Pallet as XcmHelper;
 use frame_benchmarking::{account, benchmarks};
 use frame_support::{
 	sp_runtime::SaturatedConversion,
-	traits::fungibles::{Inspect, Mutate},
+	traits::fungible::{Inspect as NativeInspect, Mutate as NativeMutate},
 };
 use frame_system::RawOrigin;
+
 use sp_core::Get;
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::{AssetId, Junction, Junctions, MultiLocation};
@@ -34,7 +35,7 @@ benchmarks! {
 		let token = b as u128;
 		let asset_location = MultiLocation::new(1, Junctions::X1(Junction::Parachain(b)));
 		let token: AssetId = AssetId::Concrete(asset_location);
-	}: _(RawOrigin::Root, token.clone())
+	}: _(RawOrigin::Root, token)
 	verify {
 		let token = XcmHelper::<T>::generate_asset_id_for_parachain(token);
 		let whitelisted_tokens = <WhitelistedTokens<T>>::get();
@@ -46,7 +47,7 @@ benchmarks! {
 		let token = b as u128;
 		let asset_location = MultiLocation::new(1, Junctions::X1(Junction::Parachain(b)));
 		let token: AssetId = AssetId::Concrete(asset_location);
-		let token_id = XcmHelper::<T>::generate_asset_id_for_parachain(token.clone());
+		let token_id = XcmHelper::<T>::generate_asset_id_for_parachain(token);
 		let mut whitelisted_tokens = <WhitelistedTokens<T>>::get();
 		whitelisted_tokens.push(token_id);
 		<WhitelistedTokens<T>>::put(whitelisted_tokens);
@@ -60,17 +61,12 @@ benchmarks! {
 		let b in 1 .. 1000;
 		let pallet_account: T::AccountId = T::AssetHandlerPalletId::get().into_account_truncating();
 		let asset = T::NativeAssetId::get();
-		T::AssetManager::mint_into(
-			asset,
-			&pallet_account,
-			2_000_000_000_000_000u128.saturated_into()
-		).unwrap();
+		T::Currency::mint_into(&pallet_account, 2_000_000_000_000_000u128.saturated_into()).unwrap();
 		let recipeint: T::AccountId = account("mem1", b, SEED);
 	}: _(RawOrigin::Root, recipeint.clone())
 	verify {
-		assert_eq!(T::AssetManager::balance(asset, &recipeint), 1999000000000000u128.saturated_into());
+		assert_eq!(T::Currency::balance(&recipeint), 1999000000000000u128.saturated_into());
 	}
-
 	// TODO: We need to adapt this benchmark to work in runtime context
 	// on_initialize {
 	// 	let x: T::BlockNumber = 1u64.saturated_into();
