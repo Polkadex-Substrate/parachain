@@ -177,7 +177,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadex-parachain"),
 	impl_name: create_runtime_str!("polkadex-parachain"),
 	authoring_version: 1,
-	spec_version: 2,
+	spec_version: 3,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -580,7 +580,7 @@ impl router::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TheaMaxAuthorities: u32 = 10;
+	pub const TheaMaxAuthorities: u32 = 200;
 }
 
 impl thea_message_handler::Config for Runtime {
