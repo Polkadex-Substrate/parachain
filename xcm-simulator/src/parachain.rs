@@ -47,7 +47,8 @@ use sp_runtime::{
 	AccountId32, SaturatedConversion,
 };
 use sp_std::prelude::*;
-use thea_primitives::{AuthorityId, AuthoritySignature, Network};
+use thea::ecdsa::{AuthorityId, AuthoritySignature};
+use thea_primitives::Network;
 use xcm::{latest::prelude::*, VersionedXcm};
 use xcm_builder::{
 	Account32Hash, AccountId32Aliases, AllowUnpaidExecutionFrom, EnsureXcmOrigin,

@@ -25,7 +25,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
-use thea_primitives::{AuthorityId, AuthoritySignature};
+use thea::ecdsa::{AuthorityId, AuthoritySignature};
 use xcm::lts::{
 	InteriorMultiLocation,
 	Junction::{GlobalConsensus, Parachain},
