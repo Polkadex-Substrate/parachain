@@ -3,7 +3,13 @@ panic = "unwind"
 
 [workspace]
 resolver = "2"
-members = ["node", "runtime", "pallets/xcm-helper", "pallets/thea-council", "xcm-simulator"]
+members = [
+    "node",
+    "runtime",
+    "pallets/xcm-helper",
+    "pallets/thea-council",
+#    "xcm-simulator"
+]
 
 [workspace.dependencies]
 parity-scale-codec = { version = "3.0.0", default-features = false, features = ["derive"] }
@@ -71,9 +77,10 @@ cumulus-primitives-timestamp = { git = "https://github.com/paritytech/cumulus.gi
 cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.43", default-features = false }
 pallet-collator-selection = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.43", default-features = false }
 parachain-info = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.43", default-features = false }
+substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 
 #Polkadex Dependecies
-polkadex-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
-thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
-thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "Develop", default-features = false }
-substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+polkadex-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
+thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
+thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
+thea = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
