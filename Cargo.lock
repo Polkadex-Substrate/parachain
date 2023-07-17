@@ -14329,6 +14329,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex",
  "orml-traits",
  "orml-xtokens",
  "pallet-assets",

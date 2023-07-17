@@ -41,6 +41,7 @@ orml-traits = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
 thea = {workspace = true, default-features = false}
+hex = "*"
 
 [features]
 default = ["std"]
