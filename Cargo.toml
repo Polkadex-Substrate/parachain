@@ -8,7 +8,8 @@ members = [
     "runtime",
     "pallets/xcm-helper",
     "pallets/thea-council",
-    "xcm-simulator"
+    #"xcm-simulator",
+    "pallets/thea-message-handler"
 ]
 
 [workspace.dependencies]
@@ -81,6 +82,6 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 
 #Polkadex Dependecies
 polkadex-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
-thea-message-handler = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
 thea-primitives = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
 thea = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }
+thea-executor = { git = "https://github.com/Polkadex-Substrate/Polkadex.git", branch = "gj/on-chain-validation", default-features = false }

@@ -80,7 +80,7 @@ orml-xcm-support = { workspace = true, default-features = false }
 # Local
 xcm-helper = { path = "../pallets/xcm-helper", default-features = false }
 thea-council = { path = "../pallets/thea-council", default-features = false }
-thea-message-handler = { workspace = true, default-features = false }
+thea-message-handler = { path = "../pallets/thea-message-handler", default-features = false }
 thea = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }
 polkadex-primitives = { workspace = true, default-features = false }

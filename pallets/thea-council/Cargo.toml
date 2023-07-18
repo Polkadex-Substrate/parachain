@@ -30,7 +30,7 @@ pallet-xcm = { workspace = true, default-features = false }
 xcm-builder = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
 pallet-assets = { workspace = true, default-features = false }
-thea-message-handler = { workspace = true, default-features = false }
+thea-message-handler = { path = "../thea-message-handler", default-features = false }
 parachain-info = { workspace = true, default-features = false }
 thea = { workspace = true, default-features = false }
 
