@@ -241,6 +241,14 @@ pub mod pallet {
 			<OutgoingNonce<T>>::put(nonce);
 			Ok(())
 		}
+
+		/// A governance endpoint to update outgoing nonces
+		#[pallet::call_index(4)]
+		#[pallet::weight(<T as Config>::WeightInfo::update_outgoing_nonce(1))]
+		#[transactional]
+		pub fn demo(origin: OriginFor<T>, nonce: u64) -> DispatchResult {
+			Ok(())
+		}
 	}
 }
 
