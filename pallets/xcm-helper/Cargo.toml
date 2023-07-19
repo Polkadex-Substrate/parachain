@@ -40,7 +40,7 @@ sp-runtime = { workspace = true, default-features = false }
 orml-traits = { workspace = true, default-features = false }
 pallet-balances = { workspace = true, default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
-thea = {workspace = true, default-features = false}
+thea = { workspace = true, default-features = false }
 hex = "*"
 
 [features]
@@ -65,6 +65,6 @@ std = [
   "orml-traits/std",
   "thea-primitives/std",
   "thea-message-handler/std",
-  "thea/std"
+  "thea/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
