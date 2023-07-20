@@ -33,7 +33,6 @@ use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::impls::ToAuthor;
 use sp_core::{ConstU32, Get};
 use sp_runtime::{traits::Convert, SaturatedConversion};
-use sp_std::vec;
 use xcm::latest::{prelude::*, Weight as XCMWeight, Weight};
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
