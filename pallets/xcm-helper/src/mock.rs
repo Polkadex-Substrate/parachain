@@ -25,7 +25,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
-use thea_primitives::{AuthorityId, AuthoritySignature};
+use thea::ecdsa::{AuthorityId, AuthoritySignature};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;

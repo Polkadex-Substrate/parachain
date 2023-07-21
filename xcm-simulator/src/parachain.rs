@@ -47,7 +47,8 @@ use sp_runtime::{
 	AccountId32, SaturatedConversion,
 };
 use sp_std::prelude::*;
-use thea_primitives::{AuthorityId, AuthoritySignature, Network};
+use thea::ecdsa::{AuthorityId, AuthoritySignature};
+use thea_primitives::Network;
 use xcm::{latest::prelude::*, VersionedXcm};
 use xcm_builder::{
 	Account32Hash, AccountId32Aliases, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
@@ -565,7 +566,7 @@ where
 		if let AssetId::Concrete(location) = payment_asset.id {
 			let foreign_currency_asset_id =
 				AC::convert_location_to_asset_id(location).ok_or(XcmError::Trap(1001))?;
-			let _path = vec![PolkadexAssetid::get(), foreign_currency_asset_id];
+			let _path = [PolkadexAssetid::get(), foreign_currency_asset_id];
 			let (unused, expected_fee_in_foreign_currency) =
 				if WH::check_whitelisted_token(foreign_currency_asset_id) {
 					(payment, 0u128)

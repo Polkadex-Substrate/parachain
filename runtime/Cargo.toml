@@ -81,12 +81,14 @@ orml-xcm-support = { workspace = true, default-features = false }
 xcm-helper = { path = "../pallets/xcm-helper", default-features = false }
 thea-council = { path = "../pallets/thea-council", default-features = false }
 thea-message-handler = { workspace = true, default-features = false }
+thea = { workspace = true, default-features = false }
 thea-primitives = { workspace = true, default-features = false }
 polkadex-primitives = { workspace = true, default-features = false }
 
 [features]
 default = ["std"]
 std = [
+  "thea/std",
   "parity-scale-codec/std",
   "log/std",
   "scale-info/std",

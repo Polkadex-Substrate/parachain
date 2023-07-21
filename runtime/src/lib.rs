@@ -53,7 +53,7 @@ pub use sp_runtime::BuildStorage;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
 use frame_support::traits::AsEnsureOriginWithArg;
-use thea_primitives::{AuthorityId, AuthoritySignature};
+use thea::ecdsa::{AuthorityId, AuthoritySignature};
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 // XCM Imports
