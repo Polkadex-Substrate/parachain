@@ -12,6 +12,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v1.1.0] - 2023-07-24
+
+### Added
+
+- Github workflow to publish binary on release ([#54])
+
+### Changed
+
+- Upgrade of Substrate stack dependencies to `0.9.43` ([#58])
+- Used Thea pallet for crypto operations ([#59])
+
+
 ## [v1.0.0] - 2023-05-25
 
 ### Added
@@ -35,8 +47,9 @@ All notable changes to this project will be documented in this file.
 - Bugs found during testing ([#23])
 - Code style ([#33], [#30], [#35], [#52])
 
-[unreleased]: https://github.com/Polkadex-Substrate/parachain/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/Polkadex-Substrate/parachain/compare/v1.1.0...HEAD
 [v1.0.0]: https://github.com/Polkadex-Substrate/parachain/compare/v0.1.0...v1.0.0
+[v1.1.0]: https://github.com/Polkadex-Substrate/parachain/compare/v1.0.0...v1.1.0
 
 [#3]: https://github.com/Polkadex-Substrate/parachain/pull/3
 [#6]: https://github.com/Polkadex-Substrate/parachain/pull/6
@@ -65,3 +78,6 @@ All notable changes to this project will be documented in this file.
 [#50]: https://github.com/Polkadex-Substrate/parachain/pull/50
 [#51]: https://github.com/Polkadex-Substrate/parachain/pull/51
 [#52]: https://github.com/Polkadex-Substrate/parachain/pull/52
+[#54]: https://github.com/Polkadex-Substrate/parachain/pull/54
+[#58]: https://github.com/Polkadex-Substrate/parachain/pull/58
+[#59]: https://github.com/Polkadex-Substrate/parachain/pull/59
