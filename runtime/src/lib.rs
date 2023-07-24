@@ -535,7 +535,7 @@ impl pallet_assets::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TheaMaxAuthorities: u32 = 10;
+	pub const TheaMaxAuthorities: u32 = 200;
 }
 
 impl thea_message_handler::Config for Runtime {
