@@ -5,7 +5,7 @@ on:
     types: [created]
 
 env:
-  RUNNER_INSTANCE_TYPE: c5d.9xlarge
+  RUNNER_INSTANCE_TYPE: c5d.4xlarge
 
 jobs:
   start-runner:
