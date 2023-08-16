@@ -14,23 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-mod mock_amm;
 mod parachain;
 mod relay_chain;
-#[allow(unused_imports)]
-use crate::parachain::{RuntimeEvent, System, XcmHelper};
-use frame_support::{sp_runtime::traits::AccountIdConversion, PalletId};
-use polkadot_parachain::primitives::Id as ParaId;
-#[allow(unused_imports)]
-use thea_primitives::types::{Deposit, Withdraw};
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
-pub const ASSET_HANDLER_PALLET_ID: PalletId = PalletId(*b"XcmHandl");
-pub const ALICE: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([
-	109, 111, 100, 108, 88, 99, 109, 72, 97, 110, 100, 108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0,
-]);
-pub const BOB: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([0; 32]);
+use frame_support::sp_tracing;
+use xcm::prelude::*;
+use xcm_executor::traits::Convert;
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
+
+pub const ALICE: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([0u8; 32]);
+pub const BOB: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([1u8; 32]);
 pub const INITIAL_BALANCE: u128 = 1_000_000_000;
 
 decl_test_parachain! {
@@ -54,7 +47,11 @@ decl_test_parachain! {
 decl_test_relay_chain! {
 	pub struct Relay {
 		Runtime = relay_chain::Runtime,
+		RuntimeCall = relay_chain::RuntimeCall,
+		RuntimeEvent = relay_chain::RuntimeEvent,
 		XcmConfig = relay_chain::XcmConfig,
+		MessageQueue = relay_chain::MessageQueue,
+		System = relay_chain::System,
 		new_ext = relay_ext(),
 	}
 }
@@ -69,21 +66,45 @@ decl_test_network! {
 	}
 }
 
-pub fn para_account_id(id: u32) -> relay_chain::AccountId {
-	ParaId::from(id).into_account_truncating()
+pub fn parent_account_id() -> parachain::AccountId {
+	let location = (Parent,);
+	parachain::LocationToAccountId::convert(location.into()).unwrap()
+}
+
+pub fn child_account_id(para: u32) -> relay_chain::AccountId {
+	let location = (Parachain(para),);
+	relay_chain::LocationToAccountId::convert(location.into()).unwrap()
+}
+
+pub fn child_account_account_id(para: u32, who: sp_runtime::AccountId32) -> relay_chain::AccountId {
+	let location = (Parachain(para), AccountId32 { network: None, id: who.into() });
+	relay_chain::LocationToAccountId::convert(location.into()).unwrap()
+}
+
+pub fn sibling_account_account_id(para: u32, who: sp_runtime::AccountId32) -> parachain::AccountId {
+	let location = (Parent, Parachain(para), AccountId32 { network: None, id: who.into() });
+	parachain::LocationToAccountId::convert(location.into()).unwrap()
+}
+
+pub fn parent_account_account_id(who: sp_runtime::AccountId32) -> parachain::AccountId {
+	let location = (Parent, AccountId32 { network: None, id: who.into() });
+	parachain::LocationToAccountId::convert(location.into()).unwrap()
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
-	use parachain::{MsgQueue, Runtime};
+	use parachain::{MsgQueue, Runtime, System};
 
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
 
-	pallet_balances::GenesisConfig::<Runtime> { balances: vec![(ALICE, INITIAL_BALANCE)] }
-		.assimilate_storage(&mut t)
-		.unwrap();
+	pallet_balances::GenesisConfig::<Runtime> {
+		balances: vec![(ALICE, INITIAL_BALANCE), (parent_account_id(), INITIAL_BALANCE)],
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
+		sp_tracing::try_init_simple();
 		System::set_block_number(1);
 		MsgQueue::set_para_id(para_id.into());
 	});
@@ -91,18 +112,26 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 }
 
 pub fn relay_ext() -> sp_io::TestExternalities {
-	use relay_chain::{Runtime, System};
+	use relay_chain::{Runtime, RuntimeOrigin, System, Uniques};
 
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
 
 	pallet_balances::GenesisConfig::<Runtime> {
-		balances: vec![(ALICE, INITIAL_BALANCE), (para_account_id(1), INITIAL_BALANCE)],
+		balances: vec![
+			(ALICE, INITIAL_BALANCE),
+			(child_account_id(1), INITIAL_BALANCE),
+			(child_account_id(2), INITIAL_BALANCE),
+		],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(t);
-	ext.execute_with(|| System::set_block_number(1));
+	ext.execute_with(|| {
+		System::set_block_number(1);
+		assert_eq!(Uniques::force_create(RuntimeOrigin::root(), 1, ALICE, true), Ok(()));
+		assert_eq!(Uniques::mint(RuntimeOrigin::signed(ALICE), 1, 42, child_account_id(1)), Ok(()));
+	});
 	ext
 }
 
@@ -112,11 +141,11 @@ pub type ParachainPalletXcm = pallet_xcm::Pallet<parachain::Runtime>;
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::parachain::{System, XcmHelper};
 	use codec::Encode;
-
-	use frame_support::{assert_noop, assert_ok};
+	use frame_support::{assert_noop, assert_ok, PalletId};
 	use polkadot_core_primitives::AccountId;
-	use xcm::{latest::prelude::*, VersionedMultiAssets, VersionedMultiLocation};
+	use xcm::{VersionedMultiAssets, VersionedMultiLocation};
 	use xcm_simulator::TestExt;
 
 	#[test]
@@ -124,11 +153,11 @@ mod tests {
 		MockNet::reset();
 		Relay::execute_with(|| {
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&child_account_id(1)),
 				1_000_000_000
 			);
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
 				1_000_000_000
 			);
 		});
@@ -137,12 +166,12 @@ mod tests {
 				id: AssetId::Concrete(Parent.into()),
 				fun: Fungibility::Fungible(1_000_000u128),
 			};
-			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
+			let multi_assets = VersionedMultiAssets::V3(MultiAssets::from(vec![multi_asset]));
 			let dest = MultiLocation::new(
 				1,
-				X1(Junction::AccountId32 { network: NetworkId::Any, id: ALICE.into() }),
+				X1(Junction::AccountId32 { network: None, id: ALICE.into() }),
 			);
-			let versioned_dest = VersionedMultiLocation::V1(dest);
+			let versioned_dest = VersionedMultiLocation::V3(dest);
 			create_asset();
 			mint_dot_token(ALICE);
 			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
@@ -155,12 +184,12 @@ mod tests {
 		});
 		Relay::execute_with(|| {
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&child_account_id(1)),
 				999_000_000
 			);
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
-				1001_000_000
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
+				1_001_000_000
 			);
 		});
 	}
@@ -170,7 +199,7 @@ mod tests {
 		MockNet::reset();
 		Relay::execute_with(|| {
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&child_account_id(1)),
 				1_000_000_000
 			);
 		});
@@ -190,20 +219,17 @@ mod tests {
 				id: AssetId::Concrete(Parent.into()),
 				fun: Fungibility::Fungible(1_000_000u128),
 			};
-			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
+			let multi_assets = VersionedMultiAssets::V3(MultiAssets::from(vec![multi_asset]));
 			let dest = MultiLocation::new(
 				1,
-				X2(
-					Parachain(2),
-					Junction::AccountId32 { network: NetworkId::Any, id: ALICE.into() },
-				),
+				X2(Parachain(2), Junction::AccountId32 { network: None, id: ALICE.into() }),
 			);
 
 			// Mint
 			create_asset();
 			mint_native_token(ALICE);
 			mint_dot_token(ALICE);
-			let versioned_dest = VersionedMultiLocation::V1(dest);
+			let versioned_dest = VersionedMultiLocation::V3(dest);
 			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
 				Some(ALICE).into(),
 				Box::from(multi_assets),
@@ -217,6 +243,7 @@ mod tests {
 		});
 
 		ParaB::execute_with(|| {
+			use parachain::{RuntimeEvent, System};
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
@@ -238,15 +265,12 @@ mod tests {
 				}),
 				fun: Fungibility::Fungible(1_000_000u128),
 			};
-			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
+			let multi_assets = VersionedMultiAssets::V3(MultiAssets::from(vec![multi_asset]));
 			let dest = MultiLocation::new(
 				1,
-				X2(
-					Parachain(2),
-					Junction::AccountId32 { network: NetworkId::Any, id: ALICE.into() },
-				),
+				X2(Parachain(2), Junction::AccountId32 { network: None, id: ALICE.into() }),
 			);
-			let versioned_dest = VersionedMultiLocation::V1(dest);
+			let versioned_dest = VersionedMultiLocation::V3(dest);
 
 			assert_ok!(orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
 				Some(ALICE).into(),
@@ -263,6 +287,7 @@ mod tests {
 		});
 
 		ParaB::execute_with(|| {
+			use parachain::{RuntimeEvent, System};
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
@@ -276,11 +301,11 @@ mod tests {
 		MockNet::reset();
 		Relay::execute_with(|| {
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&para_account_id(1)),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&child_account_id(1)),
 				1_000_000_000
 			);
 			assert_eq!(
-				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE.into()),
+				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
 				1_000_000_000
 			);
 		});
@@ -289,12 +314,10 @@ mod tests {
 				id: AssetId::Concrete(Parent.into()),
 				fun: Fungibility::Fungible(1_000_000u128),
 			};
-			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
-			let dest = MultiLocation::new(
-				1,
-				X1(Junction::AccountId32 { network: NetworkId::Any, id: BOB.into() }),
-			);
-			let versioned_dest = VersionedMultiLocation::V1(dest);
+			let multi_assets = VersionedMultiAssets::V3(MultiAssets::from(vec![multi_asset]));
+			let dest =
+				MultiLocation::new(1, X1(Junction::AccountId32 { network: None, id: BOB.into() }));
+			let versioned_dest = VersionedMultiLocation::V3(dest);
 			assert_noop!(
 				orml_xtokens::module::Pallet::<parachain::Runtime>::transfer_multiassets(
 					Some(BOB).into(),
@@ -316,13 +339,10 @@ mod tests {
 			let amount = 1_000_000_000_000u128;
 			let destination = MultiLocation {
 				parents: 0,
-				interior: Junctions::X1(Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: [1; 32],
-				}),
+				interior: Junctions::X1(Junction::AccountId32 { network: None, id: [1; 32] }),
 			};
 			let destination: VersionedMultiLocation = destination.into();
-			let asset_id = 100;
+			let asset_id = 1;
 			let pending_withdrawal = Withdraw {
 				id: Vec::new(),
 				asset_id,
@@ -331,6 +351,9 @@ mod tests {
 				is_blocked: false,
 				extra: vec![],
 			};
+			let assets_pallet_id: PalletId = frame_support::PalletId(*b"XcmHandl");
+			let pallet_id = assets_pallet_id.into_account_truncating();
+			mint_native_token(pallet_id);
 			XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
 			System::set_block_number(99);
 			run_to_block(100);
@@ -351,11 +374,9 @@ mod tests {
 			let amount = 1_000_000_000_000u128;
 			let destination = MultiLocation {
 				parents: 0,
-				interior: Junctions::X1(Junction::AccountId32 {
-					network: NetworkId::Any,
-					id: [1; 32],
-				}),
+				interior: Junctions::X1(Junction::AccountId32 { network: None, id: [1; 32] }),
 			};
+			let destination: VersionedMultiLocation = destination.into();
 			// Register Asset Id
 			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
 			let pending_withdrawal = Withdraw {
@@ -395,15 +416,12 @@ mod tests {
 				XcmHelper::multi_location_to_account_converter(other_chain);
 			mint_native_token(other_parachain_account);
 			create_non_native_asset();
-			let multi_assets = VersionedMultiAssets::V1(MultiAssets::from(vec![multi_asset]));
+			let multi_assets = VersionedMultiAssets::V3(MultiAssets::from(vec![multi_asset]));
 			let dest = MultiLocation::new(
 				1,
-				X2(
-					Parachain(2),
-					Junction::AccountId32 { network: NetworkId::Any, id: ALICE.into() },
-				),
+				X2(Parachain(2), Junction::AccountId32 { network: None, id: ALICE.into() }),
 			);
-			let versioned_dest = VersionedMultiLocation::V1(dest);
+			let versioned_dest = VersionedMultiLocation::V3(dest);
 			mint_non_native_token(ALICE);
 			//mint_native_token();
 
@@ -417,6 +435,7 @@ mod tests {
 		});
 
 		ParaB::execute_with(|| {
+			use parachain::{RuntimeEvent, System};
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
@@ -424,27 +443,26 @@ mod tests {
 		});
 	}
 
-	use crate::parachain::{AssetHandlerPalletId, AssetsPallet};
+	use crate::parachain::{AssetHandlerPalletId, Assets};
 	fn mint_dot_token(account: AccountId) {
 		use frame_support::traits::fungibles::Mutate;
 		let asset = AssetId::Concrete(Parent.into());
 		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
-		assert_ok!(AssetsPallet::mint_into(asset_id, &account, 100_000_000_000_000));
+		assert_ok!(Assets::mint_into(asset_id, &account, 100_000_000_000_000));
 	}
 
 	fn get_dot_balance(account: AccountId) -> u128 {
 		let asset = AssetId::Concrete(Parent.into());
 		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
-		AssetsPallet::balance(asset_id, &account)
+		Assets::balance(asset_id, &account)
 	}
 
 	use crate::parachain::{Balances, RuntimeOrigin};
 	fn mint_native_token(account: AccountId) {
-		assert_ok!(Balances::set_balance(
+		assert_ok!(Balances::force_set_balance(
 			RuntimeOrigin::root(),
 			account,
-			1 * 10_000_000_000_000_000u128,
-			0
+			10_000_000_000_000_000u128
 		));
 	}
 
@@ -454,7 +472,8 @@ mod tests {
 			interior: Junctions::X2(Parachain(1), Junction::GeneralIndex(100)),
 		});
 		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
-		assert_ok!(AssetsPallet::create(
+		mint_native_token(ALICE);
+		assert_ok!(Assets::create(
 			RuntimeOrigin::signed(ALICE),
 			codec::Compact(asset_id),
 			ALICE,
@@ -469,13 +488,14 @@ mod tests {
 			interior: Junctions::X2(Parachain(1), Junction::GeneralIndex(100)),
 		});
 		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
-		assert_ok!(AssetsPallet::mint_into(asset_id, &account, 100_000_000_000_000));
+		assert_ok!(Assets::mint_into(asset_id, &account, 100_000_000_000_000));
 	}
 
 	fn create_asset() {
 		let asset = AssetId::Concrete(Parent.into());
+		mint_native_token(ALICE);
 		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
-		assert_ok!(AssetsPallet::create(
+		assert_ok!(Assets::create(
 			RuntimeOrigin::signed(ALICE),
 			codec::Compact(asset_id),
 			ALICE,
@@ -485,7 +505,8 @@ mod tests {
 
 	fn create_parachain_a_asset() {
 		let asset_id = 156196688103131917113824807979374298996u128;
-		assert_ok!(AssetsPallet::create(
+		mint_native_token(ALICE);
+		assert_ok!(Assets::create(
 			RuntimeOrigin::signed(ALICE),
 			codec::Compact(asset_id),
 			ALICE,
@@ -496,7 +517,8 @@ mod tests {
 	fn create_dot_asset() {
 		let asset = AssetId::Concrete(Parent.into());
 		let asset_id = XcmHelper::generate_asset_id_for_parachain(asset);
-		assert_ok!(AssetsPallet::create(
+		mint_native_token(ALICE);
+		assert_ok!(Assets::create(
 			RuntimeOrigin::signed(ALICE),
 			codec::Compact(asset_id),
 			ALICE,
@@ -504,6 +526,8 @@ mod tests {
 		));
 	}
 	use frame_support::traits::{OnFinalize, OnInitialize};
+	use sp_runtime::traits::AccountIdConversion;
+	use thea_primitives::types::Withdraw;
 
 	pub fn run_to_block(n: u64) {
 		while System::block_number() < n {

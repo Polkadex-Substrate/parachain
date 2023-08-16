@@ -1,4 +1,7 @@
 [toolchain]
-channel = "nightly-2023-01-01"
+# Pinned version because of multiple compilation errors while use `polkadot-v0.9.43` branch of
+# "Substrate" with newer compiler versions.
+# FIXME: Migrate/bump version of "Substrate" and remove this version pin.
+channel = "nightly-2023-07-27"
 components = ["rustfmt", "clippy"]
 targets = ["wasm32-unknown-unknown"]

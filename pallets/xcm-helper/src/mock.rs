@@ -25,7 +25,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
-use thea_primitives::{AuthorityId, AuthoritySignature};
+use thea::ecdsa::{AuthorityId, AuthoritySignature};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -42,8 +42,7 @@ frame_support::construct_runtime!(
 		Assets: pallet_assets,
 		XcmHelper: xcm_helper,
 		TheaMessageHandler: thea_message_handler,
-		XToken: orml_xtokens,
-		AssetHandler: asset_handler
+		XToken: orml_xtokens
 	}
 );
 
@@ -95,6 +94,10 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
 	type RuntimeEvent = RuntimeEvent;
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = ();
+	type MaxFreezes = ();
 }
 
 parameter_types! {
@@ -107,6 +110,7 @@ impl thea_message_handler::Config for Test {
 	type Signature = AuthoritySignature;
 	type MaxAuthorities = TheaMaxAuthorities;
 	type Executor = XcmHelper;
+	type WeightInfo = thea_message_handler::weights::WeightInfo<Test>;
 }
 
 parameter_types! {
@@ -118,7 +122,9 @@ parameter_types! {
 impl xcm_helper::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = ();
-	type AssetManager = AssetHandler;
+	type Assets = Assets;
+	type AssetId = u128;
+	type Currency = Balances;
 	type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
 	type Executor = TheaMessageHandler;
 	type AssetHandlerPalletId = AssetHandlerPalletId;
@@ -164,16 +170,21 @@ parameter_type_with_key! {
 	};
 }
 
-use xcm_builder::{FixedWeightBounds, LocationInverter};
-
-use xcm::v1::MultiLocation;
+use cumulus_primitives_core::{GlobalConsensus, InteriorMultiLocation, Parachain};
+use xcm::latest::MultiLocation;
+use xcm_builder::{
+	test_utils::{NetworkId, X2},
+	FixedWeightBounds,
+};
 
 parameter_types! {
 	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
 	pub UnitWeightCost: u64 = 1_000_000_000;
 	pub const MaxInstructions: u32 = 100;
-	pub Ancestry: xcm::v1::MultiLocation = MultiLocation::default();
+	pub Ancestry: xcm::latest::MultiLocation = MultiLocation::default();
 	pub MaxAssetsForTransfer: usize = 2;
+	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
+	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(RelayNetwork::get()), Parachain(2040));
 }
 
 impl orml_xtokens::Config for Test {
@@ -188,19 +199,9 @@ impl orml_xtokens::Config for Test {
 	type MultiLocationsFilter = ();
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type BaseXcmWeight = ();
-	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type ReserveProvider = AbsoluteReserveProvider;
-}
-
-parameter_types! {
-	pub const NativeCurrencyId: u128 = 100;
-}
-
-impl asset_handler::Config for Test {
-	type Currency = Balances;
-	type MultiCurrency = Assets;
-	type NativeCurrencyId = NativeCurrencyId;
+	type UniversalLocation = UniversalLocation;
 }
 
 // Build genesis storage according to the mock runtime.
